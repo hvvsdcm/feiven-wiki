@@ -118,24 +118,30 @@ function skillsFor(cls, branch, awakened) {
 function pageHome() {
   const c = D.constants;
   const tiles = [
-    ['damage', 'calculator', '데미지 공식', '피해식·방어 감소·치명타와 직접 넣어 보는 계산기'],
-    ['drops', 'dices', '드랍률', `희귀 장비 확률, 불운 보정, 몬스터·상자·레이드 보상`],
-    ['classes', 'git-branch', '직업·전직', `직업 ${D.classes.length}개 · 전직 갈래 ${D.branches.length}개 · 각성`],
-    ['skills', 'sparkles', '스킬 도감', `스킬 ${D.skills.length}개 · 계수·쿨다운·MP`],
-    ['items', 'backpack', '아이템 도감', `아이템 ${D.items.length}개 · 획득처 역추적`],
-    ['mobs', 'skull', '몬스터 도감', `몬스터 ${D.mobs.length}종 · 드랍표`],
-    ['world', 'map', '지역·레이드', `섬 ${D.islands.length}곳 · 레이드 ${D.raids.length}개 · 퀘스트 ${D.quests.length}개`],
-    ['growth', 'trending-up', '성장·강화', '경험치 표 · 스탯 · 강화 확률과 기대 비용'],
+    ['damage', 'calculator', '#6ea8ff', '데미지 공식', '피해식과 직접 넣어 보는 계산기'],
+    ['drops', 'dices', '#ffb547', '드랍률', '희귀 장비 확률 · 불운 보정 · 상자'],
+    ['classes', 'git-branch', '#c29bff', '직업·전직', `직업 ${D.classes.length}개 · 전직 ${D.branches.length}갈래 · 각성`],
+    ['skills', 'sparkles', '#3fd08a', '스킬 도감', `스킬 ${D.skills.length}개 · 계수 · 쿨다운`],
+    ['items', 'backpack', '#ff8a4c', '아이템 도감', `아이템 ${D.items.length}개 · 얻는 곳`],
+    ['mobs', 'skull', '#ff6b6b', '몬스터 도감', `몬스터 ${D.mobs.length}종 · 드랍표`],
+    ['world', 'map', '#2dd4bf', '지역·레이드', `섬 ${D.islands.length}곳 · 레이드 ${D.raids.length}개 · 퀘스트 ${D.quests.length}개`],
+    ['growth', 'trending-up', '#f472b6', '성장·강화', '경험치 표 · 강화 기대 비용'],
   ];
+  const tries = ['불운 보정', '강화 성공률', '치명타', '크라켄', 'ㅎㄱㅅ'];
   const kv = [
     ['만렙', `Lv ${D.meta.maxLevel}`], ['1차 전직', `Lv ${c.advanceLevel}`], ['각성', `Lv ${c.awakenLevel}`], ['치명타 배율', `×${c.critMul}`],
     ['강화 한계', `+${c.enhanceMax}`], ['레벨당 스탯', `${c.statPointsPerLevel}점`], ['보스 전설 확률', pct(c.rareRoll.boss.legendary)], ['사망 후 부활', `${c.respawnSec}초`],
   ];
   return `
     <section class="hero" style="background-image:url('${esc(D.meta.hero ?? '')}')">
-      <div><h1>${esc(D.meta.game)} 위키</h1><p>게임 서버가 쓰는 데이터와 공식을 그대로 뽑아 만든 도감입니다. 숫자는 모두 실제 게임 값입니다.</p></div>
+      <div class="hero-in">
+        <h1>${esc(D.meta.game)} 위키</h1>
+        <p>공식·확률·도감을 실서버 게임 값 그대로 담았습니다.</p>
+        <div class="search" role="search">${icon('search')}<input id="hq" type="search" placeholder="아이템, 스킬, 몬스터, 공식 검색" autocomplete="off" spellcheck="false" aria-label="위키 검색" role="combobox" aria-autocomplete="list" aria-controls="hq-results" aria-expanded="false"><div id="hq-results" class="search-results" role="listbox" hidden></div></div>
+        <div class="chips hero-try"><span>이렇게 찾아보세요</span>${tries.map((t) => `<a class="chip" href="${searchHref(t)}">${esc(t)}</a>`).join('')}</div>
+      </div>
     </section>
-    <div class="grid g3">${tiles.map(([r, i, t, s]) => `<a class="tile" href="#/${r}">${icon(i)}<div><b>${t}</b><span>${s}</span></div></a>`).join('')}</div>
+    <div class="grid tiles">${tiles.map(([r, i, color, t, s]) => `<a class="tile" href="#/${r}" style="--tc:${color}"><span class="ti">${icon(i)}</span><div><b>${t}</b><span>${s}</span></div></a>`).join('')}</div>
     <h2>핵심 수치</h2>
     <dl class="kv">${kv.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>`;
 }
@@ -277,11 +283,11 @@ function renderCalc() {
         <label class="f">전직<select data-k="branch" ${canAdvance ? '' : 'disabled'}><option value="">견습${canAdvance ? '' : ` (Lv${D.constants.advanceLevel}부터)`}</option>${branches.map((b) => `<option value="${b.id}" ${b.id === calc.branch && canAdvance ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label>
       </div>
       <div>
-        <div class="row" style="justify-content:space-between;margin-bottom:6px"><b class="small">스탯 분배 <span class="muted">${used} / ${totalPts}점${used > totalPts ? ' · 초과' : ''}</span></b><button class="seg-btn chip gold" type="button" data-act="rec">추천대로 분배</button></div>
+        <div class="row" style="justify-content:space-between;margin-bottom:6px"><b class="small">스탯 분배 <span class="muted">${used} / ${totalPts}점${used > totalPts ? ' · 초과' : ''}</span></b><button class="chip accent" type="button" data-act="rec">추천대로 분배</button></div>
         <div class="row">${Object.keys(STAT).map((k) => `<label class="f">${STAT[k]}<input type="number" min="0" max="${totalPts}" value="${calc.alloc[k]}" data-stat="${k}"></label>`).join('')}</div>
       </div>
       <div>
-        <div class="row" style="justify-content:space-between;margin-bottom:6px"><b class="small">장비 <span class="muted">(오른쪽은 강화 단계)</span></b><button class="chip gold" type="button" data-act="gear">레벨에 맞는 상점 장비</button></div>
+        <div class="row" style="justify-content:space-between;margin-bottom:6px"><b class="small">장비 <span class="muted">(오른쪽은 강화 단계)</span></b><button class="chip accent" type="button" data-act="gear">레벨에 맞는 상점 장비</button></div>
         <div class="stack" style="--gap:6px">${EQUIP.map((kind) => {
           const g = calc.gear[kind] ?? { id: '', enh: 0 };
           return `<div class="gear-row"><span class="muted">${KIND[kind]}</span><select data-gear="${kind}"><option value="">없음</option>${gearOptions(kind).map((it) => `<option value="${it.id}" ${it.id === g.id ? 'selected' : ''}>${esc(it.name)} · ${rarName(it.rarity)} · Lv${it.reqLevel}${it.reqLevel > calc.level ? ' (착용 불가)' : ''}</option>`).join('')}</select><select data-enh="${kind}" aria-label="${KIND[kind]} 강화">${Array.from({ length: D.constants.enhanceMax + 1 }, (_, i) => `<option value="${i}" ${i === g.enh ? 'selected' : ''}>+${i}</option>`).join('')}</select></div>`;
@@ -430,7 +436,7 @@ function pageDrops() {
 
 // ── 페이지: 직업·전직 ──
 function passiveText(p) {
-  return Object.entries(p).map(([k, v]) => `<span class="chip gold">${PASSIVE[k][0]} +${v}${PASSIVE[k][1]}</span>`).join(' ');
+  return Object.entries(p).map(([k, v]) => `<span class="chip accent">${PASSIVE[k][0]} +${v}${PASSIVE[k][1]}</span>`).join(' ');
 }
 function pageClasses() {
   return `
@@ -455,7 +461,7 @@ function skillRow(s, compareTo) {
   if (!s) return '';
   const chips = [`<span class="chip">Lv${s.unlockLevel} 해금</span>`, `<span class="chip">${icon('clock')}${s.cdSec}초</span>`, `<span class="chip">${icon('droplet')}MP ${s.mpCost}</span>`];
   if (s.castSec) chips.push(`<span class="chip">시전 ${s.castSec}초</span>`);
-  if (s.awaken) chips.push('<span class="chip gold">각성</span>');
+  if (s.awaken) chips.push('<span class="chip accent">각성</span>');
   const base = compareTo && compareTo.id !== s.id ? `<div class="muted small">기본: ${esc(compareTo.name)}</div>` : '';
   return `<div class="skill-row" id="sk-${esc(s.id)}">${skillIcon(s)}<div><b>${esc(s.name)}</b> <span class="slot" title="슬롯">${s.slot}</span>${base}<div class="meta">${chips.join('')}</div><div class="small">${esc(s.desc)}</div><ul>${s.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></div></div>`;
 }
@@ -516,7 +522,7 @@ function bindSkills(focusId) {
   });
   if (focusId) {
     const el = document.getElementById(`sk-${focusId}`);
-    if (el) { el.scrollIntoView({ block: 'center' }); el.style.background = 'var(--gold-soft)'; el.style.borderRadius = '8px'; }
+    if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('focus'); }
   }
 }
 
@@ -540,8 +546,7 @@ function pageItems() {
 }
 function renderItemList() {
   const kinds = ITEM_GROUPS[itemState.group][1];
-  const q = itemState.q.trim().toLowerCase();
-  let list = D.items.filter((it) => (!kinds || kinds.includes(it.kind)) && (itemState.rarity === 'all' || it.rarity === itemState.rarity) && (itemState.cls === 'all' || !it.classId || it.classId === itemState.cls) && (!q || it.name.toLowerCase().includes(q)));
+  let list = D.items.filter((it) => (!kinds || kinds.includes(it.kind)) && (itemState.rarity === 'all' || it.rarity === itemState.rarity) && (itemState.cls === 'all' || !it.classId || it.classId === itemState.cls) && nameMatches(it.name, itemState.q));
   const key = itemState.sort;
   if (key === 'level') list = [...list].sort((a, b) => (a.reqLevel ?? 0) - (b.reqLevel ?? 0));
   else if (key !== 'default') list = [...list].sort((a, b) => (b[key] ?? 0) - (a[key] ?? 0));
@@ -596,7 +601,7 @@ function pageItem(id) {
   const chips = [`<span class="chip">${KIND[it.kind]}</span>`, `<span class="chip rar-${it.rarity}">${rarName(it.rarity)}</span>`, `<span class="chip">티어 ${it.tier}</span>`];
   if (it.reqLevel) chips.push(`<span class="chip">착용 Lv${it.reqLevel}</span>`);
   chips.push(`<span class="chip">${it.classId ? `${esc(classOf(it.classId).name)} 전용` : '공용'}</span>`);
-  if (it.bound) chips.push('<span class="chip gold">귀속</span>');
+  if (it.bound) chips.push('<span class="chip accent">귀속</span>');
   const stats = [['공격력', it.atk], ['방어력', it.def], ['HP', it.hp], ['올스탯', it.allStat], ['MP 회복', it.mp && `${it.mp}%`], ['구매가', it.price && fmt(it.price)], ['판매가', it.sell && fmt(it.sell)]].filter(([, v]) => v);
   let enh = '';
   if (equip) {
@@ -618,7 +623,7 @@ function pageItem(id) {
 }
 
 // ── 페이지: 몬스터 ──
-const mobState = { island: 'all', kind: 'all' };
+const mobState = { island: 'all', kind: 'all', q: '' };
 function pageMobs() {
   const places = [...D.islands.map((i) => [i.id, i.name]), ...D.raids.map((r) => [r.id, r.name])];
   return `
@@ -626,17 +631,19 @@ function pageMobs() {
     <div class="filters">
       <select data-f="island" aria-label="지역"><option value="all">모든 지역</option>${places.map(([id, n]) => `<option value="${id}" ${mobState.island === id ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
       <div class="seg" role="group" aria-label="종류" data-f="kind"><button type="button" data-v="all" aria-pressed="${mobState.kind === 'all'}">전체</button>${Object.entries(MOB_KIND).map(([k, n]) => `<button type="button" data-v="${k}" aria-pressed="${mobState.kind === k}">${n}</button>`).join('')}</div>
+      <input class="field" type="search" data-f="q" placeholder="이름으로 거르기 (초성 가능)" value="${esc(mobState.q)}" aria-label="몬스터 이름으로 거르기">
       <span class="count" id="mob-count"></span>
     </div>
     <div id="mob-list"></div>`;
 }
 function renderMobList() {
-  const list = D.mobs.filter((m) => (mobState.island === 'all' || m.islands.includes(mobState.island)) && (mobState.kind === 'all' || m.kind === mobState.kind)).sort((a, b) => a.level - b.level);
+  const list = D.mobs.filter((m) => (mobState.island === 'all' || m.islands.includes(mobState.island)) && (mobState.kind === 'all' || m.kind === mobState.kind) && nameMatches(m.name, mobState.q)).sort((a, b) => a.level - b.level);
   document.getElementById('mob-count').textContent = `${list.length}종`;
   document.getElementById('mob-list').innerHTML = table(['이름', '종류', { t: 'HP', c: 'r' }, { t: '공격력', c: 'r' }, { t: '방어력', c: 'r' }, { t: '경험치', c: 'r' }, '지역', '선공'], list.map((m) => tr([mobLink(m.id), MOB_KIND[m.kind], R(fmt(m.hp)), R(fmt(m.atk)), R(fmt(m.def)), R(fmt(m.exp)), m.islands.map(islandLink).join(', '), m.aggro === 'aggressive' ? '<span style="color:var(--bad)">선공</span>' : '<span class="muted">비선공</span>'])));
 }
 function bindMobs() {
   main.querySelector('select[data-f="island"]').addEventListener('input', (e) => { mobState.island = e.target.value; renderMobList(); });
+  main.querySelector('input[data-f="q"]').addEventListener('input', (e) => { mobState.q = e.target.value; renderMobList(); });
   const seg = main.querySelector('.seg[data-f="kind"]');
   seg.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-v]');
@@ -694,7 +701,7 @@ function pageWorld() {
             <h3>몬스터</h3>
             <ul class="plain">${normal.map((m) => `<li>${mobLink(m.id)}</li>`).join('')}
               ${elite ? `<li><span class="chip">정예</span> ${mobLink(elite.id)} · ${D.constants.elite.respawnSec / 60}분마다</li>` : ''}
-              ${isl.bossId ? `<li><span class="chip gold">필드 보스</span> ${mobLink(isl.bossId)} · ${D.constants.bossRespawnSec}초마다</li>` : ''}</ul>
+              ${isl.bossId ? `<li><span class="chip accent">필드 보스</span> ${mobLink(isl.bossId)} · ${D.constants.bossRespawnSec}초마다</li>` : ''}</ul>
             <h3 style="margin-top:12px">NPC</h3>
             <p class="small">${isl.npcs.map((n) => `${esc(n.name)} <span class="muted">(${ROLE[n.role] ?? n.role})</span>`).join(' · ')}</p>
             <p class="small muted">보물상자 ${isl.chests}개 · 상자 보상은 <a href="#/drops">드랍률</a> 참고</p>
@@ -751,10 +758,10 @@ function pageGrowth() {
     <h2>강화</h2>
     <p>대장장이에게서 +${c.enhanceMax}까지 올립니다. <b>장비가 부서지지는 않습니다.</b> 목표가 +4 이하면 실패해도 그대로, +5 이상이면 한 단계 내려갑니다.</p>
     <div class="filters"><label class="f">장비 티어(비용 기준)<select id="enh-tier">${[1, 2, 3, 4, 5, 6, 7, 8].map((t) => `<option value="${t}" ${t === growthState.tier ? 'selected' : ''}>티어 ${t}</option>`).join('')}</select></label></div>
-    <div id="enh-table"></div>
+    <div id="enh-table">${enhanceTable()}</div>
     <p class="muted small" style="margin-top:8px">기대값은 +0에서 시작해 그 단계에 처음 닿을 때까지의 평균입니다(실패로 내려간 뒤 다시 올리는 비용 포함). 비용은 50 × 티어 × (현재 단계 + 1) 베리, 목표 +8부터 강화석 2개입니다.</p>`;
 }
-function renderEnhance() {
+function enhanceTable() {
   const t = growthState.tier;
   let cumA = 0, cumG = 0, cumS = 0;
   const prev = { a: 0, g: 0, s: 0 };
@@ -770,10 +777,10 @@ function renderEnhance() {
     cumA += a; cumG += g; cumS += s;
     return tr([R(`+${e.from} → +${e.to}`), R(`${e.rate}%`), e.failTo === e.from ? '유지' : `<span style="color:var(--bad)">+${e.failTo}로 하락</span>`, R(fmt(cost)), R(e.stones), R(fmt(Math.round(cumA * 10) / 10)), R(fmt(Math.round(cumG))), R(fmt(Math.round(cumS * 10) / 10))]);
   });
-  document.getElementById('enh-table').innerHTML = table([{ t: '단계', c: 'r' }, { t: '성공률', c: 'r' }, '실패하면', { t: '1회 베리', c: 'r' }, { t: '강화석', c: 'r' }, { t: '누적 기대 시도', c: 'r' }, { t: '누적 기대 베리', c: 'r' }, { t: '누적 기대 강화석', c: 'r' }], rows);
+  return table([{ t: '단계', c: 'r' }, { t: '성공률', c: 'r' }, '실패하면', { t: '1회 베리', c: 'r' }, { t: '강화석', c: 'r' }, { t: '누적 기대 시도', c: 'r' }, { t: '누적 기대 베리', c: 'r' }, { t: '누적 기대 강화석', c: 'r' }], rows);
 }
 function bindGrowth() {
-  document.getElementById('enh-tier').addEventListener('input', (e) => { growthState.tier = Number(e.target.value); renderEnhance(); });
+  document.getElementById('enh-tier').addEventListener('input', (e) => { growthState.tier = Number(e.target.value); document.getElementById('enh-table').innerHTML = enhanceTable(); });
   const jump = document.getElementById('exp-jump');
   jump.addEventListener('input', () => {
     const lv = Math.min(D.meta.maxLevel, Math.max(1, Math.floor(Number(jump.value) || 1)));
@@ -785,7 +792,6 @@ function bindGrowth() {
     const wrap = document.getElementById('exp-wrap');
     wrap.scrollTop = row.offsetTop - wrap.clientHeight / 2;
   });
-  renderEnhance();
 }
 
 function notFound() {
@@ -793,61 +799,222 @@ function notFound() {
 }
 
 // ── 검색 ──
+// 이름(초성 포함)·설명·문서 본문을 한 색인에서 찾는다. 공백·기호는 무시한다(예: "크라켄송곳니", "ㅋㄹㅋ", "불운보정").
+const CHO = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+const FOLD_SKIP = /[\s·•,.()[\]'"‘’“”:/_~-]/;
+/** 검색용으로 접는다: 공백·기호를 빼고 소문자로(cho면 한글 음절을 초성으로). idx[i] = 접은 i번째 글자의 원래 위치 */
+function fold(s, cho = false) {
+  let t = '';
+  const idx = [];
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (FOLD_SKIP.test(ch)) continue;
+    const c = ch.charCodeAt(0);
+    t += cho && c >= 0xac00 && c <= 0xd7a3 ? CHO[Math.floor((c - 0xac00) / 588)] : ch.toLowerCase();
+    idx.push(i);
+  }
+  return { t, idx };
+}
+const isChoQuery = (t) => /^[ㄱ-ㅎ]+$/.test(t);
+/** 접은 문자열에서 질의가 걸리는 원래 구간 [시작, 끝) */
+function span(f, q) {
+  const at = f.t.indexOf(q);
+  return at < 0 ? null : [f.idx[at], f.idx[at + q.length - 1] + 1];
+}
+/** 이름 하나가 질의에 맞는지(목록 거르기용) */
+function nameMatches(name, raw) {
+  const q = fold(raw).t;
+  return !q || fold(name, isChoQuery(q)).t.includes(q);
+}
+function hl(s, sp) {
+  return sp ? `${esc(s.slice(0, sp[0]))}<mark>${esc(s.slice(sp[0], sp[1]))}</mark>${esc(s.slice(sp[1]))}` : esc(s);
+}
+function snippet(s, sp) {
+  const a = Math.max(0, sp[0] - 28);
+  const b = Math.min(s.length, sp[1] + 60);
+  return `${a ? '…' : ''}${hl(s.slice(a, b), [sp[0] - a, sp[1] - a])}${b < s.length ? '…' : ''}`;
+}
+
+/** 페이지 본문을 h2 단위 절로 나눈다(카드 안 h2 제외). 절 제목에 id를 붙이고 [{id, title, text}]를 돌려준다 */
+function sectionize(root) {
+  const out = [{ id: '', title: '', text: '' }];
+  let n = 0;
+  for (const el of root.children) {
+    if (el.tagName === 'H2') {
+      el.id ||= `sec-${n}`;
+      n++;
+      out.push({ id: el.id, title: el.textContent.trim(), text: '' });
+    } else if (!el.classList.contains('page-head') && !el.classList.contains('toc')) out[out.length - 1].text += textOf(el);
+  }
+  for (const s of out) s.text = s.text.replace(/\s+/g, ' ').trim();
+  return out;
+}
+/** 표 칸·목록 항목 사이에 공백을 넣어 읽은 본문(textContent는 칸끼리 붙여 버린다) */
+function textOf(root) {
+  const w = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+  let s = ' ';
+  for (let n = w.currentNode; n; n = w.nextNode()) s += n.nodeType === Node.TEXT_NODE ? n.nodeValue : /^(TD|TH|LI|P|DIV|BR|TR|DT|DD|H3)$/.test(n.tagName) ? ' ' : '';
+  return s;
+}
+
+const GROUPS = ['문서', '직업', '전직', '스킬', '아이템', '몬스터', '지역', '레이드', '퀘스트', 'NPC'];
 let searchIndex = [];
 function buildSearch() {
-  searchIndex = [
-    ...D.items.map((it) => ({ name: it.name, href: `#/items/${it.id}`, kind: `${rarName(it.rarity)} ${KIND[it.kind]}`, icon: itemIcon(it, 'sm'), cls: `rar-${it.rarity}` })),
-    ...D.skills.map((s) => ({ name: s.name, href: `#/skills/${s.id}`, kind: `${classOf(s.classId).name}${s.branchId ? `·${M.branches.get(s.branchId).name}` : ''} 스킬`, icon: skillIcon(s, 'sm') })),
-    ...D.mobs.map((m) => ({ name: m.name, href: `#/mobs/${m.id}`, kind: `${MOB_KIND[m.kind]} Lv${m.level}`, icon: `<span class="ico sm ph">${icon('skull')}</span>` })),
-    ...D.classes.map((c) => ({ name: c.name, href: `#/classes/${c.id}`, kind: '직업', icon: c.icon ? `<img class="ico sm" src="${esc(c.icon)}" alt="">` : '' })),
-    ...D.branches.map((b) => ({ name: b.name, href: `#/classes/${b.classId}#br-${b.id}`, kind: `${classOf(b.classId).name} 전직`, icon: `<span class="ico sm ph">${icon('git-branch')}</span>` })),
-    ...D.islands.map((i) => ({ name: i.name, href: `#/world#isl-${i.id}`, kind: `섬 Lv${i.levelRange[0]}~${i.levelRange[1]}`, icon: `<span class="ico sm ph">${icon('map')}</span>` })),
-    ...D.raids.map((r) => ({ name: r.name, href: `#/world#raid-${r.id}`, kind: '레이드', icon: `<span class="ico sm ph">${icon('crown')}</span>` })),
-  ];
+  const ph = (name) => `<span class="ico sm ph">${icon(name)}</span>`;
+  const entries = [];
+  const add = (group, name, href, kind, iconHtml, text = '', keys = '', cls = '') => entries.push({ group, name, href, kind, icon: iconHtml, text, cls, keys: fold(keys).t, nameF: fold(name), nameC: fold(name, true), textF: fold(text) });
+  for (const [page, fn] of [['damage', pageDamage], ['drops', pageDrops], ['growth', pageGrowth], ['classes', pageClasses]]) {
+    const body = new DOMParser().parseFromString(`<body>${fn()}</body>`, 'text/html').body;
+    for (const s of sectionize(body)) add('문서', s.title || TITLES[page], s.id ? `#/${page}#${s.id}` : `#/${page}`, TITLES[page], ph('scroll-text'), s.text, TITLES[page]);
+  }
+  for (const c of D.classes) add('직업', c.name, `#/classes/${c.id}`, `직업 · ${c.role}`, c.icon ? `<img class="ico sm" src="${esc(c.icon)}" alt="">` : ph('shield'), '', '직업');
+  for (const b of D.branches) add('전직', b.name, `#/classes/${b.classId}#br-${b.id}`, `${classOf(b.classId).name} 전직`, ph('git-branch'), b.concept, `${classOf(b.classId).name}전직`);
+  for (const s of D.skills) add('스킬', s.name, `#/skills/${s.id}`, `${classOf(s.classId).name}${s.branchId ? `·${M.branches.get(s.branchId).name}` : ''} 스킬`, skillIcon(s, 'sm'), [s.desc, ...s.lines].join(' · '), `${classOf(s.classId).name}${s.branchId ? M.branches.get(s.branchId).name : ''}스킬`);
+  for (const it of D.items) add('아이템', it.name, `#/items/${it.id}`, `${rarName(it.rarity)} ${KIND[it.kind]}${it.reqLevel ? ` · Lv${it.reqLevel}` : ''}`, itemIcon(it, 'sm'), it.desc, `${rarName(it.rarity)}${KIND[it.kind]}${it.classId ? classOf(it.classId).name : '공용'}`, `rar-${it.rarity}`);
+  for (const m of D.mobs) add('몬스터', m.name, `#/mobs/${m.id}`, `${MOB_KIND[m.kind]} · Lv${m.level}`, ph(m.kind === 'field' ? 'skull' : 'crown'), m.islands.map(islandName).join(', '), `${MOB_KIND[m.kind]}몬스터`);
+  for (const i of D.islands) {
+    add('지역', i.name, `#/world#isl-${i.id}`, `섬 · Lv${i.levelRange[0]}~${i.levelRange[1]}`, ph('map'), '', '섬지역');
+    for (const n of i.npcs) add('NPC', n.name, `#/world#isl-${i.id}`, `${i.name} · ${ROLE[n.role] ?? n.role}`, ph('info'), '', `npc${ROLE[n.role] ?? ''}`);
+    for (const qid of i.quests) {
+      const q = M.quests.get(qid);
+      if (q) add('퀘스트', q.name, `#/world#isl-${i.id}`, `${i.name} 퀘스트 · Lv${q.minLevel}`, ph('scroll-text'), '', '퀘스트');
+    }
+  }
+  for (const r of D.raids) add('레이드', r.name, `#/world#raid-${r.id}`, `레이드 · 입장 Lv${r.minLevel}`, ph('crown'), r.phases.map((p) => p.label).join(' · '), '레이드');
+  searchIndex = entries;
 }
-function initSearch() {
-  const input = document.getElementById('q');
-  const box = document.getElementById('q-results');
+/** 점수 높은 순 [{e, name, snip}] — 이름 > 분류어 > 본문 */
+function search(raw) {
+  const q = fold(raw).t;
+  if (!q) return [];
+  const cho = isChoQuery(q);
+  const terms = raw.trim().split(/\s+/).map((w) => fold(w).t).filter(Boolean);
+  const hits = [];
+  for (const e of searchIndex) {
+    const f = cho ? e.nameC : e.nameF;
+    const sp = span(f, q);
+    let score;
+    let snip = null;
+    if (sp) score = (f.t === q ? 100 : f.t.startsWith(q) ? 80 : 60) - (cho ? 5 : 0);
+    else if (cho) continue;
+    else if (e.keys.includes(q)) score = 30;
+    else if (q.length >= 2 && (snip = span(e.textF, q))) score = 20;
+    else if (terms.length > 1 && terms.every((t) => e.nameF.t.includes(t) || e.keys.includes(t) || e.textF.t.includes(t))) {
+      // 띄어 쓴 낱말이 모두 들어 있으면(순서·붙어 있음 무관) 가장 낮은 점수로 잡는다
+      score = 10;
+      snip = terms.map((t) => span(e.textF, t)).find(Boolean) ?? null;
+    }
+    else continue;
+    hits.push({ e, name: sp, snip, score });
+  }
+  return hits.sort((a, b) => b.score - a.score || GROUPS.indexOf(a.e.group) - GROUPS.indexOf(b.e.group) || a.e.name.length - b.e.name.length);
+}
+function hitBody(h) {
+  return `${h.e.icon}<span class="sr-main"><span class="nm ${h.e.cls}">${hl(h.e.name, h.name)}</span>${h.snip ? `<span class="snip">${snippet(h.e.text, h.snip)}</span>` : ''}</span><span class="kind">${esc(h.e.kind)}</span>`;
+}
+const searchHref = (q) => `#/search/${encodeURIComponent(q.trim())}`;
+
+/** 검색창 하나(상단·홈)에 자동완성 목록을 붙인다 */
+function attachSearch(input, box) {
   let sel = -1;
-  let hits = [];
-  const close = () => { box.hidden = true; input.setAttribute('aria-expanded', 'false'); sel = -1; };
+  let links = [];
+  const close = () => { box.hidden = true; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); sel = -1; };
   const paint = () => {
-    box.querySelectorAll('a').forEach((a, i) => a.setAttribute('aria-selected', String(i === sel)));
+    links.forEach((a, i) => a.setAttribute('aria-selected', String(i === sel)));
+    if (sel >= 0) input.setAttribute('aria-activedescendant', links[sel].id);
   };
+  const go = (href) => { location.hash = href; input.value = ''; close(); input.blur(); };
   input.addEventListener('input', () => {
-    const q = input.value.trim().toLowerCase().replace(/\s+/g, '');
+    const q = input.value.trim();
     if (!q) return close();
-    hits = searchIndex.filter((e) => e.name.toLowerCase().replace(/\s+/g, '').includes(q))
-      .sort((a, b) => Number(!a.name.toLowerCase().startsWith(q)) - Number(!b.name.toLowerCase().startsWith(q)) || a.name.length - b.name.length)
-      .slice(0, 12);
-    box.innerHTML = hits.length ? hits.map((h, i) => `<a role="option" id="qr-${i}" href="${h.href}" class="${h.cls ?? ''}">${h.icon}<span>${esc(h.name)}</span><span class="kind">${esc(h.kind)}</span></a>`).join('') : '<div class="empty">결과가 없습니다.</div>';
+    const hits = search(q);
+    box.innerHTML = hits.length
+      ? `${hits.slice(0, 8).map((h, i) => `<a role="option" id="${box.id}-${i}" href="${h.e.href}">${hitBody(h)}</a>`).join('')}<a role="option" id="${box.id}-all" class="more" href="${searchHref(q)}">${icon('search')}<span class="sr-main"><span class="nm">‘${esc(q)}’ 전체 결과 보기</span></span><span class="kind">${hits.length}개</span></a>`
+      : `<div class="empty">‘${esc(q)}’에 맞는 결과가 없습니다. 초성(예: ㅋㄹㅋ)이나 다른 낱말로 찾아보세요.</div>`;
+    links = [...box.querySelectorAll('a')];
     box.hidden = false;
     input.setAttribute('aria-expanded', 'true');
-    sel = hits.length ? 0 : -1;
+    sel = links.length ? 0 : -1;
     paint();
   });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      if (!hits.length) return;
+      if (box.hidden || !links.length) return;
       e.preventDefault();
-      sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + hits.length) % hits.length;
+      sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + links.length) % links.length;
       paint();
-      box.querySelector(`#qr-${sel}`)?.scrollIntoView({ block: 'nearest' });
-    } else if (e.key === 'Enter' && sel >= 0 && hits[sel]) {
-      location.hash = hits[sel].href;
-      input.value = '';
-      close();
-      input.blur();
+      links[sel].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (!box.hidden && sel >= 0) go(links[sel].getAttribute('href'));
+      else if (input.value.trim()) go(searchHref(input.value));
     } else if (e.key === 'Escape') {
       close();
       input.blur();
     }
   });
-  box.addEventListener('click', () => { input.value = ''; close(); });
-  document.addEventListener('click', (e) => { if (!e.target.closest('.search')) close(); });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === '/' && !['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) { e.preventDefault(); input.focus(); }
+  box.addEventListener('click', (e) => { if (e.target.closest('a')) { input.value = ''; close(); } });
+}
+function initSearch() {
+  const input = document.getElementById('q');
+  attachSearch(input, document.getElementById('q-results'));
+  // 검색창 밖을 누르면 열린 자동완성 목록을 닫는다(홈 검색창도 같은 규칙)
+  document.addEventListener('click', (e) => {
+    for (const box of document.querySelectorAll('.search-results:not([hidden])')) {
+      if (box.parentElement.contains(e.target)) continue;
+      box.hidden = true;
+      box.parentElement.querySelector('input')?.setAttribute('aria-expanded', 'false');
+    }
   });
+  document.addEventListener('keydown', (e) => {
+    const typing = ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName);
+    if ((e.key === '/' && !typing) || (e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey))) {
+      e.preventDefault();
+      (document.getElementById('hq') ?? input).focus();
+    }
+  });
+}
+
+// ── 페이지: 검색 결과 ──
+const searchState = { group: 'all' };
+function pageSearch(q) {
+  return `
+    ${head('검색')}
+    <div class="search big" role="search">${icon('search')}<input id="sq" type="search" value="${esc(q ?? '')}" placeholder="아이템·스킬·몬스터·공식을 찾아보세요 (초성도 됩니다)" autocomplete="off" spellcheck="false" aria-label="위키 검색"></div>
+    <div class="filters" id="sr-groups"></div>
+    <div id="sr-list"></div>`;
+}
+function renderSearch() {
+  const q = document.getElementById('sq').value;
+  const hits = search(q);
+  const counts = new Map();
+  for (const h of hits) counts.set(h.e.group, (counts.get(h.e.group) ?? 0) + 1);
+  if (searchState.group !== 'all' && !counts.has(searchState.group)) searchState.group = 'all';
+  const shown = searchState.group === 'all' ? hits : hits.filter((h) => h.e.group === searchState.group);
+  document.getElementById('sr-groups').innerHTML = hits.length
+    ? `<div class="seg" role="group" aria-label="분류"><button type="button" data-g="all" aria-pressed="${searchState.group === 'all'}">전체<span class="n">${hits.length}</span></button>${GROUPS.filter((g) => counts.has(g)).map((g) => `<button type="button" data-g="${g}" aria-pressed="${searchState.group === g}">${g}<span class="n">${counts.get(g)}</span></button>`).join('')}</div>`
+    : '';
+  document.getElementById('sr-list').innerHTML = !fold(q).t
+    ? '<div class="empty-state">찾을 낱말을 입력하세요. 예: 크라켄, 불운 보정, 강화 확률, ㅎㄱㅅ</div>'
+    : shown.length
+      ? `<ul class="sr-list">${shown.slice(0, 200).map((h) => `<li><a class="sr-row" href="${h.e.href}">${hitBody(h)}</a></li>`).join('')}</ul>`
+      : `<div class="empty-state">‘${esc(q)}’에 맞는 결과가 없습니다.</div>`;
+}
+function bindSearch() {
+  const input = document.getElementById('sq');
+  input.addEventListener('input', () => {
+    history.replaceState(null, '', input.value.trim() ? searchHref(input.value) : '#/search');
+    lastPath = `search/${input.value.trim()}`;
+    renderSearch();
+  });
+  document.getElementById('sr-groups').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-g]');
+    if (!b) return;
+    searchState.group = b.dataset.g;
+    renderSearch();
+  });
+  renderSearch();
+  if (!input.value) input.focus();
 }
 
 // ── 메뉴(모바일) ──
@@ -873,9 +1040,9 @@ function parseHash() {
   const raw = location.hash.replace(/^#\/?/, '');
   const [path, anchor] = raw.split('#');
   const [page = '', id] = path.split('/').map(decodeURIComponent);
-  return { page, id, anchor };
+  return { page, id, anchor: anchor && decodeURIComponent(anchor) };
 }
-const TITLES = { '': '홈', damage: '데미지 공식', drops: '드랍률', classes: '직업·전직', skills: '스킬 도감', items: '아이템 도감', mobs: '몬스터 도감', world: '지역·레이드', growth: '성장·강화' };
+const TITLES = { '': '홈', damage: '데미지 공식', drops: '드랍률', classes: '직업·전직', skills: '스킬 도감', items: '아이템 도감', mobs: '몬스터 도감', world: '지역·레이드', growth: '성장·강화', search: '검색' };
 let lastPath = null;
 function render() {
   const { page, id, anchor } = parseHash();
@@ -884,7 +1051,8 @@ function render() {
   let after = () => {};
   let title = TITLES[page];
   switch (page) {
-    case '': html = pageHome(); break;
+    case '': html = pageHome(); after = () => attachSearch(document.getElementById('hq'), document.getElementById('hq-results')); break;
+    case 'search': html = pageSearch(id); after = bindSearch; title = id ? `‘${id}’ 검색` : '검색'; break;
     case 'damage': html = pageDamage(); after = bindCalc; break;
     case 'drops': html = pageDrops(); break;
     case 'classes': html = id ? pageClass(id) : pageClasses(); if (id) title = classOf(id)?.name; break;
@@ -897,6 +1065,11 @@ function render() {
   }
   main.innerHTML = html;
   after();
+  // 절이 3개 이상인 문서 페이지는 머리 아래에 절 바로가기를 단다(검색의 문서 결과도 같은 id로 연결된다)
+  if (!id && page !== 'search') {
+    const secs = sectionize(main).filter((s) => s.id);
+    if (secs.length >= 3) main.querySelector('.page-head')?.insertAdjacentHTML('afterend', `<nav class="toc" aria-label="이 페이지 목차">${secs.map((s) => `<a href="#/${page}#${s.id}">${esc(s.title)}</a>`).join('')}</nav>`);
+  }
   document.title = `${title ? `${title} · ` : ''}${D.meta.title}`;
   document.querySelectorAll('.nav a').forEach((a) => {
     if (a.dataset.route === page) a.setAttribute('aria-current', 'page');
@@ -904,7 +1077,7 @@ function render() {
   });
   if (anchor) document.getElementById(anchor)?.scrollIntoView();
   else if (path !== lastPath && !(page === 'skills' && id)) window.scrollTo(0, 0);
-  if (path !== lastPath) main.focus({ preventScroll: true });
+  if (path !== lastPath && page !== 'search') main.focus({ preventScroll: true });
   lastPath = path;
 }
 
@@ -920,7 +1093,7 @@ async function start() {
   for (const k of ['items', 'skills', 'mobs', 'classes', 'branches', 'islands', 'raids', 'quests']) M[k] = new Map(D[k].map((x) => [x.id, x]));
   document.getElementById('play').href = D.meta.gameUrl;
   const built = new Date(D.meta.builtAt);
-  document.getElementById('build-info').textContent = `게임 데이터 ${D.meta.commit} 기준 · ${built.toLocaleDateString('ko-KR')} 생성`;
+  document.getElementById('build-info').textContent = `실서버 게임 데이터(${D.meta.commit}) 기준 · ${built.toLocaleDateString('ko-KR')} 갱신`;
   resetCalcFor('knight');
   buildSearch();
   initSearch();
