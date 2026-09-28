@@ -19,7 +19,7 @@ const icon = (name, cls = 'i') => `<svg class="${cls}" aria-hidden="true"><use h
 const KIND = { weapon: '무기', helmet: '투구', armor: '갑옷', gloves: '장갑', boots: '신발', accessory: '목걸이', ring: '반지', potion: '회복 물약', mp_potion: '마나 물약', scroll: '두루마리', material: '재료', box: '상자', boost: '부스트' };
 const EQUIP = ['weapon', 'helmet', 'armor', 'gloves', 'boots', 'accessory', 'ring'];
 const ROLE = { chief: '촌장(전직)', quest: '퀘스트', shop: '상인', smith: '대장장이(강화)', sailor: '뱃사공(이동)', raid: '레이드 안내', flavor: '주민' };
-const MOB_KIND = { field: '일반', elite: '정예', boss: '필드 보스', raid: '레이드 보스', raidAdd: '레이드 소환수' };
+const MOB_KIND = { field: '일반', elite: '정예', boss: '필드 보스', raid: '레이드 보스', raidAdd: '레이드 소환수', worldBoss: '원정 필드 보스', worldBossAdd: '원정 소환수' };
 const STAT = { str: '힘', int: '지능', vit: '체력', mana: '마나', def: '방어' };
 const PASSIVE = { patkPct: ['물리 공격력', '%'], matkPct: ['마법 공격력', '%'], maxHpPct: ['최대 HP', '%'], defPct: ['방어력', '%'], maxMpPct: ['최대 MP', '%'], critPct: ['치명타 확률', '%p'] };
 const DMG = { phys: '물리', magic: '마법' };
@@ -42,8 +42,8 @@ function mobLink(id) {
   const m = M.mobs.get(id);
   return m ? `<a href="#/mobs/${esc(id)}">${esc(m.name)}</a> <span class="muted small">Lv${m.level}</span>` : esc(id);
 }
-const islandName = (id) => M.islands.get(id)?.name ?? M.raids.get(id)?.name ?? id;
-const islandLink = (id) => (M.islands.has(id) ? `<a href="#/world#isl-${esc(id)}">${esc(islandName(id))}</a>` : M.raids.has(id) ? `<a href="#/world#raid-${esc(id)}">${esc(islandName(id))}</a>` : esc(id));
+const islandName = (id) => M.islands.get(id)?.name ?? M.raids.get(id)?.name ?? M.wbIsland.get(id)?.name ?? id;
+const islandLink = (id) => (M.islands.has(id) ? `<a href="#/world#isl-${esc(id)}">${esc(islandName(id))}</a>` : M.raids.has(id) ? `<a href="#/world#raid-${esc(id)}">${esc(islandName(id))}</a>` : M.wbIsland.has(id) ? `<a href="#/world#wb-${esc(M.wbIsland.get(id).id)}">${esc(islandName(id))}</a>` : esc(id));
 function skillIcon(s, size = '') {
   return s?.icon ? `<img class="ico ${size}" src="${esc(s.icon)}" alt="" loading="lazy" width="40" height="40">` : `<span class="ico ${size} ph">${icon('sparkles')}</span>`;
 }
@@ -124,7 +124,7 @@ function pageHome() {
     ['skills', 'sparkles', '#3fd08a', '스킬 도감', `스킬 ${D.skills.length}개 · 계수 · 쿨다운`],
     ['items', 'backpack', '#ff8a4c', '아이템 도감', `아이템 ${D.items.length}개 · 얻는 곳`],
     ['mobs', 'skull', '#ff6b6b', '몬스터 도감', `몬스터 ${D.mobs.length}종 · 드랍표`],
-    ['world', 'map', '#2dd4bf', '지역·레이드', `섬 ${D.islands.length}곳 · 레이드 ${D.raids.length}개 · 퀘스트 ${D.quests.length}개`],
+    ['world', 'map', '#2dd4bf', '지역·레이드', `섬 ${D.islands.length}곳 · 레이드 ${D.raids.length}개 · 필드 보스 원정 ${D.worldBosses.length}곳 · 퀘스트 ${D.quests.length}개`],
     ['growth', 'trending-up', '#f472b6', '성장·강화', '경험치 표 · 강화 기대 비용'],
   ];
   const tries = ['불운 보정', '강화 성공률', '치명타', '크라켄', 'ㅎㄱㅅ'];
@@ -272,7 +272,7 @@ function renderCalc() {
   const mobHit = mob ? { mn: damage(mob.atk, mob.attack.coef, st.def, 0), mx: damage(mob.atk, mob.attack.coef, st.def, 1) } : null;
 
   const gearOptions = (kind) => D.items.filter((it) => it.kind === kind && (!it.classId || it.classId === cls.id)).sort((a, b) => a.reqLevel - b.reqLevel || RARITIES.indexOf(a.rarity) - RARITIES.indexOf(b.rarity));
-  const mobGroups = [...D.islands.map((isl) => [isl.name, D.mobs.filter((m) => m.islands.includes(isl.id))]), ...D.raids.map((r) => [r.name, D.mobs.filter((m) => m.islands.includes(r.id))])];
+  const mobGroups = [...D.islands.map((isl) => [isl.name, D.mobs.filter((m) => m.islands.includes(isl.id))]), ...D.raids.map((r) => [r.name, D.mobs.filter((m) => m.islands.includes(r.id))]), ...D.worldBosses.map((w) => [w.name, D.mobs.filter((m) => m.islands.includes(w.islandId))])];
 
   root.innerHTML = `
   <div class="calc">
@@ -362,7 +362,7 @@ function pageDrops() {
     const gearIds = mob.loot.entries.filter((e) => EQUIP.includes(M.items.get(e.itemId)?.kind));
     return 1 - gearIds.reduce((m, e) => m * (1 - e.chance), 1);
   };
-  const fieldMobs = D.mobs.filter((m) => m.kind !== 'raidAdd').sort((a, b) => a.level - b.level);
+  const fieldMobs = D.mobs.filter((m) => m.kind !== 'raidAdd' && m.kind !== 'worldBossAdd').sort((a, b) => a.level - b.level);
   const mobRows = fieldMobs.map((m) => {
     const other = m.loot.entries.filter((e) => !EQUIP.includes(M.items.get(e.itemId)?.kind)).map((e) => `${esc(M.items.get(e.itemId)?.name ?? e.itemId)} ${pct(e.chance)}`).join(', ');
     return tr([mobLink(m.id), MOB_KIND[m.kind], R(`${fmt(m.loot.gold[0])}~${fmt(m.loot.gold[1])}`), R(pct(gearAll(m))), `<span class="small">${other || '—'}</span>`, R(m.rare.epic ? pct(m.rare.epic) : '—'), R(m.rare.legendary ? pct(m.rare.legendary) : '—'), R(m.rare.unique ? pct(m.rare.unique) : '—')]);
@@ -375,6 +375,7 @@ function pageDrops() {
   const b = c.boxLoot;
   const m = c.market;
   const raidRows = D.raids.map((r) => tr([islandLink(r.id), R(`Lv${r.minLevel}`), `장비 1점(첫 클리어는 자기 무기) · 전설 등급 ${pct(r.rewards.legendaryChance)}${r.rewards.rareDrop ? ` · 거신 장비 ${pct(r.rewards.rareDrop.chance)}` : ''}${r.rewards.uniqueChance ? ` · 유니크 ${pct(r.rewards.uniqueChance)}` : ''}`, r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')]));
+  const wbRows = D.worldBosses.map((w) => tr([islandLink(w.islandId), R(`${w.minSharePct}% 이상`), w.rewards.uniqueChance ? `유니크 ${pct(w.rewards.uniqueChance)}` : '—', `${fmt(w.rewards.gold)} 베리 · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')} · 경험치(현재 레벨의 ${pct(w.rewards.expLevelFrac)})`]));
   return `
     ${head('드랍률', '게임 서버의 전리품 규칙 그대로입니다.')}
     <h2 style="margin-top:0">몬스터 한 마리를 잡으면</h2>
@@ -431,7 +432,11 @@ function pageDrops() {
 
     <h2>레이드 보상</h2>
     ${table(['레이드', { t: '입장', c: 'r' }, '장비', '고정 보상'], raidRows)}
-    <p class="muted small" style="margin-top:8px">레이드 장비는 참가자마다 따로 굴리며, 내 직업이 쓸 수 있는 것 중에서만 뽑힙니다. 유니크는 불운 보정이 없습니다(${pct(c.uniqueRaidChance)}).</p>`;
+    <p class="muted small" style="margin-top:8px">레이드 장비는 참가자마다 따로 굴리며, 내 직업이 쓸 수 있는 것 중에서만 뽑힙니다. 유니크는 불운 보정이 없습니다(${pct(c.uniqueRaidChance)}).</p>
+
+    <h2>필드 보스 원정 보상</h2>
+    ${table(['전장', { t: '딜 지분', c: 'r' }, '장비', '고정 보상'], wbRows)}
+    <p class="muted small" style="margin-top:8px">처치 순간 보스에게 넣은 피해가 전체의 기준 % 이상인 사람만 받습니다. 처치 경험치와 희귀 장비 굴림은 없습니다.</p>`;
 }
 
 // ── 페이지: 직업·전직 ──
@@ -582,6 +587,8 @@ function sourceBlock(it) {
   if (chest.length) out.push(`<div class="card"><h3>보물상자</h3>${table(['섬', { t: '확률', c: 'r' }], chest.map((s) => tr([D.islands.filter((i) => i.chestTier === s.tier).map((i) => islandLink(i.id)).join(', '), R(`${pct(s.chance)}${s.qty ? ` · ${s.qty[0]}~${s.qty[1]}개` : ''}`)])))}</div>`);
   const raid = by('raid');
   if (raid.length) out.push(`<div class="card"><h3>레이드</h3><ul class="plain">${raid.map((s) => `<li>${islandLink(s.raid)} — ${esc(s.note)}</li>`).join('')}</ul></div>`);
+  const wb = by('worldBoss');
+  if (wb.length) out.push(`<div class="card"><h3>필드 보스 원정</h3><ul class="plain">${wb.map((s) => `<li>${islandLink(M.worldBosses.get(s.boss)?.islandId ?? s.boss)} — ${esc(s.note)}</li>`).join('')}</ul></div>`);
   const quest = by('quest');
   if (quest.length) out.push(`<div class="card"><h3>퀘스트 보상</h3><ul class="plain">${quest.map((s) => `<li>${esc(M.quests.get(s.quest)?.name ?? s.quest)} ×${s.qty}</li>`).join('')}</ul></div>`);
   const qdrop = by('questDrop');
@@ -625,7 +632,7 @@ function pageItem(id) {
 // ── 페이지: 몬스터 ──
 const mobState = { island: 'all', kind: 'all', q: '' };
 function pageMobs() {
-  const places = [...D.islands.map((i) => [i.id, i.name]), ...D.raids.map((r) => [r.id, r.name])];
+  const places = [...D.islands.map((i) => [i.id, i.name]), ...D.raids.map((r) => [r.id, r.name]), ...D.worldBosses.map((w) => [w.islandId, w.name])];
   return `
     ${head('몬스터 도감', `몬스터 ${D.mobs.length}종`)}
     <div class="filters">
@@ -666,11 +673,13 @@ function pageMob(id) {
   if (m.rare.legendary) rare.push(tr([`<span class="rar-legendary">전설</span> (내 무기·갑옷·목걸이 중 1) <span class="chip">불운 보정</span>`, R(`${pct(m.rare.legendary)} ~ ${pct(m.rare.legendary + c.pityCap)}`), R(`<span class="muted small">${oneIn(m.rare.legendary)}</span>`)]));
   if (m.rare.epic) rare.push(tr([`<span class="rar-epic">영웅</span> ${itemLink(m.rare.epicItem)}`, R(pct(m.rare.epic)), R(`<span class="muted small">${oneIn(m.rare.epic)}</span>`)]));
   const raid = D.raids.find((r) => r.bossId === m.id);
+  const wb = D.worldBosses.find((w) => w.bossId === m.id);
   return `
     ${crumb('#/mobs', '몬스터 도감')}
     <div class="detail-head"><span class="ico lg ph">${icon(m.kind === 'field' ? 'skull' : 'crown', 'i')}</span><div><h1>${esc(m.name)}</h1><div class="chips"><span class="chip">${MOB_KIND[m.kind]}</span><span class="chip" ${m.aggro === 'aggressive' ? 'style="color:var(--bad)"' : ''}>${m.aggro === 'aggressive' ? '선공' : '비선공'}</span>${m.islands.map((i) => `<span class="chip">${islandLink(i)}</span>`).join('')}</div></div></div>
     <dl class="stats">${stats.map(([k, v]) => `<div class="stat"><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
     ${raid ? `<p style="margin-top:12px">${islandLink(raid.id)}의 보스입니다. 보상은 레이드 클리어 보상으로 나옵니다.</p>` : ''}
+    ${wb ? `<p style="margin-top:12px">${islandLink(wb.islandId)}의 원정 필드 보스입니다. 처치 때 딜 지분 ${wb.minSharePct}% 이상인 사람만 <a href="#/world#wb-${esc(wb.id)}">원정 보상</a>을 받습니다.</p>` : ''}
     <h2>드랍표 <span class="muted small">베리 ${fmt(m.loot.gold[0])}~${fmt(m.loot.gold[1])}</span></h2>
     ${table(['아이템', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }, { t: '', c: 'r' }], lootRows)}
     ${rare.length ? `<h2>희귀 장비 (1인 기준)</h2>${table(['결과', { t: '확률', c: 'r' }, { t: '', c: 'r' }], rare)}` : ''}
@@ -716,7 +725,7 @@ function pageWorld() {
   }).join('');
   const raids = D.raids.map((r) => `
     <section class="card" id="raid-${r.id}">
-      <h2 style="margin-top:0">${esc(r.name)} <span class="chip">입장 Lv${r.minLevel}</span> <span class="chip">${r.minParty}~${r.size}인</span> <span class="chip">제한 ${r.timeLimitSec / 60}분</span></h2>
+      <h2 style="margin-top:0">${esc(r.name)} <span class="chip">입장 Lv${r.minLevel}</span> <span class="chip">${r.minParty}~${r.size}인</span> <span class="chip">제한 ${r.timeLimitSec / 60}분</span>${r.cooldownSec ? ` <span class="chip">클리어 뒤 재입장 ${r.cooldownSec / 3600}시간</span>` : ''}</h2>
       <p>보스: ${mobLink(r.bossId)} · HP ${fmt(M.mobs.get(r.bossId)?.hp ?? 0)}${r.guideIsland ? ` · ${islandLink(r.guideIsland)}의 레이드 안내인에게서 출발` : ''}</p>
       ${table(['페이즈', { t: '보스 HP', c: 'r' }, '패턴'], r.phases.map((p) => tr([`${p.phase}`, R(`${p.fromHpPct}% 이하`), esc(p.label)])))}
       ${r.enrage ? `<p class="small" style="margin-top:8px">격노: 시작 ${r.enrage.afterSec / 60}분 뒤 보스 피해 ×${r.enrage.damageMultiplier}</p>` : ''}
@@ -728,7 +737,20 @@ function pageWorld() {
         ${r.rewards.uniqueChance ? `<li>${pct(r.rewards.uniqueChance)} 확률로 유니크 장비 1점</li>` : ''}
       </ul>
     </section>`).join('');
-  return `${head('지역·레이드', '섬은 항해사(뱃사공)로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다.')}<div class="stack">${islands}</div><h2>레이드</h2><div class="stack">${raids}</div>`;
+  const worldBosses = D.worldBosses.map((w) => `
+    <section class="card" id="wb-${w.id}">
+      <h2 style="margin-top:0">${esc(w.name)} <span class="chip">누구나 참여</span> <span class="chip">처치 뒤 ${w.respawnSec / 60}분마다</span></h2>
+      <p>보스: ${mobLink(w.bossId)} · HP ${fmt(M.mobs.get(w.bossId)?.hp ?? 0)} · 어느 섬의 항해사(뱃사공)에게서든 「원정」으로 건너갑니다. 파티 · 인원 제한이 없습니다.</p>
+      ${table(['페이즈', { t: '보스 HP', c: 'r' }, '패턴'], w.phases.map((p) => tr([`${p.phase}`, R(`${p.fromHpPct}% 이하`), esc(p.label)])))}
+      ${w.enrage ? `<p class="small" style="margin-top:8px">격노: 교전 ${w.enrage.afterSec / 60}분 뒤 보스 피해 ×${w.enrage.damageMultiplier}</p>` : ''}
+      <h3>보상 (처치 때 딜 지분 ${w.minSharePct}% 이상인 사람)</h3>
+      <ul class="plain small">
+        <li>${fmt(w.rewards.gold)} 베리 · 경험치(현재 레벨 필요 경험치의 ${pct(w.rewards.expLevelFrac)}) · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')}</li>
+        ${w.rewards.uniqueChance ? `<li>${pct(w.rewards.uniqueChance)} 확률로 유니크 장비 1점</li>` : ''}
+        <li>지분이 모자라면 보상이 없습니다. 전투 중 보스 바 아래에 내 지분과 순위가 보입니다.</li>
+      </ul>
+    </section>`).join('');
+  return `${head('지역·레이드', '섬은 항해사(뱃사공)로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다.')}<div class="stack">${islands}</div><h2>레이드</h2><div class="stack">${raids}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div>`;
 }
 
 // ── 페이지: 성장·강화 ──
@@ -882,6 +904,7 @@ function buildSearch() {
     }
   }
   for (const r of D.raids) add('레이드', r.name, `#/world#raid-${r.id}`, `레이드 · 입장 Lv${r.minLevel}`, ph('crown'), r.phases.map((p) => p.label).join(' · '), '레이드');
+  for (const w of D.worldBosses) add('레이드', w.name, `#/world#wb-${w.id}`, `필드 보스 원정 · ${M.mobs.get(w.bossId)?.name ?? ''}`, ph('crown'), w.phases.map((p) => p.label).join(' · '), '필드보스 월드보스 원정');
   searchIndex = entries;
 }
 /** 점수 높은 순 [{e, name, snip}] — 이름 > 분류어 > 본문 */
@@ -1338,7 +1361,8 @@ async function start() {
     main.innerHTML = `<p class="error">데이터를 불러오지 못했습니다(${esc(err.message)}). 새로고침해 주세요.</p>`;
     return;
   }
-  for (const k of ['items', 'skills', 'mobs', 'classes', 'branches', 'islands', 'raids', 'quests']) M[k] = new Map(D[k].map((x) => [x.id, x]));
+  for (const k of ['items', 'skills', 'mobs', 'classes', 'branches', 'islands', 'raids', 'worldBosses', 'quests']) M[k] = new Map(D[k].map((x) => [x.id, x]));
+  M.wbIsland = new Map(D.worldBosses.map((w) => [w.islandId, w]));
   document.getElementById('play').href = D.meta.gameUrl;
   const built = new Date(D.meta.builtAt);
   document.getElementById('build-info').textContent = `실서버 게임 데이터(${D.meta.commit}) 기준 · ${built.toLocaleDateString('ko-KR')} 갱신`;
