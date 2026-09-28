@@ -23,7 +23,7 @@ const MOB_KIND = { field: '일반', elite: '정예', boss: '필드 보스', raid
 const STAT = { str: '힘', int: '지능', vit: '체력', mana: '마나', def: '방어' };
 const PASSIVE = { patkPct: ['물리 공격력', '%'], matkPct: ['마법 공격력', '%'], maxHpPct: ['최대 HP', '%'], defPct: ['방어력', '%'], maxMpPct: ['최대 MP', '%'], critPct: ['치명타 확률', '%p'] };
 const DMG = { phys: '물리', magic: '마법' };
-const RARITIES = ['common', 'rare', 'epic', 'legendary', 'unique'];
+const RARITIES = ['common', 'rare', 'epic', 'legendary', 'unique', 'absolute'];
 
 let D; // data.json
 const M = {}; // id → 정의

@@ -18,6 +18,7 @@
   --r-epic: #c29bff;
   --r-legendary: #ffb547;
   --r-unique: #ff6b8b;
+  --r-absolute: #ff3434;
   --radius: 16px;
   --radius-lg: 22px;
   --top: 64px;
@@ -161,15 +162,18 @@ tr.hl td { background: var(--accent-soft); }
 .rar-epic { color: var(--r-epic); }
 .rar-legendary { color: var(--r-legendary); }
 .rar-unique { color: var(--r-unique); }
+.rar-absolute { color: var(--r-absolute); font-weight: 700; }
 .ico.rb-rare { border-color: var(--r-rare); }
 .ico.rb-epic { border-color: var(--r-epic); }
 .ico.rb-legendary { border-color: var(--r-legendary); box-shadow: 0 0 14px rgba(255, 181, 71, .28); }
 .ico.rb-unique { border-color: var(--r-unique); box-shadow: 0 0 16px rgba(255, 107, 139, .32); }
+.ico.rb-absolute { border-color: var(--r-absolute); box-shadow: 0 0 18px rgba(255, 52, 52, .45); }
 .name-cell.rar-rare a { color: var(--r-rare); }
 .name-cell.rar-epic a { color: var(--r-epic); }
 .name-cell.rar-legendary a { color: var(--r-legendary); }
 .name-cell.rar-unique a { color: var(--r-unique); }
-.chip.rar-rare, .chip.rar-epic, .chip.rar-legendary, .chip.rar-unique { background: color-mix(in srgb, currentColor 16%, transparent); }
+.name-cell.rar-absolute a { color: var(--r-absolute); }
+.chip.rar-rare, .chip.rar-epic, .chip.rar-legendary, .chip.rar-unique, .chip.rar-absolute { background: color-mix(in srgb, currentColor 16%, transparent); }
 
 /* 공식 */
 .formula { background: var(--s1); border-radius: var(--radius-lg); padding: 22px 24px; font-size: 16px; line-height: 1.95; color: var(--sub); overflow-x: auto; white-space: pre-wrap; font-variant-numeric: tabular-nums; }
