@@ -867,6 +867,7 @@ function buildSearch() {
     const body = new DOMParser().parseFromString(`<body>${fn()}</body>`, 'text/html').body;
     for (const s of sectionize(body)) add('문서', s.title || TITLES[page], s.id ? `#/${page}#${s.id}` : `#/${page}`, TITLES[page], ph('scroll-text'), s.text, TITLES[page]);
   }
+  add('문서', TITLES.feedback, '#/feedback', '익명 의견 남기기', ph('message-square'), '버그 제보 건의 밸런스 의견 위키 오류', '피드백 게시판 건의 버그 제보 문의');
   for (const c of D.classes) add('직업', c.name, `#/classes/${c.id}`, `직업 · ${c.role}`, c.icon ? `<img class="ico sm" src="${esc(c.icon)}" alt="">` : ph('shield'), '', '직업');
   for (const b of D.branches) add('전직', b.name, `#/classes/${b.classId}#br-${b.id}`, `${classOf(b.classId).name} 전직`, ph('git-branch'), b.concept, `${classOf(b.classId).name}전직`);
   for (const s of D.skills) add('스킬', s.name, `#/skills/${s.id}`, `${classOf(s.classId).name}${s.branchId ? `·${M.branches.get(s.branchId).name}` : ''} 스킬`, skillIcon(s, 'sm'), [s.desc, ...s.lines].join(' · '), `${classOf(s.classId).name}${s.branchId ? M.branches.get(s.branchId).name : ''}스킬`);
@@ -1017,6 +1018,244 @@ function bindSearch() {
   if (!input.value) input.focus();
 }
 
+// ── 피드백 게시판(서버 server/wiki/feedback.ts · 계약 shared/protocol/feedback.ts) ──
+// 로그인 없이 익명으로 쓴다. 글을 올리면 서버가 준 열쇠를 이 브라우저(localStorage)에 두고, 그 열쇠가 있는 글만 지울 수 있다.
+const FB_CATS = ['건의', '버그', '밸런스', '위키', '기타'];
+const FB_BODY_MIN = 5;
+const FB_BODY_MAX = 1000;
+const FB_NICK_MAX = 12;
+const FB_KEYS = 'wikiFeedbackKeys';
+const FB_NICK = 'wikiFeedbackNick';
+const FB_ERR = {
+  bad_cat: '분류를 골라 주세요.',
+  bad_body: `내용은 ${FB_BODY_MIN}~${FB_BODY_MAX}자로 써 주세요.`,
+  bad_nick: `닉네임은 ${FB_NICK_MAX}자까지, 운영자처럼 보이는 이름은 쓸 수 없어요.`,
+  too_many_links: '링크는 2개까지만 넣을 수 있어요.',
+  too_many: '한 시간에 쓸 수 있는 글을 모두 썼어요. 조금 뒤에 다시 써 주세요.',
+  board_full: '오늘 올라온 글이 너무 많아 잠시 닫았어요. 나중에 다시 써 주세요.',
+  not_found: '이미 지워진 글이에요.',
+  bad_key: '이 브라우저에서 쓴 글만 지울 수 있어요.',
+};
+const fb = { draft: '건의', cat: 'all', posts: [], more: false, status: 'loading', from: '', seq: 0 };
+
+/** 게시판 서버 = 게임 서버. 로컬 미리보기만 ?api=http://127.0.0.1:포트 로 바꿀 수 있다 */
+function fbBase() {
+  const o = new URLSearchParams(location.search).get('api');
+  return (o && /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(o) ? o : D.meta.gameUrl).replace(/\/$/, '');
+}
+function fbKeys() {
+  try {
+    const v = JSON.parse(localStorage.getItem(FB_KEYS) ?? '{}');
+    return v && typeof v === 'object' ? v : {};
+  } catch {
+    return {};
+  }
+}
+function fbSetKey(id, key) {
+  const keys = fbKeys();
+  if (key) keys[id] = key;
+  else delete keys[id];
+  try { localStorage.setItem(FB_KEYS, JSON.stringify(keys)); } catch { /* 저장 공간이 없으면 지우기만 못 한다 */ }
+}
+/** 게시판 API 호출. 실패하면 Error{status(0 = 서버에 닿지 않음), code, retryAfter} */
+async function fbFetch(path, body) {
+  let res;
+  try {
+    res = await fetch(`${fbBase()}/wiki/feedback${path}`, body === undefined ? {} : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  } catch {
+    throw Object.assign(new Error('network'), { status: 0 });
+  }
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data) throw Object.assign(new Error(data?.error ?? `HTTP ${res.status}`), { status: res.status, code: data?.error, retryAfter: data?.retryAfter });
+  return data;
+}
+function fbErrText(err) {
+  if (!err.status) return '게시판 서버에 연결하지 못했어요. 잠시 뒤 다시 시도해 주세요.';
+  if (err.code === 'too_fast') return `글은 조금씩 간격을 두고 올릴 수 있어요. ${err.retryAfter ?? 20}초 뒤에 다시 올려 주세요.`;
+  return FB_ERR[err.code] ?? `처리하지 못했어요(HTTP ${err.status}). 잠시 뒤 다시 시도해 주세요.`;
+}
+/** 해시 경로 → 사람이 읽는 페이지 이름('아이템 도감 · 낡은 검') */
+function pageLabel(hash) {
+  let page = '';
+  let id;
+  try {
+    [page = '', id] = hash.replace(/^#\/?/, '').split('#')[0].split('/').map(decodeURIComponent);
+  } catch {
+    return hash;
+  }
+  const name = id && (page === 'search' ? `‘${id}’` : M[page]?.get(id)?.name ?? id);
+  return `${TITLES[page] ?? page}${name ? ` · ${name}` : ''}`;
+}
+function fbTime(at) {
+  const s = Math.max(0, (Date.now() - at) / 1000);
+  if (s < 60) return '방금';
+  if (s < 3600) return `${Math.floor(s / 60)}분 전`;
+  if (s < 86400) return `${Math.floor(s / 3600)}시간 전`;
+  const d = new Date(at);
+  return d.getFullYear() === new Date().getFullYear() ? `${d.getMonth() + 1}월 ${d.getDate()}일` : d.toLocaleDateString('ko-KR');
+}
+function fbPost(p, mine) {
+  const at = new Date(p.at);
+  return `<li class="fb-post" id="fb-${p.id}">
+    <div class="fb-meta"><span class="chip${p.cat === '버그' ? ' bad' : ''}">${esc(p.cat)}</span><b>${esc(p.nick)}</b><time class="muted" datetime="${at.toISOString()}" title="${esc(at.toLocaleString('ko-KR'))}">${fbTime(p.at)}</time>${mine ? `<button type="button" class="icon-btn fb-del" data-del="${p.id}" aria-label="내 글 지우기">${icon('trash-2')}</button>` : ''}</div>
+    <p class="fb-body">${esc(p.body)}</p>
+    ${p.page?.startsWith('#/') ? `<a class="fb-page" href="${esc(p.page)}">${icon('scroll-text')}${esc(pageLabel(p.page))}</a>` : ''}
+  </li>`;
+}
+function renderFbList() {
+  const box = document.getElementById('fb-list');
+  if (!box) return;
+  if (fb.status === 'loading') box.innerHTML = '<p class="loading">불러오는 중…</p>';
+  else if (fb.status === 'error') box.innerHTML = `<div class="empty-state">${fbErrText(fb.err)}<div class="fb-more"><button type="button" class="pill-btn" data-act="retry">${icon('rotate-cw')}다시 불러오기</button></div></div>`;
+  else if (!fb.posts.length) box.innerHTML = `<div class="empty-state">${fb.cat === 'all' ? '아직 글이 없어요. 첫 의견을 남겨 주세요.' : `‘${esc(fb.cat)}’ 글이 아직 없어요.`}</div>`;
+  else {
+    const keys = fbKeys();
+    box.innerHTML = `<ol class="fb-list">${fb.posts.map((p) => fbPost(p, Boolean(keys[p.id]))).join('')}</ol>${fb.more ? `<div class="fb-more"><button type="button" class="pill-btn" data-act="more">${icon('chevron-down')}더 보기</button></div>` : ''}`;
+  }
+}
+/** 목록을 처음부터(append면 마지막 글 다음부터) 불러온다. 늦게 온 옛 응답은 버린다 */
+async function fbLoad(append = false) {
+  const seq = ++fb.seq;
+  const q = new URLSearchParams();
+  if (fb.cat !== 'all') q.set('cat', fb.cat);
+  if (append && fb.posts.length) q.set('before', fb.posts.at(-1).id);
+  if (!append) {
+    fb.status = 'loading';
+    renderFbList();
+  }
+  try {
+    const r = await fbFetch(q.size ? `?${q}` : '');
+    if (seq !== fb.seq) return;
+    fb.posts = append ? fb.posts.concat(r.posts) : r.posts;
+    fb.more = r.more;
+    fb.status = 'ready';
+  } catch (err) {
+    if (seq !== fb.seq) return;
+    fb.err = err;
+    fb.status = 'error';
+  }
+  renderFbList();
+}
+function pageFeedback() {
+  const seg = (id, label, list, cur) => `<div class="seg" role="group" aria-label="${label}" id="${id}">${list.map(([v, n]) => `<button type="button" data-v="${esc(v)}" aria-pressed="${v === cur}">${esc(n)}</button>`).join('')}</div>`;
+  let nick = '';
+  try { nick = localStorage.getItem(FB_NICK) ?? ''; } catch { /* 저장소를 못 쓰면 비운다 */ }
+  return `
+    ${head('피드백 게시판', '로그인 없이 익명으로 의견을 남기는 곳이에요. 버그 제보, 건의, 밸런스 의견, 위키 오류 모두 좋아요.')}
+    <form class="card fb-form" id="fb-form" novalidate>
+      ${seg('fb-cat', '글 분류', FB_CATS.map((c) => [c, c]), fb.draft)}
+      <textarea id="fb-body" class="field" rows="5" maxlength="${FB_BODY_MAX}" aria-label="내용" placeholder="어떤 점이 불편했나요? 버그라면 언제·어디서·무엇을 했는지 적어 주면 고치기 쉬워요."></textarea>
+      <div class="fb-row">
+        <input id="fb-nick" class="field" type="text" maxlength="${FB_NICK_MAX}" placeholder="닉네임 (비우면 익명)" aria-label="닉네임" autocomplete="off" value="${esc(nick)}">
+        ${fb.from ? `<span class="chip" id="fb-from" title="글에 붙는 보던 페이지">${icon('scroll-text')}${esc(pageLabel(fb.from))}<button type="button" aria-label="보던 페이지 연결 빼기">${icon('x')}</button></span>` : ''}
+        <span class="count" id="fb-count">0 / ${FB_BODY_MAX}</span>
+        <button class="btn-primary" type="submit" id="fb-send">${icon('send')}<span>올리기</span></button>
+      </div>
+      <div class="fb-hp" aria-hidden="true"><label>웹사이트 <input id="fb-hp" type="text" tabindex="-1" autocomplete="off"></label></div>
+      <p class="fb-msg" id="fb-msg" role="status" aria-live="polite"></p>
+    </form>
+    <p class="muted small fb-rules">연락처·계정 비밀번호 같은 개인정보는 쓰지 마세요. 욕설·광고·도배 글은 운영자가 숨겨요. 이 브라우저에서 쓴 글은 직접 지울 수 있어요.</p>
+    <div class="filters">
+      ${seg('fb-filter', '분류로 거르기', [['all', '전체'], ...FB_CATS.map((c) => [c, c])], fb.cat)}
+      <button type="button" class="icon-btn" id="fb-reload" aria-label="목록 새로고침">${icon('rotate-cw')}</button>
+    </div>
+    <div id="fb-list"></div>`;
+}
+function bindFeedback() {
+  const form = document.getElementById('fb-form');
+  const body = document.getElementById('fb-body');
+  const nick = document.getElementById('fb-nick');
+  const count = document.getElementById('fb-count');
+  const send = document.getElementById('fb-send');
+  const msg = document.getElementById('fb-msg');
+  const say = (text, bad = false) => {
+    msg.textContent = text;
+    msg.classList.toggle('bad', bad);
+  };
+  const pick = (seg, v) => seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+  document.getElementById('fb-cat').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    fb.draft = b.dataset.v;
+    pick(e.currentTarget, fb.draft);
+  });
+  document.getElementById('fb-from')?.querySelector('button').addEventListener('click', (e) => {
+    fb.from = '';
+    e.currentTarget.closest('.chip').remove();
+    body.focus();
+  });
+  body.addEventListener('input', () => {
+    count.textContent = `${body.value.trim().length} / ${FB_BODY_MAX}`;
+  });
+  body.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) form.requestSubmit();
+  });
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = body.value.trim();
+    if (text.length < FB_BODY_MIN) {
+      say(`내용을 ${FB_BODY_MIN}자 이상 써 주세요.`, true);
+      body.focus();
+      return;
+    }
+    send.disabled = true;
+    say('올리는 중…');
+    try {
+      const r = await fbFetch('', { cat: fb.draft, body: text, nick: nick.value.trim(), page: fb.from, hp: document.getElementById('fb-hp').value });
+      fbSetKey(r.post.id, r.key);
+      try { localStorage.setItem(FB_NICK, nick.value.trim()); } catch { /* 닉네임 기억은 선택 */ }
+      body.value = '';
+      count.textContent = `0 / ${FB_BODY_MAX}`;
+      say('올렸어요. 의견 고마워요!');
+      if (fb.cat === 'all' || fb.cat === r.post.cat) {
+        fb.posts.unshift(r.post);
+        fb.status = 'ready';
+        renderFbList();
+      }
+    } catch (err) {
+      say(fbErrText(err), true);
+    } finally {
+      send.disabled = false;
+    }
+  });
+  document.getElementById('fb-filter').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || b.dataset.v === fb.cat) return;
+    fb.cat = b.dataset.v;
+    pick(e.currentTarget, fb.cat);
+    fbLoad();
+  });
+  document.getElementById('fb-reload').addEventListener('click', () => fbLoad());
+  document.getElementById('fb-list').addEventListener('click', async (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.act === 'retry') return fbLoad();
+    if (b.dataset.act === 'more') {
+      b.disabled = true;
+      return fbLoad(true);
+    }
+    const id = Number(b.dataset.del);
+    const key = fbKeys()[id];
+    if (!id || !key || !confirm('이 글을 지울까요? 되돌릴 수 없어요.')) return;
+    b.disabled = true;
+    try {
+      await fbFetch('/delete', { id, key });
+      fbSetKey(id, null);
+      fb.posts = fb.posts.filter((p) => p.id !== id);
+      renderFbList();
+      say('글을 지웠어요.');
+    } catch (err) {
+      if (err.code === 'not_found') {
+        fbSetKey(id, null);
+        fb.posts = fb.posts.filter((p) => p.id !== id);
+        renderFbList();
+      } else b.disabled = false;
+      say(fbErrText(err), true);
+    }
+  });
+  fbLoad();
+}
+
 // ── 메뉴(모바일) ──
 function initNav() {
   const btn = document.querySelector('.menu-btn');
@@ -1042,8 +1281,10 @@ function parseHash() {
   const [page = '', id] = path.split('/').map(decodeURIComponent);
   return { page, id, anchor: anchor && decodeURIComponent(anchor) };
 }
-const TITLES = { '': '홈', damage: '데미지 공식', drops: '드랍률', classes: '직업·전직', skills: '스킬 도감', items: '아이템 도감', mobs: '몬스터 도감', world: '지역·레이드', growth: '성장·강화', search: '검색' };
+const TITLES = { '': '홈', damage: '데미지 공식', drops: '드랍률', classes: '직업·전직', skills: '스킬 도감', items: '아이템 도감', mobs: '몬스터 도감', world: '지역·레이드', growth: '성장·강화', search: '검색', feedback: '피드백 게시판' };
 let lastPath = null;
+/** 바로 전에 보던 해시(피드백 글에 '보던 페이지'로 붙인다) */
+let lastHash = '';
 function render() {
   const { page, id, anchor } = parseHash();
   const path = `${page}/${id ?? ''}`;
@@ -1061,6 +1302,12 @@ function render() {
     case 'mobs': html = id ? pageMob(id) : pageMobs(); if (!id) after = bindMobs; else title = M.mobs.get(id)?.name; break;
     case 'world': html = pageWorld(); break;
     case 'growth': html = pageGrowth(); after = bindGrowth; break;
+    case 'feedback':
+      // 다른 문서에서 넘어왔으면 그 페이지를 글에 붙일 후보로 둔다(홈·검색 제외)
+      if (!lastPath?.startsWith('feedback/')) fb.from = /^#\/(?!$|feedback|search)/.test(lastHash) ? lastHash : '';
+      html = pageFeedback();
+      after = bindFeedback;
+      break;
     default: html = notFound(); title = '찾을 수 없음';
   }
   main.innerHTML = html;
@@ -1079,6 +1326,7 @@ function render() {
   else if (path !== lastPath && !(page === 'skills' && id)) window.scrollTo(0, 0);
   if (path !== lastPath && page !== 'search') main.focus({ preventScroll: true });
   lastPath = path;
+  lastHash = location.hash;
 }
 
 async function start() {
