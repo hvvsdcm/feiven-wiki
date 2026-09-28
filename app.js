@@ -82,8 +82,8 @@ function gearStats(it, enh, rarity = it.rarity) {
   const mul = D.constants.rarityMul[rarity] * (enh > max ? (1 + per * max) * D.awaken.mul : 1 + per * enh);
   return { atk: Math.round(it.atk * mul), def: Math.round(it.def * mul), hp: Math.round(it.hp * mul) };
 }
-/** 레벨·배분·장비·전직으로 능력치(GameServer.recomputeStats와 같은 순서: 기본+배분 → 장비 → 전직 패시브) */
-function playerStats(cls, level, alloc, gear, branch) {
+/** 레벨·배분·장비·전직으로 능력치(GameServer.recomputeStats와 같은 순서: 기본+배분 → 장비 → 전직 패시브(1차 + 2차 합산)) */
+function playerStats(cls, level, alloc, gear, branch, second = false) {
   const l = Math.max(0, level - 1);
   const eff = D.constants.statEffect;
   const baseAtk = Math.round(cls.baseAtk + cls.atkGrowth * l);
@@ -100,7 +100,8 @@ function playerStats(cls, level, alloc, gear, branch) {
     s.maxHp += st.hp;
     if (g.item.allStat) for (const k of Object.keys(STAT)) addPoints(k, g.item.allStat);
   }
-  const p = branch?.passive ?? {};
+  const p = { ...(branch?.passive ?? {}) };
+  if (second && branch) for (const [k, v] of Object.entries(branch.second.passive)) p[k] = (p[k] ?? 0) + v;
   if (p.patkPct) s.patk *= 1 + p.patkPct / 100;
   if (p.matkPct) s.matk *= 1 + p.matkPct / 100;
   if (p.maxHpPct) s.maxHp = Math.round(s.maxHp * (1 + p.maxHpPct / 100));
@@ -110,9 +111,10 @@ function playerStats(cls, level, alloc, gear, branch) {
   const matk = Math.round(s.matk + gearAtk);
   return { patk, matk, atk: cls.dmgType === 'magic' ? matk : patk, baseMatk: baseAtk, def: s.def, maxHp: s.maxHp, maxMp: Math.max(0, Math.round(s.maxMp)), crit: cls.critPct + (p.critPct ?? 0), gearAtk };
 }
-/** 슬롯 1~4 스킬(shared/data/branches.ts skillsFor) */
-function skillsFor(cls, branch, awakened) {
+/** 슬롯 1~4 스킬(shared/data/branches.ts skillsFor). 2차 전직이면 네 칸 모두 2차 스킬 */
+function skillsFor(cls, branch, awakened, second = false) {
   if (!branch) return cls.skills;
+  if (second) return branch.second.skills;
   return [cls.skills[0], branch.skills[0], branch.skills[1], awakened ? branch.awaken : branch.skills[2]];
 }
 
@@ -249,11 +251,12 @@ function renderCalc() {
   const totalPts = (calc.level - 1) * D.constants.statPointsPerLevel;
   const used = Object.values(calc.alloc).reduce((a, b) => a + (Number(b) || 0), 0);
   const gear = EQUIP.map((k) => calc.gear[k]).filter((g) => g && g.id).map((g) => ({ item: M.items.get(g.id), enh: g.enh })).filter((g) => g.item);
-  const st = playerStats(cls, calc.level, calc.alloc, gear, branch);
+  const second = !!branch && calc.level >= D.constants.secondLevel;
+  const st = playerStats(cls, calc.level, calc.alloc, gear, branch, second);
   const mob = M.mobs.get(calc.mob);
   const tDef = mob ? mob.def : Number(calc.customDef) || 0;
   const awakened = !!branch && calc.level >= D.constants.awakenLevel;
-  const slots = skillsFor(cls, branch, awakened).map((id) => M.skills.get(id));
+  const slots = skillsFor(cls, branch, awakened, second).map((id) => M.skills.get(id));
   const crit = Math.min(100, st.crit) / 100;
   const rowsFor = (label, iconHtml, coefs, locked) => coefs.map((cf, i) => {
     const mn = damage(st.atk, cf.coef, tDef, 0);
@@ -282,7 +285,7 @@ function renderCalc() {
       <div class="row">
         <label class="f">직업<select data-k="cls">${D.classes.map((k) => `<option value="${k.id}" ${k.id === cls.id ? 'selected' : ''}>${esc(k.name)}</option>`).join('')}</select></label>
         <label class="f">레벨<input type="number" min="1" max="${D.meta.maxLevel}" value="${calc.level}" data-k="level"></label>
-        <label class="f">전직<select data-k="branch" ${canAdvance ? '' : 'disabled'}><option value="">견습${canAdvance ? '' : ` (Lv${D.constants.advanceLevel}부터)`}</option>${branches.map((b) => `<option value="${b.id}" ${b.id === calc.branch && canAdvance ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label>
+        <label class="f">전직<select data-k="branch" ${canAdvance ? '' : 'disabled'}><option value="">견습${canAdvance ? '' : ` (Lv${D.constants.advanceLevel}부터)`}</option>${branches.map((b) => `<option value="${b.id}" ${b.id === calc.branch && canAdvance ? 'selected' : ''}>${esc(b.name)}${calc.level >= D.constants.secondLevel ? ` → ${esc(b.second.name)}` : ''}</option>`).join('')}</select></label>
       </div>
       <div>
         <div class="row" style="justify-content:space-between;margin-bottom:6px"><b class="small">스탯 분배 <span class="muted">${used} / ${totalPts}점${used > totalPts ? ' · 초과' : ''}</span></b><button class="chip accent" type="button" data-act="rec">추천대로 분배</button></div>
@@ -415,10 +418,11 @@ function pageDrops() {
         <h3>${itemLink('mystery_box')}</h3>
         <p class="small muted">암거래상만 파는 상자(${fmt(M.items.get('mystery_box')?.price ?? 0)} 베리). 열면 아래 중 하나가 나옵니다.</p>
         ${table(['결과', { t: '확률', c: 'r' }], [
+          tr([`<span class="rar-unique">유니크 장비</span> (Lv${b.uniqueMinLevel} 이상만, 직업이 쓸 수 있는 것 중 1)`, R(pct(b.unique))]),
           tr([`<span class="rar-legendary">전설 장비</span> (직업이 쓸 수 있는 3종 중 1)`, R(pct(b.legendary))]),
-          tr([`<span class="rar-epic">영웅 장비</span> (영웅 장비 중 1)`, R(pct(b.epic))]),
-          tr([`<span class="rar-rare">희귀 등급</span> 티어 4 무기·갑옷·목걸이`, R(pct(b.rare))]),
-          tr([`베리 ${fmt(b.gold[0])}~${fmt(b.gold[1])} + 강화석 ${b.scrap[0]}~${b.scrap[1]}개`, R(pct(1 - b.legendary - b.epic - b.rare))]),
+          tr([`<span class="rar-epic">영웅 장비</span> (내 레벨 티어의 영웅 장비)`, R(pct(b.epic))]),
+          tr([`<span class="rar-rare">희귀 등급</span> 내 레벨 티어의 직업 무기·갑옷·목걸이·투구·장갑·신발·반지 중 1`, R(pct(b.rare))]),
+          tr([`베리 ${fmt(b.gold[0])}~${fmt(b.gold[1])} + 강화석 ${b.scrap[0]}~${b.scrap[1]}개 + 내 티어 강화 재료 ${b.mats[0]}~${b.mats[1]}개`, R(`${pct(1 - b.unique - b.legendary - b.epic - b.rare)} 이상`)]),
         ])}
       </div>
       <div class="card">
@@ -447,7 +451,7 @@ function passiveText(p) {
 }
 function pageClasses() {
   return `
-    ${head('직업·전직', `직업 ${D.classes.length}개, 전직 갈래 ${D.branches.length}개`)}
+    ${head('직업·전직', `직업 ${D.classes.length}개, 전직 갈래 ${D.branches.length}개, 2차 전직 ${D.branches.length}개`)}
     <div class="grid g3">${D.classes.map((k) => `
       <a class="card class-card" href="#/classes/${k.id}" style="--c:${k.color}">
         ${k.icon ? `<img class="ico lg" src="${esc(k.icon)}" alt="" style="width:64px;height:64px">` : ''}
@@ -459,16 +463,18 @@ function pageClasses() {
     <div class="steps">
       <span class="step"><b>견습</b> Lv1~${D.constants.advanceLevel - 1} · 직업 기본 스킬 4개</span>${icon('chevron-right')}
       <span class="step"><b>1차 전직</b> Lv${D.constants.advanceLevel} · 섬의 촌장에게 갈래 선택(되돌릴 수 없음)</span>${icon('chevron-right')}
-      <span class="step"><b>각성</b> Lv${D.constants.awakenLevel} · 선택 없이 4번 스킬 강화</span>
+      <span class="step"><b>각성</b> Lv${D.constants.awakenLevel} · 선택 없이 4번 스킬 강화</span>${icon('chevron-right')}
+      <span class="step"><b>2차 전직</b> Lv${D.constants.secondLevel} · 촌장에게 의식(갈래마다 정해진 상위 직업)</span>
     </div>
-    <p class="muted small" style="margin-top:10px">전직하면 1번 스킬은 그대로, 2·3·4번 스킬이 갈래 전용 스킬로 바뀌고 패시브 능력치가 붙습니다.</p>
-    ${table(['직업', '갈래', '콘셉트', '패시브'], D.branches.map((b) => tr([esc(classOf(b.classId).name), `<a href="#/classes/${b.classId}#br-${b.id}" style="color:${esc(b.color)}">${esc(b.name)}</a>`, `<span class="small">${esc(b.concept)}</span>`, passiveText(b.passive)])))}`;
+    <p class="muted small" style="margin-top:10px">전직하면 1번 스킬은 그대로, 2·3·4번 스킬이 갈래 전용 스킬로 바뀌고 패시브 능력치가 붙습니다. 2차 전직하면 1~4번 스킬이 모두 훨씬 강한 2차 스킬로 바뀌고 2차 패시브가 1차 패시브에 더해집니다.</p>
+    ${table(['직업', '갈래', '콘셉트', '패시브', '2차 전직', '2차 패시브'], D.branches.map((b) => tr([esc(classOf(b.classId).name), `<a href="#/classes/${b.classId}#br-${b.id}" style="color:${esc(b.color)}">${esc(b.name)}</a>`, `<span class="small">${esc(b.concept)}</span>`, passiveText(b.passive), `<a href="#/classes/${b.classId}#br2-${b.id}" style="color:${esc(b.second.color)}">${esc(b.second.name)}</a>`, passiveText(b.second.passive)])))}`;
 }
 function skillRow(s, compareTo) {
   if (!s) return '';
   const chips = [`<span class="chip">Lv${s.unlockLevel} 해금</span>`, `<span class="chip">${icon('clock')}${s.cdSec}초</span>`, `<span class="chip">${icon('droplet')}MP ${s.mpCost}</span>`];
   if (s.castSec) chips.push(`<span class="chip">시전 ${s.castSec}초</span>`);
   if (s.awaken) chips.push('<span class="chip accent">각성</span>');
+  if (s.second) chips.push('<span class="chip accent">2차</span>');
   const base = compareTo && compareTo.id !== s.id ? `<div class="muted small">기본: ${esc(compareTo.name)}</div>` : '';
   return `<div class="skill-row" id="sk-${esc(s.id)}">${skillIcon(s)}<div><b>${esc(s.name)}</b> <span class="slot" title="슬롯">${s.slot}</span>${base}<div class="meta">${chips.join('')}</div><div class="small">${esc(s.desc)}</div><ul>${s.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></div></div>`;
 }
@@ -499,8 +505,18 @@ function pageClass(id) {
           <h3><span style="color:${esc(b.color)}">${esc(b.name)}</span> ${passiveText(b.passive)}</h3>
           <p class="muted small">${esc(b.concept)}</p>
           ${[...b.skills, b.awaken].map((sid) => { const s = M.skills.get(sid); return skillRow(s, M.skills.get(k.skills[s.slot - 1])); }).join('')}
-        </div>`).join('')}</div>
+        </div>
+        ${secondCard(k, b)}`).join('')}</div>
     </div>`;
+}
+/** 2차 전직 카드: 이름·콘셉트·추가 패시브·스킬 4개(이전 단계 스킬과 비교) */
+function secondCard(k, b) {
+  const before = skillsFor(k, b, true);
+  return `<div class="card branch" id="br2-${b.id}" style="--c:${esc(b.second.color)}">
+    <h3><span class="muted small">Lv${D.constants.secondLevel} 2차</span> <span style="color:${esc(b.second.color)}">${esc(b.second.name)}</span> ${passiveText(b.second.passive)}</h3>
+    <p class="muted small">${esc(b.second.concept)}</p>
+    ${b.second.skills.map((sid, i) => skillRow(M.skills.get(sid), M.skills.get(before[i]))).join('')}
+  </div>`;
 }
 
 // ── 페이지: 스킬 ──
@@ -515,7 +531,7 @@ function pageSkills(focusId) {
     <div class="filters"><div class="seg" role="group" aria-label="직업">${D.classes.map((c) => `<button type="button" data-cls="${c.id}" aria-pressed="${c.id === k.id}">${esc(c.name)}</button>`).join('')}</div></div>
     <div class="grid g2">
       <div class="card"><h3>견습 (${esc(k.name)})</h3>${k.skills.map((sid) => skillRow(M.skills.get(sid))).join('')}</div>
-      ${brs.map((b) => `<div class="card branch" style="--c:${esc(b.color)}"><h3><a href="#/classes/${k.id}#br-${b.id}" style="color:${esc(b.color)}">${esc(b.name)}</a> ${passiveText(b.passive)}</h3>${[...b.skills, b.awaken].map((sid) => { const s = M.skills.get(sid); return skillRow(s, M.skills.get(k.skills[s.slot - 1])); }).join('')}</div>`).join('')}
+      ${brs.map((b) => `<div class="card branch" style="--c:${esc(b.color)}"><h3><a href="#/classes/${k.id}#br-${b.id}" style="color:${esc(b.color)}">${esc(b.name)}</a> ${passiveText(b.passive)}</h3>${[...b.skills, b.awaken].map((sid) => { const s = M.skills.get(sid); return skillRow(s, M.skills.get(k.skills[s.slot - 1])); }).join('')}</div>${secondCard(k, b)}`).join('')}
     </div>`;
   return html;
 }
@@ -898,7 +914,9 @@ function buildSearch() {
   add('문서', TITLES.feedback, '#/feedback', '익명 의견 남기기', ph('message-square'), '버그 제보 건의 밸런스 의견 위키 오류', '피드백 게시판 건의 버그 제보 문의');
   for (const c of D.classes) add('직업', c.name, `#/classes/${c.id}`, `직업 · ${c.role}`, c.icon ? `<img class="ico sm" src="${esc(c.icon)}" alt="">` : ph('shield'), '', '직업');
   for (const b of D.branches) add('전직', b.name, `#/classes/${b.classId}#br-${b.id}`, `${classOf(b.classId).name} 전직`, ph('git-branch'), b.concept, `${classOf(b.classId).name}전직`);
-  for (const s of D.skills) add('스킬', s.name, `#/skills/${s.id}`, `${classOf(s.classId).name}${s.branchId ? `·${M.branches.get(s.branchId).name}` : ''} 스킬`, skillIcon(s, 'sm'), [s.desc, ...s.lines].join(' · '), `${classOf(s.classId).name}${s.branchId ? M.branches.get(s.branchId).name : ''}스킬`);
+  for (const b of D.branches) add('전직', b.second.name, `#/classes/${b.classId}#br2-${b.id}`, `${b.name} 2차 전직`, ph('git-branch'), b.second.concept, `${classOf(b.classId).name}${b.name}2차전직`);
+  const skillOwner = (s) => (s.branchId ? `·${s.second ? M.branches.get(s.branchId).second.name : M.branches.get(s.branchId).name}` : '');
+  for (const s of D.skills) add('스킬', s.name, `#/skills/${s.id}`, `${classOf(s.classId).name}${skillOwner(s)} 스킬`, skillIcon(s, 'sm'), [s.desc, ...s.lines].join(' · '), `${classOf(s.classId).name}${skillOwner(s).slice(1)}스킬`);
   for (const it of D.items) add('아이템', it.name, `#/items/${it.id}`, `${rarName(it.rarity)} ${KIND[it.kind]}${it.reqLevel ? ` · Lv${it.reqLevel}` : ''}`, itemIcon(it, 'sm'), it.desc, `${rarName(it.rarity)}${KIND[it.kind]}${it.classId ? classOf(it.classId).name : '공용'}`, `rar-${it.rarity}`);
   for (const m of D.mobs) add('몬스터', m.name, `#/mobs/${m.id}`, `${MOB_KIND[m.kind]} · Lv${m.level}`, ph(m.kind === 'field' ? 'skull' : 'crown'), m.islands.map(islandName).join(', '), `${MOB_KIND[m.kind]}몬스터`);
   for (const i of D.islands) {
