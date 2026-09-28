@@ -75,9 +75,11 @@ function avgDamage(atk, coef, def) {
   for (let i = 0; i <= N; i++) sum += damage(atk, coef, def, i / N);
   return sum / (N + 1);
 }
-/** 장비 1점 수치(server/systems/items/equip.ts gearStats) */
+/** 장비 1점 수치(server/systems/items/equip.ts gearStats). enh = 강화 단계, enhanceMax + 1 = 각성(+최대 배율 × 각성 배율) */
 function gearStats(it, enh, rarity = it.rarity) {
-  const mul = D.constants.rarityMul[rarity] * (1 + (D.constants.enhanceBonusPer[it.kind] ?? 0) * enh);
+  const per = D.constants.enhanceBonusPer[it.kind] ?? 0;
+  const max = D.constants.enhanceMax;
+  const mul = D.constants.rarityMul[rarity] * (enh > max ? (1 + per * max) * D.awaken.mul : 1 + per * enh);
   return { atk: Math.round(it.atk * mul), def: Math.round(it.def * mul), hp: Math.round(it.hp * mul) };
 }
 /** 레벨·배분·장비·전직으로 능력치(GameServer.recomputeStats와 같은 순서: 기본+배분 → 장비 → 전직 패시브) */
@@ -200,7 +202,7 @@ function pageDamage() {
 
     <h2>치유량</h2>
     <div class="formula">치유량 = 대상 최대 HP × 스킬 % + max(0, 시전자 마법 공격력 − 시전자 기본 마법 공격력) × ${c.healMatkCoef}</div>
-    <p class="muted small">기본 마법 공격력은 스탯·장비 없이 레벨로만 정해지는 값입니다. 지능과 무기를 올린 만큼 치유가 늘어납니다. 회복 물약은 최대 HP의 ${c.potionHealPct}%(쿨 ${c.potionCdSec}초), 마나 물약은 최대 MP의 ${c.mpPotionPct}%(쿨 ${c.mpPotionCdSec}초)입니다.</p>
+    <p class="muted small">기본 마법 공격력은 스탯·장비 없이 레벨로만 정해지는 값입니다. 지능과 무기를 올린 만큼 치유가 늘어납니다. 회복 물약·마나 물약은 티어마다 정해진 양을 회복합니다(아이템 도감 참고, 쿨 회복 ${c.potionCdSec}초·마나 ${c.mpPotionCdSec}초 따로). 엘릭서는 HP·MP를 함께 채우고 회복 물약 쿨을 같이 씁니다.</p>
 
     <h2>몬스터가 주는 피해</h2>
     <div class="formula">받는 피해 = max(1, 반올림(몬스터 공격력 × 공격 계수 × 편차 × 100 ÷ (100 + 내 방어력)))</div>
@@ -290,7 +292,7 @@ function renderCalc() {
         <div class="row" style="justify-content:space-between;margin-bottom:6px"><b class="small">장비 <span class="muted">(오른쪽은 강화 단계)</span></b><button class="chip accent" type="button" data-act="gear">레벨에 맞는 상점 장비</button></div>
         <div class="stack" style="--gap:6px">${EQUIP.map((kind) => {
           const g = calc.gear[kind] ?? { id: '', enh: 0 };
-          return `<div class="gear-row"><span class="muted">${KIND[kind]}</span><select data-gear="${kind}"><option value="">없음</option>${gearOptions(kind).map((it) => `<option value="${it.id}" ${it.id === g.id ? 'selected' : ''}>${esc(it.name)} · ${rarName(it.rarity)} · Lv${it.reqLevel}${it.reqLevel > calc.level ? ' (착용 불가)' : ''}</option>`).join('')}</select><select data-enh="${kind}" aria-label="${KIND[kind]} 강화">${Array.from({ length: D.constants.enhanceMax + 1 }, (_, i) => `<option value="${i}" ${i === g.enh ? 'selected' : ''}>+${i}</option>`).join('')}</select></div>`;
+          return `<div class="gear-row"><span class="muted">${KIND[kind]}</span><select data-gear="${kind}"><option value="">없음</option>${gearOptions(kind).map((it) => `<option value="${it.id}" ${it.id === g.id ? 'selected' : ''}>${esc(it.name)} · ${rarName(it.rarity)} · Lv${it.reqLevel}${it.reqLevel > calc.level ? ' (착용 불가)' : ''}</option>`).join('')}</select><select data-enh="${kind}" aria-label="${KIND[kind]} 강화">${Array.from({ length: D.constants.enhanceMax + 2 }, (_, i) => `<option value="${i}" ${i === g.enh ? 'selected' : ''}>${i > D.constants.enhanceMax ? '각성' : `+${i}`}</option>`).join('')}</select></div>`;
         }).join('')}</div>
       </div>
       <div class="row">
@@ -435,8 +437,8 @@ function pageDrops() {
     <p class="muted small" style="margin-top:8px">레이드 장비는 참가자마다 따로 굴리며, 내 직업이 쓸 수 있는 것 중에서만 뽑힙니다. 유니크는 불운 보정이 없습니다(${pct(c.uniqueRaidChance)}).</p>
 
     <h2>필드 보스 원정 보상</h2>
-    ${table(['전장', { t: '딜 지분', c: 'r' }, '장비', '고정 보상'], wbRows)}
-    <p class="muted small" style="margin-top:8px">처치 순간 보스에게 넣은 피해가 전체의 기준 % 이상인 사람만 받습니다. 처치 경험치와 희귀 장비 굴림은 없습니다.</p>`;
+    ${table(['전장', { t: '기여 지분', c: 'r' }, '장비', '고정 보상'], wbRows)}
+    <p class="muted small" style="margin-top:8px">처치 순간 기여(보스에게 넣은 피해 + 보스와 싸우는 동안 채운 치유량 × ${c.worldBossHealWeight})가 전체의 기준 % 이상인 사람만 받습니다. 힐러는 치유로도 기준을 넘길 수 있습니다. 처치 경험치와 희귀 장비 굴림은 없습니다.</p>`;
 }
 
 // ── 페이지: 직업·전직 ──
@@ -557,7 +559,7 @@ function renderItemList() {
   else if (key !== 'default') list = [...list].sort((a, b) => (b[key] ?? 0) - (a[key] ?? 0));
   document.getElementById('item-count').textContent = `${list.length}개`;
   const rows = list.map((it) => {
-    const st = [it.atk && `공격 ${it.atk}`, it.def && `방어 ${it.def}`, it.hp && `HP ${it.hp}`, it.allStat && `올스탯 ${it.allStat}`, it.mp && `MP ${it.mp}%`].filter(Boolean).join(' · ');
+    const st = [it.atk && `공격 ${it.atk}`, it.def && `방어 ${it.def}`, it.hp && `HP ${it.hp}`, it.allStat && `올스탯 ${it.allStat}`, it.heal && `HP 회복 ${it.heal}`, it.mp && `MP 회복 ${it.mp}`].filter(Boolean).join(' · ');
     return tr([itemLink(it.id), KIND[it.kind], `<span class="rar-${it.rarity}">${rarName(it.rarity)}</span>`, R(it.reqLevel ? `Lv${it.reqLevel}` : '—'), it.classId ? esc(classOf(it.classId).name) : '<span class="muted">공용</span>', `<span class="small">${st || '—'}</span>`, R(it.price ? fmt(it.price) : '—')]);
   });
   document.getElementById('item-list').innerHTML = list.length ? table(['이름', '종류', '등급', { t: '착용', c: 'r' }, '직업', '능력치', { t: '가격', c: 'r' }], rows) : '<div class="empty-state">조건에 맞는 아이템이 없습니다.</div>';
@@ -609,15 +611,15 @@ function pageItem(id) {
   if (it.reqLevel) chips.push(`<span class="chip">착용 Lv${it.reqLevel}</span>`);
   chips.push(`<span class="chip">${it.classId ? `${esc(classOf(it.classId).name)} 전용` : '공용'}</span>`);
   if (it.bound) chips.push('<span class="chip accent">귀속</span>');
-  const stats = [['공격력', it.atk], ['방어력', it.def], ['HP', it.hp], ['올스탯', it.allStat], ['MP 회복', it.mp && `${it.mp}%`], ['구매가', it.price && fmt(it.price)], ['판매가', it.sell && fmt(it.sell)]].filter(([, v]) => v);
+  const stats = [['공격력', it.atk], ['방어력', it.def], ['HP', it.hp], ['올스탯', it.allStat], ['HP 회복', it.heal], ['MP 회복', it.mp], ['구매가', it.price && fmt(it.price)], ['판매가', it.sell && fmt(it.sell)]].filter(([, v]) => v);
   let enh = '';
   if (equip) {
     const keys = [['atk', '공격력'], ['def', '방어력'], ['hp', 'HP']].filter(([k]) => it[k]);
-    const rows = Array.from({ length: c.enhanceMax + 1 }, (_, lv) => {
+    const rows = Array.from({ length: c.enhanceMax + 2 }, (_, lv) => {
       const g = gearStats(it, lv);
-      return tr([R(`+${lv}`), ...keys.map(([k]) => R(fmt(g[k]))), R(lv < c.enhanceMax ? `${D.enhance[lv].rate}%` : '—'), R(lv < c.enhanceMax ? fmt(D.enhance[lv].goldPerTier * it.tier) : '—')]);
+      return tr([R(lv > c.enhanceMax ? '<span style="color:var(--bad)">각성</span>' : `+${lv}`), ...keys.map(([k]) => R(fmt(g[k]))), R(lv < c.enhanceMax ? `${D.enhance[lv].rate}%` : lv === c.enhanceMax ? `각성 ${D.awaken.rate}%` : '—'), R(lv < c.enhanceMax ? fmt(D.enhance[lv].goldPerTier * it.tier) : '—')]);
     });
-    enh = `<h2>강화 수치</h2><p class="muted small">${rarName(it.rarity)} 등급 기준(×${c.rarityMul[it.rarity]}). 단계당 +${pct(c.enhanceBonusPer[it.kind])}. 비용·성공률은 그 단계에서 다음 단계로 올릴 때 값입니다.</p>${table([{ t: '단계', c: 'r' }, ...keys.map(([, n]) => ({ t: n, c: 'r' })), { t: '다음 성공률', c: 'r' }, { t: '비용(베리)', c: 'r' }], rows)}`;
+    enh = `<h2>강화 수치</h2><p class="muted small">${rarName(it.rarity)} 등급 기준(×${c.rarityMul[it.rarity]}). 단계당 +${pct(c.enhanceBonusPer[it.kind])}, 각성은 +${c.enhanceMax} 배율의 ×${D.awaken.mul}. 비용·성공률은 그 단계에서 다음 단계로 올릴 때 값입니다.</p>${table([{ t: '단계', c: 'r' }, ...keys.map(([, n]) => ({ t: n, c: 'r' })), { t: '다음 성공률', c: 'r' }, { t: '비용(베리)', c: 'r' }], rows)}`;
   }
   return `
     ${crumb('#/items', '아이템 도감')}
@@ -679,7 +681,7 @@ function pageMob(id) {
     <div class="detail-head"><span class="ico lg ph">${icon(m.kind === 'field' ? 'skull' : 'crown', 'i')}</span><div><h1>${esc(m.name)}</h1><div class="chips"><span class="chip">${MOB_KIND[m.kind]}</span><span class="chip" ${m.aggro === 'aggressive' ? 'style="color:var(--bad)"' : ''}>${m.aggro === 'aggressive' ? '선공' : '비선공'}</span>${m.islands.map((i) => `<span class="chip">${islandLink(i)}</span>`).join('')}</div></div></div>
     <dl class="stats">${stats.map(([k, v]) => `<div class="stat"><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
     ${raid ? `<p style="margin-top:12px">${islandLink(raid.id)}의 보스입니다. 보상은 레이드 클리어 보상으로 나옵니다.</p>` : ''}
-    ${wb ? `<p style="margin-top:12px">${islandLink(wb.islandId)}의 원정 필드 보스입니다. 처치 때 딜 지분 ${wb.minSharePct}% 이상인 사람만 <a href="#/world#wb-${esc(wb.id)}">원정 보상</a>을 받습니다.</p>` : ''}
+    ${wb ? `<p style="margin-top:12px">${islandLink(wb.islandId)}의 원정 필드 보스입니다. 처치 때 기여 지분(피해 + 치유) ${wb.minSharePct}% 이상인 사람만 <a href="#/world#wb-${esc(wb.id)}">원정 보상</a>을 받습니다.</p>` : ''}
     <h2>드랍표 <span class="muted small">베리 ${fmt(m.loot.gold[0])}~${fmt(m.loot.gold[1])}</span></h2>
     ${table(['아이템', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }, { t: '', c: 'r' }], lootRows)}
     ${rare.length ? `<h2>희귀 장비 (1인 기준)</h2>${table(['결과', { t: '확률', c: 'r' }, { t: '', c: 'r' }], rare)}` : ''}
@@ -725,7 +727,7 @@ function pageWorld() {
   }).join('');
   const raids = D.raids.map((r) => `
     <section class="card" id="raid-${r.id}">
-      <h2 style="margin-top:0">${esc(r.name)} <span class="chip">입장 Lv${r.minLevel}</span> <span class="chip">${r.minParty}~${r.size}인</span> <span class="chip">제한 ${r.timeLimitSec / 60}분</span>${r.cooldownSec ? ` <span class="chip">클리어 뒤 재입장 ${r.cooldownSec / 3600}시간</span>` : ''}</h2>
+      <h2 style="margin-top:0">${esc(r.name)} <span class="chip">입장 Lv${r.minLevel}</span> <span class="chip">${r.minParty}~${r.size}인</span> <span class="chip">제한 ${r.timeLimitSec / 60}분</span>${r.cooldownSec ? ` <span class="chip">클리어 뒤 재입장 ${Math.round(r.cooldownSec / 60)}분</span>` : ''}</h2>
       <p>보스: ${mobLink(r.bossId)} · HP ${fmt(M.mobs.get(r.bossId)?.hp ?? 0)}${r.guideIsland ? ` · ${islandLink(r.guideIsland)}의 레이드 안내인에게서 출발` : ''}</p>
       ${table(['페이즈', { t: '보스 HP', c: 'r' }, '패턴'], r.phases.map((p) => tr([`${p.phase}`, R(`${p.fromHpPct}% 이하`), esc(p.label)])))}
       ${r.enrage ? `<p class="small" style="margin-top:8px">격노: 시작 ${r.enrage.afterSec / 60}분 뒤 보스 피해 ×${r.enrage.damageMultiplier}</p>` : ''}
@@ -743,7 +745,7 @@ function pageWorld() {
       <p>보스: ${mobLink(w.bossId)} · HP ${fmt(M.mobs.get(w.bossId)?.hp ?? 0)} · 어느 섬의 항해사(뱃사공)에게서든 「원정」으로 건너갑니다. 파티 · 인원 제한이 없습니다.</p>
       ${table(['페이즈', { t: '보스 HP', c: 'r' }, '패턴'], w.phases.map((p) => tr([`${p.phase}`, R(`${p.fromHpPct}% 이하`), esc(p.label)])))}
       ${w.enrage ? `<p class="small" style="margin-top:8px">격노: 교전 ${w.enrage.afterSec / 60}분 뒤 보스 피해 ×${w.enrage.damageMultiplier}</p>` : ''}
-      <h3>보상 (처치 때 딜 지분 ${w.minSharePct}% 이상인 사람)</h3>
+      <h3>보상 (처치 때 기여 지분 ${w.minSharePct}% 이상인 사람 — 기여 = 피해 + 치유 × ${D.constants.worldBossHealWeight})</h3>
       <ul class="plain small">
         <li>${fmt(w.rewards.gold)} 베리 · 경험치(현재 레벨 필요 경험치의 ${pct(w.rewards.expLevelFrac)}) · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')}</li>
         ${w.rewards.uniqueChance ? `<li>${pct(w.rewards.uniqueChance)} 확률로 유니크 장비 1점</li>` : ''}
@@ -778,10 +780,14 @@ function pageGrowth() {
     </tbody></table></div>
 
     <h2>강화</h2>
-    <p>대장장이에게서 +${c.enhanceMax}까지 올립니다. <b>장비가 부서지지는 않습니다.</b> 목표가 +4 이하면 실패해도 그대로, +5 이상이면 한 단계 내려갑니다.</p>
+    <p>대장장이에게서 +${c.enhanceMax}까지 올립니다. <b>장비가 부서지지는 않습니다.</b> 목표가 +4 이하면 실패해도 그대로, +5 이상이면 한 단계 내려갑니다. 목표 +4부터는 그 장비 티어의 필드 재료도 듭니다.</p>
     <div class="filters"><label class="f">장비 티어(비용 기준)<select id="enh-tier">${[1, 2, 3, 4, 5, 6, 7, 8].map((t) => `<option value="${t}" ${t === growthState.tier ? 'selected' : ''}>티어 ${t}</option>`).join('')}</select></label></div>
     <div id="enh-table">${enhanceTable()}</div>
-    <p class="muted small" style="margin-top:8px">기대값은 +0에서 시작해 그 단계에 처음 닿을 때까지의 평균입니다(실패로 내려간 뒤 다시 올리는 비용 포함). 비용은 50 × 티어 × (현재 단계 + 1) 베리, 목표 +8부터 강화석 2개입니다.</p>`;
+    <p class="muted small" style="margin-top:8px">기대값은 +0에서 시작해 그 단계에 처음 닿을 때까지의 평균입니다(실패로 내려간 뒤 다시 올리는 비용 포함). 비용은 50 × 티어 × (현재 단계 + 1) 베리, 목표 +8부터 강화석 2개, 목표 +4~+6은 필드 재료 3개, +7부터 5개입니다.</p>
+
+    <h2>각성</h2>
+    <p>+${c.enhanceMax} 장비는 대장장이에게서 각성에 도전할 수 있습니다. 성공률 ${D.awaken.rate}%, <b>실패하면 +0으로 초기화</b>됩니다(장비는 남습니다). 성공하면 칸 테두리가 붉게 빛나는 각성 장비가 되고 수치가 +${c.enhanceMax} 강화 배율의 ×${D.awaken.mul}이 됩니다. 각성 장비는 그대로 거래·경매장 등록이 됩니다.</p>
+    ${table([{ t: '티어', c: 'r' }, '강화 재료(+4부터)', { t: '각성 베리', c: 'r' }, '각성 재료'], D.awaken.tiers.map((a) => tr([R(a.tier), itemLink(a.material), R(fmt(a.gold)), a.items.map((m) => `${itemLink(m.itemId)} ×${m.qty}`).join(', ')])))}`;
 }
 function enhanceTable() {
   const t = growthState.tier;
@@ -797,9 +803,9 @@ function enhanceTable() {
     const s = drop ? (e.stones + (1 - p) * prev.s) / p : e.stones / p;
     prev.a = a; prev.g = g; prev.s = s;
     cumA += a; cumG += g; cumS += s;
-    return tr([R(`+${e.from} → +${e.to}`), R(`${e.rate}%`), e.failTo === e.from ? '유지' : `<span style="color:var(--bad)">+${e.failTo}로 하락</span>`, R(fmt(cost)), R(e.stones), R(fmt(Math.round(cumA * 10) / 10)), R(fmt(Math.round(cumG))), R(fmt(Math.round(cumS * 10) / 10))]);
+    return tr([R(`+${e.from} → +${e.to}`), R(`${e.rate}%`), e.failTo === e.from ? '유지' : `<span style="color:var(--bad)">+${e.failTo}로 하락</span>`, R(fmt(cost)), R(e.stones), R(e.mats || '—'), R(fmt(Math.round(cumA * 10) / 10)), R(fmt(Math.round(cumG))), R(fmt(Math.round(cumS * 10) / 10))]);
   });
-  return table([{ t: '단계', c: 'r' }, { t: '성공률', c: 'r' }, '실패하면', { t: '1회 베리', c: 'r' }, { t: '강화석', c: 'r' }, { t: '누적 기대 시도', c: 'r' }, { t: '누적 기대 베리', c: 'r' }, { t: '누적 기대 강화석', c: 'r' }], rows);
+  return table([{ t: '단계', c: 'r' }, { t: '성공률', c: 'r' }, '실패하면', { t: '1회 베리', c: 'r' }, { t: '강화석', c: 'r' }, { t: '필드 재료', c: 'r' }, { t: '누적 기대 시도', c: 'r' }, { t: '누적 기대 베리', c: 'r' }, { t: '누적 기대 강화석', c: 'r' }], rows);
 }
 function bindGrowth() {
   document.getElementById('enh-tier').addEventListener('input', (e) => { growthState.tier = Number(e.target.value); document.getElementById('enh-table').innerHTML = enhanceTable(); });
