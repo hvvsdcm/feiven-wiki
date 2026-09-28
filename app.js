@@ -376,7 +376,7 @@ function pageDrops() {
   });
   const b = c.boxLoot;
   const m = c.market;
-  const raidRows = D.raids.map((r) => tr([islandLink(r.id), R(`Lv${r.minLevel}`), `장비 1점(첫 클리어는 자기 무기) · 전설 등급 ${pct(r.rewards.legendaryChance)}${r.rewards.rareDrop ? ` · 거신 장비 ${pct(r.rewards.rareDrop.chance)}` : ''}${r.rewards.uniqueChance ? ` · 유니크 ${pct(r.rewards.uniqueChance)}` : ''}`, r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')]));
+  const raidRows = D.raids.map((r) => tr([islandLink(r.id), R(`Lv${r.minLevel}`), `전설 장비 ${pct(r.rewards.legendaryChance)}(영웅 등급 없음)${r.rewards.rareDrop ? ` · 거신 장비 ${pct(r.rewards.rareDrop.chance)}` : ''}${r.rewards.uniqueChance ? ` · 유니크 ${pct(r.rewards.uniqueChance)}` : ''}`, r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')]));
   const wbRows = D.worldBosses.map((w) => tr([islandLink(w.islandId), R(`${w.minSharePct}% 이상`), w.rewards.uniqueChance ? `유니크 ${pct(w.rewards.uniqueChance)}` : '—', `${fmt(w.rewards.gold)} 베리 · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')} · 경험치(현재 레벨의 ${pct(w.rewards.expLevelFrac)})`]));
   return `
     ${head('드랍률', '게임 서버의 전리품 규칙 그대로입니다.')}
@@ -734,7 +734,7 @@ function pageWorld() {
       <h3>보상 (참가자 전원)</h3>
       <ul class="plain small">
         <li>경험치 ${fmt(r.rewards.exp)} · ${fmt(r.rewards.gold)} 베리 · ${r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')}</li>
-        <li>레이드 장비 1점(${r.rewards.gearPool.length}종 중 내가 쓸 수 있는 것, 첫 클리어는 자기 직업 무기) · ${pct(r.rewards.legendaryChance)} 확률로 전설 등급</li>
+        <li>${pct(r.rewards.legendaryChance)} 확률로 전설 등급 레이드 장비 1점(${r.rewards.gearPool.length}종 중 내가 쓸 수 있는 것, 첫 클리어는 자기 직업 무기). 레이드에서는 영웅 등급이 나오지 않습니다.</li>
         ${r.rewards.rareDrop ? `<li>${pct(r.rewards.rareDrop.chance)} 확률로 거신 장비 1점 추가</li>` : ''}
         ${r.rewards.uniqueChance ? `<li>${pct(r.rewards.uniqueChance)} 확률로 유니크 장비 1점</li>` : ''}
       </ul>
