@@ -140,7 +140,7 @@ th { font-size: 13px; font-weight: 600; color: var(--muted); background: inherit
 .card .table-wrap th { background: var(--s2); }
 tr:last-child td { border-bottom: 0; }
 tbody tr:hover td { background: rgba(255, 255, 255, .025); }
-td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
+td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 td a { color: var(--text); font-weight: 600; }
 td a:hover { color: var(--accent-text); }
 td .muted.small, td .small.muted { font-size: 13px; }

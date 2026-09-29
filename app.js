@@ -42,8 +42,10 @@ function mobLink(id) {
   const m = M.mobs.get(id);
   return m ? `<a href="#/mobs/${esc(id)}">${esc(m.name)}</a> <span class="muted small">Lv${m.level}</span>` : esc(id);
 }
-const islandName = (id) => M.islands.get(id)?.name ?? M.raids.get(id)?.name ?? M.wbIsland.get(id)?.name ?? id;
-const islandLink = (id) => (M.islands.has(id) ? `<a href="#/world#isl-${esc(id)}">${esc(islandName(id))}</a>` : M.raids.has(id) ? `<a href="#/world#raid-${esc(id)}">${esc(islandName(id))}</a>` : M.wbIsland.has(id) ? `<a href="#/world#wb-${esc(M.wbIsland.get(id).id)}">${esc(islandName(id))}</a>` : esc(id));
+const islandName = (id) => M.islands.get(id)?.name ?? M.raids.get(id)?.name ?? M.wbIsland.get(id)?.name ?? (id === D.infinite.id ? D.infinite.name : id);
+const islandLink = (id) => (M.islands.has(id) ? `<a href="#/world#isl-${esc(id)}">${esc(islandName(id))}</a>` : M.raids.has(id) || id === D.infinite.id ? `<a href="#/world#raid-${esc(id)}">${esc(islandName(id))}</a>` : M.wbIsland.has(id) ? `<a href="#/world#wb-${esc(M.wbIsland.get(id).id)}">${esc(islandName(id))}</a>` : esc(id));
+/** 1렙 마을(잿빛 해안) 젬 NPC 이름: gem = 젬 상인, storage = 창고지기 */
+const npcNameOfRole = (role) => D.npcNames?.[role === 'gem' ? 'sv_gem' : 'sv_storage'] ?? (role === 'gem' ? '젬 상인' : '창고지기');
 function skillIcon(s, size = '') {
   return s?.icon ? `<img class="ico ${size}" src="${esc(s.icon)}" alt="" loading="lazy" width="40" height="40">` : `<span class="ico ${size} ph">${icon('sparkles')}</span>`;
 }
@@ -436,9 +438,36 @@ function pageDrops() {
       </div>
     </div>
 
+    <h2 id="gems">${esc(D.gems.name)} · 고급 상자</h2>
+    <p><b>${esc(D.gems.name)}</b>은 레이드와 ${esc(D.infinite.name)}에서만 낮은 확률로 나오는 재화입니다(캐릭터마다 따로 쌓입니다). 잿빛 해안의 ${esc(npcNameOfRole('gem'))}에게서 쓸 수 있습니다(한 번에 ${D.gems.buyMax}개까지).</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3>얻는 곳</h3>
+        <ul class="plain small">
+          <li>레이드 클리어 1회: ${pct(D.gems.drop.raid.chance)} 확률로 ${D.gems.drop.raid.qty[0]}~${D.gems.drop.raid.qty[1]}개(참가자마다 따로)</li>
+          <li>${esc(D.infinite.name)} 웨이브 클리어: ${pct(D.gems.drop.wave.chance)} 확률로 ${D.gems.drop.wave.qty[0]}개, <b>${D.gems.drop.wave.highFromWave}웨이브부터 ${pct(D.gems.drop.wave.high)}</b> 확률로 ${D.gems.drop.wave.highQty[0]}~${D.gems.drop.wave.highQty[1]}개. 보스 웨이브는 확률 ×${D.gems.drop.wave.bossMul}</li>
+        </ul>
+        <h3 style="margin-top:12px">젬 상점</h3>
+        ${table(['물건', { t: '젬', c: 'r' }, '효과'], D.gems.shop.map((e) => tr([itemLink(e.itemId), R(`<span style="white-space:nowrap">${e.gems}</span>`), `<span class="small">${esc(M.items.get(e.itemId)?.desc ?? '')}</span>`])))}
+        <p class="muted small" style="margin-top:8px">가방 확장권 1장 = 가방 +${D.gems.bag.step}칸(최대 +${D.gems.bag.max}칸, 캐릭터마다). 창고 구매권 1장 = 계정 창고 +${D.gems.storage.step}칸(최대 ${D.gems.storage.max}칸). 창고는 잿빛 해안 ${esc(npcNameOfRole('storage'))}에게서 열며 같은 계정의 모든 캐릭터가 함께 씁니다. 귀속 아이템은 넣을 수 없습니다.</p>
+      </div>
+      <div class="card">
+        <h3>${itemLink('premium_box')}</h3>
+        <p class="small muted">젬으로만 사는 상자. 여는 사람의 직업·레벨 티어에 맞춰 아래 중 하나가 나오고, 여는 순간 등급에 따라 빛이 달라지는 연출이 나옵니다.</p>
+        ${table(['결과', { t: '확률', c: 'r' }], [
+          tr([`<span class="rar-unique">유니크 장비</span> (직업이 쓸 수 있는 것 중 1)`, R(pct(D.gems.premium.unique))]),
+          tr([`<span class="rar-legendary">전설 장비</span> (직업이 쓸 수 있는 3종 중 1)`, R(pct(D.gems.premium.legendary))]),
+          tr([`<span class="rar-epic">영웅 장비</span> (내 레벨 티어의 영웅 장비)`, R(pct(D.gems.premium.epic))]),
+          tr([`베리 ${fmt(D.gems.premium.gold[0])}~${fmt(D.gems.premium.gold[1])} + 강화석 ${D.gems.premium.stones[0]}~${D.gems.premium.stones[1]}개 + 내 티어 강화 재료 ${D.gems.premium.mats[0]}~${D.gems.premium.mats[1]}개`, R(pct(1 - D.gems.premium.unique - D.gems.premium.legendary - D.gems.premium.epic))]),
+        ])}
+        <p style="margin-top:10px"><b>천장</b>: 유니크 없이 ${D.gems.pity - 1}번 열면 <b>${D.gems.pity}번째는 유니크 확정</b>입니다. 유니크가 나오면(확률이든 천장이든) 카운트가 처음부터 다시 셉니다. 남은 횟수는 젬 상점과 개봉 화면에 보입니다(캐릭터마다).</p>
+        <p class="muted small">기념 이벤트: ${esc(D.gems.swap.name)}이(가) 잿빛 해안에 ${D.gems.swap.hours}시간 동안 머물며 수상한 상자 ${D.gems.swap.need}개를 고급 상자 1개로 바꿔 줍니다.</p>
+      </div>
+    </div>
+
     <h2>레이드 보상</h2>
     ${table(['레이드', { t: '입장', c: 'r' }, '장비', '고정 보상'], raidRows)}
-    <p class="muted small" style="margin-top:8px">레이드 장비는 참가자마다 따로 굴리며, 내 직업이 쓸 수 있는 것 중에서만 뽑힙니다. 유니크는 불운 보정이 없습니다(${pct(c.uniqueRaidChance)}).</p>
+    <p class="muted small" style="margin-top:8px">레이드 장비는 참가자마다 따로 굴리며, 내 직업이 쓸 수 있는 것 중에서만 뽑힙니다. 유니크는 불운 보정이 없습니다(${pct(c.uniqueRaidChance)}). 클리어마다 ${pct(D.gems.drop.raid.chance)} 확률로 ${esc(D.gems.name)}도 나옵니다.</p>
 
     <h2>필드 보스 원정 보상</h2>
     ${table(['전장', { t: '기여 지분', c: 'r' }, '장비', '고정 보상'], wbRows)}
@@ -550,7 +579,7 @@ function bindSkills(focusId) {
 }
 
 // ── 페이지: 아이템 ──
-const ITEM_GROUPS = { all: ['전체', null], weapon: ['무기', ['weapon']], armor: ['방어구', ['armor', 'helmet', 'gloves', 'boots']], acc: ['장신구', ['accessory', 'ring']], use: ['소모품', ['potion', 'mp_potion', 'scroll', 'boost', 'box']], mat: ['재료', ['material']] };
+const ITEM_GROUPS = { all: ['전체', null], weapon: ['무기', ['weapon']], armor: ['방어구', ['armor', 'helmet', 'gloves', 'boots']], acc: ['장신구', ['accessory', 'ring']], use: ['소모품', ['potion', 'mp_potion', 'scroll', 'boost', 'box', 'ticket']], mat: ['재료', ['material']] };
 const itemState = { group: 'all', rarity: 'all', cls: 'all', q: '', sort: 'default' };
 function pageItems() {
   return `
@@ -615,6 +644,10 @@ function sourceBlock(it) {
   if (market.length) out.push(`<div class="card"><h3>${esc(D.constants.market.name)}</h3><ul class="plain">${market.map((s) => `<li>${esc(s.note)} · ${fmt(it.price)} 베리</li>`).join('')}</ul></div>`);
   const box = by('box');
   if (box.length) out.push(`<div class="card"><h3>수상한 상자</h3><ul class="plain">${box.map((s) => `<li>${pct(s.chance)} — ${esc(s.note)}</li>`).join('')}</ul></div>`);
+  const gemShop = by('gemShop');
+  if (gemShop.length) out.push(`<div class="card"><h3>${esc(npcNameOfRole('gem'))} (잿빛 해안)</h3><ul class="plain">${gemShop.map((s) => `<li>${esc(D.gems.name)} ${s.gems}개</li>`).join('')}${it.id === 'premium_box' ? `<li>기념 이벤트 동안 ${esc(D.gems.swap.name)}: 수상한 상자 ${D.gems.swap.need}개 → 1개</li>` : ''}</ul></div>`);
+  const premium = by('premium');
+  if (premium.length) out.push(`<div class="card"><h3>고급 상자</h3><ul class="plain">${premium.map((s) => `<li>${pct(s.chance)} — ${esc(s.note)}</li>`).join('')}</ul></div>`);
   if (!out.length) out.push(`<div class="empty-state">${it.bound ? '운영자 지급 전용 아이템입니다(귀속).' : '지금은 게임 안에서 얻는 곳이 없습니다.'}</div>`);
   return out.join('');
 }
@@ -743,8 +776,10 @@ function pageWorld() {
   }).join('');
   const raids = D.raids.map((r) => `
     <section class="card" id="raid-${r.id}">
-      <h2 style="margin-top:0">${esc(r.name)} <span class="chip">입장 Lv${r.minLevel}</span> <span class="chip">${r.minParty}~${r.size}인</span> <span class="chip">제한 ${r.timeLimitSec / 60}분</span>${r.cooldownSec ? ` <span class="chip">클리어 뒤 재입장 ${Math.round(r.cooldownSec / 60)}분</span>` : ''}</h2>
-      <p>보스: ${mobLink(r.bossId)} · HP ${fmt(M.mobs.get(r.bossId)?.hp ?? 0)}${r.guideIsland ? ` · ${islandLink(r.guideIsland)}의 레이드 안내인에게서 출발` : ''}</p>
+      <h2 style="margin-top:0">${esc(r.name)} <span class="chip">입장 Lv${r.minLevel}</span>${r.guild ? ' <span class="chip">길드 레이드</span>' : ''} <span class="chip">${r.minParty === 1 ? '혼자' : r.minParty}~${r.size}인</span> <span class="chip">제한 ${r.timeLimitSec / 60}분</span>${r.cooldownSec ? ` <span class="chip">클리어 뒤 재입장 ${Math.round(r.cooldownSec / 60)}분</span>` : ''}</h2>
+      <p>보스: ${mobLink(r.bossId)} · HP ${fmt(M.mobs.get(r.bossId)?.hp ?? 0)}${r.bossHpScale ? ` × (${r.bossHpScale.base} + ${r.bossHpScale.perExtra} × (입장 인원 − 1))` : ''}${r.guideIsland ? ` · ${islandLink(r.guideIsland)}의 레이드 안내인에게서 출발` : ''}</p>
+      ${r.guild ? '<p class="small">길드장·부길드장이 출발을 요청하면 접속한 길드원 전원(입장 레벨 이상·재입장 대기 아님)에게 준비 확인이 갑니다. 어느 섬에 있든 준비 완료를 누르면 바로 들어가고, 끝나면 각자 있던 섬으로 돌아옵니다. 보스는 뛰어올라 내리꽂고(도약) 직선으로 돌진하며, 보스 품이 안전한 고리(도넛) 패턴이 있습니다.</p>' : ''}
+      <p class="small">혼자 입장해 클리어하면 보상(베리·경험치·아이템 수량·장비/희귀/유니크 확률)이 ×${r.soloMul}입니다. 2명 이상이면 그대로입니다.</p>
       ${table(['페이즈', { t: '보스 HP', c: 'r' }, '패턴'], r.phases.map((p) => tr([`${p.phase}`, R(`${p.fromHpPct}% 이하`), esc(p.label) + (p.lethal ? ' <span class="small">· 즉사 패턴</span>' : '') + (p.debuffs?.length ? `<br><span class="small">맞으면: ${p.debuffs.map(esc).join(' · ')}</span>` : '')])))}
       ${r.enrage ? `<p class="small" style="margin-top:8px">격노: 시작 ${r.enrage.afterSec / 60}분 뒤 보스 피해 ×${r.enrage.damageMultiplier}</p>` : ''}
       <h3>보상 (참가자 전원)</h3>
@@ -773,17 +808,28 @@ function pageWorld() {
     <section class="card" id="raid-${inf.id}">
       <h2 style="margin-top:0">${esc(inf.name)} <span class="chip">입장 Lv${inf.minLevel}</span> <span class="chip">혼자~${inf.size}인</span> <span class="chip">제한 시간 없음</span> <span class="chip">재입장 대기 없음</span></h2>
       <p>레이드 안내인·항해사의 레이드 목록에서 출발합니다(파티 없이 혼자도 가능). ${inf.firstWaveSec}초 뒤 1웨이브가 몰려오고, 투기장의 몬스터를 모두 쓰러뜨리면 웨이브 클리어 → ${inf.breakSec}초 쉬고 다음 웨이브. <b>웨이브에는 끝이 없습니다.</b> ${inf.bossEvery}웨이브마다 보스(호위 ${inf.bossEscorts})가 나옵니다.</p>
-      <p class="small">몬스터 수치는 웨이브마다 곱으로 커집니다: HP ${fmt(inf.scaling.hp)} × ${inf.scaling.hpGrowth}^(웨이브−1), 공격력 ${inf.scaling.atk} × ${inf.scaling.atkGrowth}^(웨이브−1), 방어력 ${inf.scaling.def} + ${inf.scaling.defStep} × (웨이브−1). 보스 = HP ×${inf.scaling.bossHpMul} · 공격력 ×${inf.scaling.bossAtkMul} · 방어력 +${inf.scaling.bossDefAdd}. 처치 경험치·드랍은 없습니다.</p>
-      ${table([{ t: '웨이브', c: 'r' }, { t: '몬스터', c: 'r' }, { t: 'HP', c: 'r' }, { t: '공격력', c: 'r' }, { t: '방어력', c: 'r' }, '보스', { t: '클리어 베리', c: 'r' }, { t: '강화석', c: 'r' }], inf.waves.map((w) => tr([R(w.wave), R(w.count), R(fmt(w.mob.hp)), R(fmt(w.mob.atk)), R(fmt(w.mob.def)), w.bossId ? `${mobLink(w.bossId)} <span class="muted small">HP ${fmt(w.bossStats.hp)} · 공격력 ${fmt(w.bossStats.atk)}</span>` : '', R(fmt(w.gold)), R(w.stones || '')])))}
+      <p class="small">몬스터 수치는 웨이브마다 곱으로 커집니다: HP ${fmt(inf.scaling.hp)} × ${inf.scaling.hpGrowth}^(웨이브−1), 공격력 ${inf.scaling.atk} × ${inf.scaling.atkGrowth}^(웨이브−1), 방어력 ${inf.scaling.def} + ${inf.scaling.defStep} × (웨이브−1). 보스 = HP ×${inf.scaling.bossHpMul} · 공격력 ×${inf.scaling.bossAtkMul} · 방어력 +${inf.scaling.bossDefAdd}. 처치 경험치·일반 드랍은 없습니다(${D.gems.infUnique.fromWave}웨이브부터 유니크 굴림만 있습니다).</p>
+      ${table([{ t: '웨이브', c: 'r' }, { t: '몬스터', c: 'r' }, { t: 'HP', c: 'r' }, { t: '공격력', c: 'r' }, { t: '방어력', c: 'r' }, '보스', { t: '클리어 베리', c: 'r' }, { t: '경험치', c: 'r' }, { t: '강화석', c: 'r' }, { t: esc(D.gems.name), c: 'r' }], inf.waves.map((w) => tr([R(w.wave), R(w.count), R(fmt(w.mob.hp)), R(fmt(w.mob.atk)), R(fmt(w.mob.def)), w.bossId ? `${mobLink(w.bossId)} <span class="muted small">HP ${fmt(w.bossStats.hp)} · 공격력 ${fmt(w.bossStats.atk)}</span>` : '', R(fmt(w.gold)), R(pct(w.expPct)), R(w.stones || ''), R(pct(w.gem.chance))])))}
       <h3>보상 (웨이브를 넘길 때마다 투기장 안 전원)</h3>
       <ul class="plain small">
-        <li>${fmt(inf.rewards.gold)} × ${inf.rewards.goldGrowth}^(웨이브−1) 베리 · 경험치(현재 레벨 필요 경험치의 ${pct(inf.rewards.expPct)}) · 보스 웨이브는 강화석(${inf.bossEvery}웨이브마다 ${inf.rewards.stonesPerBoss}개씩 늘어남)</li>
+        <li>${fmt(inf.rewards.gold)} × ${inf.rewards.goldGrowth}^(웨이브−1) 베리 · 경험치(현재 레벨 필요 경험치의 ${pct(inf.rewards.expPct)} × (1 + ${inf.rewards.expGrowth} × (웨이브−1)) — <b>높은 웨이브일수록 많이</b>) · 보스 웨이브는 강화석(${inf.bossEvery}웨이브마다 ${inf.rewards.stonesPerBoss}개씩 늘어남)</li>
+        <li>${esc(D.gems.name)}: 웨이브마다 ${pct(D.gems.drop.wave.chance)}, <b>${D.gems.drop.wave.highFromWave}웨이브부터 ${pct(D.gems.drop.wave.high)}</b>(보스 웨이브는 ×${D.gems.drop.wave.bossMul})</li>
+        <li><b>${D.gems.infUnique.fromWave}웨이브부터</b> 몬스터를 잡을 때마다 유니크 장비 굴림: 일반 몬스터 ${pct(D.gems.infUnique.mob)}, 보스 ${pct(D.gems.infUnique.boss)}(투기장 안 한 명마다 따로, 직업에 맞는 것)</li>
         <li><b>서버 최초로 ${inf.firstClearWave}웨이브를 넘긴 파티 전원</b>에게 직업에 맞는 유니크 장비 1점(한 번뿐)</li>
         <li>라이프 토큰 ${inf.lifeTokens}개 · 투기장 안 전원이 한꺼번에 쓰러지면 도전이 끝납니다. 웨이브 보상과 기록은 웨이브마다 바로 남습니다.</li>
         <li>랭킹: 메뉴 › 랭킹 › 무한의 던전 — 같은 파티 구성마다 최고 기록(웨이브 → 걸린 시간 순)</li>
       </ul>
     </section>`;
-  return `${head('지역·레이드', '섬은 항해사(뱃사공)로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다.')}<div class="stack">${islands}</div><h2>레이드</h2><div class="stack">${raids}${infCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div>`;
+  const aug = D.augment;
+  const augCard = `
+    <section class="card" id="raid-${aug.id}">
+      <h2 style="margin-top:0">${esc(aug.name)} <span class="chip">베타</span> <span class="chip">입장 Lv${inf.minLevel}</span> <span class="chip">혼자~${inf.size}인</span></h2>
+      <p>${esc(inf.name)}와 같은 투기장·웨이브·보상 규칙에 <b>${aug.every}웨이브를 넘길 때마다 증강 카드 3장 중 1장</b>을 고릅니다(${aug.pickSec}초 안에, 다시 뽑기 ${aug.rerolls}회, 시간이 지나면 무작위). 모두 고를 때까지 다음 웨이브를 기다립니다. 증강은 이번 도전 동안만 유지되고 투기장을 나가면 사라집니다. 같은 증강은 한 번만 가질 수 있습니다.</p>
+      <p class="small">베타: 랭킹·서버 최초 돌파 보상은 없고 개인 최고 기록만 따로 남습니다.</p>
+      ${table(['선택', ...Object.values(aug.tierNames).map((n) => ({ t: esc(n), c: 'r' }))], aug.odds.map((o, i) => tr([`${(i + 1) * aug.every}웨이브${i === aug.odds.length - 1 ? '부터' : ''}`, R(`${o.silver}%`), R(`${o.gold}%`), R(`${o.prism}%`)])))}
+      ${table(['증강', '등급', '효과'], aug.list.map((a) => tr([esc(a.name), esc(aug.tierNames[a.tier]), esc(a.desc)])))}
+    </section>`;
+  return `${head('지역·레이드', '섬은 항해사(뱃사공)로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다.')}<div class="stack">${islands}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div>`;
 }
 
 // ── 페이지: 성장·강화 ──
@@ -814,7 +860,7 @@ function pageGrowth() {
     <p>대장장이에게서 +${c.enhanceMax}까지 올립니다. <b>장비가 부서지지는 않습니다.</b> 목표가 +4 이하면 실패해도 그대로, +5 이상이면 한 단계 내려갑니다. 목표 +4부터는 그 장비 티어의 필드 재료도 듭니다.</p>
     <div class="filters"><label class="f">장비 티어(비용 기준)<select id="enh-tier">${[1, 2, 3, 4, 5, 6, 7, 8].map((t) => `<option value="${t}" ${t === growthState.tier ? 'selected' : ''}>티어 ${t}</option>`).join('')}</select></label></div>
     <div id="enh-table">${enhanceTable()}</div>
-    <p class="muted small" style="margin-top:8px">기대값은 +0에서 시작해 그 단계에 처음 닿을 때까지의 평균입니다(실패로 내려간 뒤 다시 올리는 비용 포함). 비용은 50 × 티어 × (현재 단계 + 1) 베리, 목표 +8부터 강화석 2개, 목표 +4~+6은 필드 재료 3개, +7부터 5개입니다.</p>
+    <p class="muted small" style="margin-top:8px">기대값은 +0에서 시작해 그 단계에 처음 닿을 때까지의 평균입니다(실패로 내려간 뒤 다시 올리는 비용 포함). 비용은 50 × 티어 × (현재 단계 + 1) 베리, 강화석은 단계와 상관없이 1개, 목표 +4~+6은 필드 재료 2개, +7부터 3개입니다.</p>
 
     <h2>각성</h2>
     <p>+${c.enhanceMax} 장비는 대장장이에게서 각성에 도전할 수 있습니다. 성공률은 ${D.awaken.rate}%에서 시작해 <b>실패할 때마다 그 장비의 성공률이 ${D.awaken.step}%씩 오릅니다</b>. 실패해도 강화 단계는 +${c.enhanceMax} 그대로입니다(재료·베리만 듭니다). 성공하면 칸 테두리가 붉게 빛나는 각성 장비가 되고 수치가 +${c.enhanceMax} 강화 배율의 ×${D.awaken.mul}이 됩니다. 각성 장비는 그대로 거래·경매장 등록이 됩니다.</p>
@@ -944,6 +990,7 @@ function buildSearch() {
   }
   for (const r of D.raids) add('레이드', r.name, `#/world#raid-${r.id}`, `레이드 · 입장 Lv${r.minLevel}`, ph('crown'), r.phases.map((p) => p.label).join(' · '), '레이드');
   add('레이드', D.infinite.name, `#/world#raid-${D.infinite.id}`, `웨이브 던전 · 입장 Lv${D.infinite.minLevel} · 혼자~${D.infinite.size}인`, ph('crown'), '무한 웨이브 랭킹 서버 최초 유니크', '레이드');
+  add('레이드', D.augment.name, `#/world#raid-${D.augment.id}`, `웨이브 던전 베타 · ${D.augment.every}웨이브마다 증강 카드`, ph('crown'), D.augment.list.map((a) => `${a.name} ${a.desc}`).join(' · '), '레이드 증강 베타 카드');
   for (const w of D.worldBosses) add('레이드', w.name, `#/world#wb-${w.id}`, `필드 보스 원정 · ${M.mobs.get(w.bossId)?.name ?? ''}`, ph('crown'), w.phases.map((p) => p.label).join(' · '), '필드보스 월드보스 원정');
   searchIndex = entries;
 }
