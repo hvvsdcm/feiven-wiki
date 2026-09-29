@@ -84,12 +84,10 @@ function gearStats(it, enh, rarity = it.rarity) {
   const mul = D.constants.rarityMul[rarity] * (enh > max ? (1 + per * max) * D.awaken.mul : 1 + per * enh);
   return { atk: Math.round(it.atk * mul), def: Math.round(it.def * mul), hp: Math.round(it.hp * mul) };
 }
-/** 레벨·배분·장비·전직으로 능력치(GameServer.recomputeStats와 같은 순서: 기본+배분 → 장비 → 전직 패시브(1차 + 2차 합산)) */
+/** 레벨·배분·장비·전직으로 능력치(GameServer.recomputeStats와 같은 순서: 직업 Lv1 기본+배분 → 장비 → 전직 패시브(1차 + 2차 합산)). 레벨은 점수 총량만 정한다 */
 function playerStats(cls, level, alloc, gear, branch, second = false) {
-  const l = Math.max(0, level - 1);
   const eff = D.constants.statEffect;
-  const baseAtk = Math.round(cls.baseAtk + cls.atkGrowth * l);
-  const s = { patk: baseAtk, matk: baseAtk, maxHp: Math.round(cls.baseHp + cls.hpGrowth * l), maxMp: Math.round(cls.baseMp + cls.mpGrowth * l), def: Math.round(cls.baseDef + cls.defGrowth * l) };
+  const s = { patk: cls.baseAtk, matk: cls.baseAtk, maxHp: cls.baseHp, maxMp: cls.baseMp, def: cls.baseDef };
   const addPoints = (key, n) => {
     for (const [field, v] of Object.entries(eff[key])) s[field] += v * n;
   };
@@ -111,7 +109,7 @@ function playerStats(cls, level, alloc, gear, branch, second = false) {
   if (p.maxMpPct) s.maxMp *= 1 + p.maxMpPct / 100;
   const patk = Math.round(s.patk + gearAtk);
   const matk = Math.round(s.matk + gearAtk);
-  return { patk, matk, atk: cls.dmgType === 'magic' ? matk : patk, baseMatk: baseAtk, def: s.def, maxHp: s.maxHp, maxMp: Math.max(0, Math.round(s.maxMp)), crit: cls.critPct + (p.critPct ?? 0), gearAtk };
+  return { patk, matk, atk: cls.dmgType === 'magic' ? matk : patk, def: s.def, maxHp: s.maxHp, maxMp: Math.max(0, Math.round(s.maxMp)), crit: cls.critPct + (p.critPct ?? 0), gearAtk };
 }
 /** 슬롯 1~4 스킬(shared/data/branches.ts skillsFor). 2차 전직이면 네 칸 모두 2차 스킬 */
 function skillsFor(cls, branch, awakened, second = false) {
@@ -157,7 +155,7 @@ function pageDamage() {
   const c = D.constants;
   const defRows = [0, 10, 25, 50, 75, 100, 150, 200, 300, 400].map((d) => tr([R(d), R(pct(100 / (100 + d))), R(pct(1 - 100 / (100 + d)))]));
   const classRows = D.classes.map((k) => tr([
-    `<a href="#/classes/${k.id}">${esc(k.name)}</a>`, DMG[k.dmgType], R(k.baseAtk), R(k.atkGrowth.toFixed(3)), R(k.growth.find((g) => g.level === 100)?.atk ?? '-'), R(k.growth.find((g) => g.level === D.meta.maxLevel)?.atk ?? '-'), R(`${k.critPct}%`),
+    `<a href="#/classes/${k.id}">${esc(k.name)}</a>`, DMG[k.dmgType], R(k.baseAtk), planText(k), R(k.growth.find((g) => g.level === 100)?.atk ?? '-'), R(k.growth.find((g) => g.level === D.meta.maxLevel)?.atk ?? '-'), R(`${k.critPct}%`),
   ]));
   const rarRows = RARITIES.map((r) => tr([`<span class="rar-${r}">${rarName(r)}</span>`, R(`×${c.rarityMul[r]}`)]));
   const enhRows = EQUIP.map((k) => tr([KIND[k], R(`+${pct(c.enhanceBonusPer[k])}`), R(`×${(1 + c.enhanceBonusPer[k] * c.enhanceMax).toFixed(2)}`)]));
@@ -183,23 +181,24 @@ function pageDamage() {
     ${table([{ t: '방어력', c: 'r' }, { t: '받는 피해', c: 'r' }, { t: '줄어드는 비율', c: 'r' }], defRows)}
 
     <h2>공격력은 어떻게 정해지나</h2>
-    <div class="formula">기본 공격력 = 반올림(직업 기본값 + 성장값 × (레벨 − 1))
+    <div class="formula">기본 공격력 = 직업 기본값(Lv1, 레벨로 오르지 않음)
 물리 공격력 = 기본 공격력 + <b>힘</b> 점수 (+ 올스탯)     ← 기사·활잽이·도적이 씀
 마법 공격력 = 기본 공격력 + <b>지능</b> 점수 (+ 올스탯)   ← 마법사·힐러가 씀
 전직 패시브(공격력 %)는 여기까지의 값에 곱함
 최종 공격력 = 반올림(위 값 + 장비 공격력 합)
 장비 수치 = 반올림(기본 수치 × 등급 배율 × (1 + 강화 단계 × 상승률))</div>
     <p class="muted small">전직 공격력 %는 장비 공격력(무기·장갑·반지)에는 붙지 않습니다. 힘과 지능은 한쪽 계열에만 쓰이므로, 자기 직업 계열이 아닌 스탯은 공격력을 올리지 않습니다.</p>
-    ${table(['직업', '계열', { t: '기본 공격력(Lv1)', c: 'r' }, { t: '레벨당 성장', c: 'r' }, { t: 'Lv100 기본', c: 'r' }, { t: `Lv${D.meta.maxLevel} 기본`, c: 'r' }, { t: '치명타', c: 'r' }], classRows)}
+    ${table(['직업', '계열', { t: '기본 공격력(Lv1)', c: 'r' }, '추천 배분 비율', { t: 'Lv100 추천 배분', c: 'r' }, { t: `Lv${D.meta.maxLevel} 추천 배분`, c: 'r' }, { t: '치명타', c: 'r' }], classRows)}
     <div class="grid g2" style="margin-top:12px">
       <div>${table(['등급', { t: '장비 수치 배율', c: 'r' }], rarRows)}</div>
       <div>${table(['장비 칸', { t: '강화 1단계당', c: 'r' }, { t: `+${c.enhanceMax} 배율`, c: 'r' }], enhRows)}</div>
     </div>
 
     <h2>방어력·HP·MP</h2>
-    <div class="formula">방어력 = 반올림(직업 기본 + 성장 × (레벨 − 1)) + <b>방어</b> 점수 + 장비 방어력 → 전직 방어력 % 곱(반올림)
-최대 HP = 반올림(직업 기본 + 성장 × (레벨 − 1)) + <b>체력</b> 점수 × ${c.statEffect.vit.maxHp} + 장비 HP → 전직 HP % 곱(반올림)
-최대 MP = 반올림(직업 기본 + 성장 × (레벨 − 1)) + <b>마나</b> 점수 × ${c.statEffect.mana.maxMp} → 전직 MP % 곱</div>
+    <div class="formula">방어력 = 직업 기본 + <b>방어</b> 점수 + 장비 방어력 → 전직 방어력 % 곱(반올림)
+최대 HP = 직업 기본 + <b>체력</b> 점수 × ${c.statEffect.vit.maxHp} + 장비 HP → 전직 HP % 곱(반올림)
+최대 MP = 직업 기본 + <b>마나</b> 점수 × ${c.statEffect.mana.maxMp} → 전직 MP % 곱</div>
+    <p class="muted small">레벨만 올라서는 능력치가 오르지 않습니다. 레벨업마다 받는 스탯 ${c.statPointsPerLevel}점을 어디에 찍느냐가 전부입니다(공격력도 같은 규칙: 직업 기본 + 힘 또는 지능).</p>
 
     <h2>치명타</h2>
     <p>치명타 확률 = 직업 기본값 + 전직 패시브(%p). 치명타가 뜨면 피해 × ${c.critMul}. 활잽이는 기본 15%, 나머지 직업은 10%에서 시작합니다. 몬스터 공격은 치명타가 없습니다.</p>
@@ -218,13 +217,25 @@ function pageDamage() {
 }
 
 const calc = { cls: 'knight', branch: '', level: 100, alloc: { str: 0, int: 0, vit: 0, mana: 0, def: 0 }, gear: {}, mob: '', customDef: 50 };
+/** 직업 추천 배분(shared/sim/stats recommendedAlloc과 같은 계산): 1점씩, statPlan 비율 목표에 가장 못 미친 스탯에 */
 function recommended(cls, pts) {
   const out = { str: 0, int: 0, vit: 0, mana: 0, def: 0 };
-  const hint = cls.statHint;
-  const per = Math.floor(pts / hint.length);
-  hint.forEach((k) => { out[k] = per; });
-  for (let i = 0; i < pts - per * hint.length; i++) out[hint[i]] += 1;
+  const keys = Object.keys(out).filter((k) => (cls.statPlan[k] ?? 0) > 0);
+  const sum = keys.reduce((a, k) => a + cls.statPlan[k], 0);
+  for (let i = 0; i < pts && keys.length; i++) {
+    let best = keys[0];
+    let gap = -Infinity;
+    for (const k of keys) {
+      const g = (cls.statPlan[k] * pts) / sum - out[k];
+      if (g > gap) { best = k; gap = g; }
+    }
+    out[best] += 1;
+  }
   return out;
+}
+/** "힘 12 : 체력 11 : 방어 5 : 마나 2"(비율 큰 순) */
+function planText(cls) {
+  return Object.entries(cls.statPlan).sort((a, b) => b[1] - a[1]).map(([k, w]) => `${STAT[k]} ${w}`).join(' : ');
 }
 function defaultGear(cls, level) {
   const out = {};
@@ -526,9 +537,9 @@ function pageClass(id) {
   return `
     ${crumb('#/classes', '직업 목록')}
     <div class="detail-head">${k.icon ? `<img class="ico lg" src="${esc(k.icon)}" alt="">` : ''}<div><h1 style="color:${esc(k.color)}">${esc(k.name)}</h1>
-      <div class="chips"><span class="chip">${esc(k.role)}</span><span class="chip">${DMG[k.dmgType]} 피해</span><span class="chip">치명타 ${k.critPct}%</span><span class="chip">추천: ${k.statHint.map((s) => STAT[s]).join('·')}</span></div></div></div>
+      <div class="chips"><span class="chip">${esc(k.role)}</span><span class="chip">${DMG[k.dmgType]} 피해</span><span class="chip">치명타 ${k.critPct}%</span><span class="chip">추천 비율 ${esc(planText(k))}</span></div></div></div>
     <div class="grid g2">
-      <div class="card"><h3>기본 능력치(스탯·장비 없음)</h3>${table([{ t: '레벨', c: 'r' }, { t: '공격력', c: 'r' }, { t: 'HP', c: 'r' }, { t: 'MP', c: 'r' }, { t: '방어력', c: 'r' }], growthRows)}</div>
+      <div class="card"><h3>레벨별 능력치(추천 배분 · 장비 없음)</h3><p class="muted small">레벨만 올라서는 능력치가 오르지 않습니다. 받은 점수를 전부 추천 비율로 찍었을 때입니다.</p>${table([{ t: '레벨', c: 'r' }, { t: '공격력', c: 'r' }, { t: 'HP', c: 'r' }, { t: 'MP', c: 'r' }, { t: '방어력', c: 'r' }], growthRows)}</div>
       <div class="card"><h3>기본 공격</h3>
         <div class="skill-row">${skillIcon({ icon: k.basicIcon })}<div><b>기본 공격</b><div class="meta"><span class="chip">${icon('clock')}${k.basic.cdSec}초</span><span class="chip">MP 0</span></div><ul><li>${basicLine} · 계수 ${Math.round(k.basic.coef * 100)}%${k.basic.hits > 1 ? ` × ${k.basic.hits}타` : ''}</li></ul></div></div>
         <h3 style="margin-top:14px">견습 스킬</h3>
@@ -590,13 +601,23 @@ function bindSkills(focusId) {
 
 // ── 페이지: 아이템 ──
 const ITEM_GROUPS = { all: ['전체', null], weapon: ['무기', ['weapon']], armor: ['방어구', ['armor', 'helmet', 'gloves', 'boots']], acc: ['장신구', ['accessory', 'ring']], use: ['소모품', ['potion', 'mp_potion', 'scroll', 'boost', 'box', 'ticket']], mat: ['재료', ['material']] };
-const itemState = { group: 'all', rarity: 'all', cls: 'all', q: '', sort: 'default' };
+const itemState = { group: 'all', rarity: 'all', cls: 'all', q: '', sort: 'default', src: 'all' };
+/** 얻는 곳 한 줄 요약(도감 목록 칸). 레이드 출처는 무한의 던전·레이드를 가른다 */
+const SRC_LABEL = { shop: '상점', mob: '몬스터', rare: '등급 드랍', chest: '보물상자', worldBoss: '필드 보스', quest: '퀘스트', questDrop: '퀘스트 수집', box: '수상한 상자', premium: '고급 상자', gemShop: '젬 상점', legacy: '옛 장비', grant: '운영자 지급' };
+function srcLabel(s) {
+  if (s.type === 'raid') return s.raid === D.infinite.id ? '무한의 던전' : '레이드';
+  if (s.type === 'market') return D.constants.market.name;
+  return SRC_LABEL[s.type] ?? s.type;
+}
+const obtainable = (it) => it.sources.some((s) => s.type !== 'legacy' && s.type !== 'grant');
 function pageItems() {
+  const gone = D.items.filter((it) => !obtainable(it)).length;
   return `
-    ${head('아이템 도감', `아이템 ${D.items.length}개. 이름을 누르면 강화 수치와 얻는 곳이 나옵니다.`)}
+    ${head('아이템 도감', `아이템 ${D.items.length}개 · 지금 얻을 수 있는 것 ${D.items.length - gone}개. 이름을 누르면 강화 수치와 얻는 곳이 나옵니다.`)}
     <div class="filters">
       <div class="seg" role="group" aria-label="종류" data-f="group">${Object.entries(ITEM_GROUPS).map(([k, [n]]) => `<button type="button" data-v="${k}" aria-pressed="${itemState.group === k}">${n}</button>`).join('')}</div>
       <div class="seg" role="group" aria-label="등급" data-f="rarity"><button type="button" data-v="all" aria-pressed="${itemState.rarity === 'all'}">전 등급</button>${RARITIES.map((r) => `<button type="button" data-v="${r}" aria-pressed="${itemState.rarity === r}" class="rar-${r}">${rarName(r)}</button>`).join('')}</div>
+      <div class="seg" role="group" aria-label="얻는 곳" data-f="src">${[['all', '모두'], ['now', '지금 얻을 수 있음'], ['gone', '옛 장비·운영자 지급']].map(([k, n]) => `<button type="button" data-v="${k}" aria-pressed="${itemState.src === k}">${n}</button>`).join('')}</div>
     </div>
     <div class="filters">
       <select data-f="cls" aria-label="직업"><option value="all">모든 직업</option>${D.classes.map((c) => `<option value="${c.id}" ${itemState.cls === c.id ? 'selected' : ''}>${esc(c.name)}이 쓸 수 있는</option>`).join('')}</select>
@@ -608,16 +629,17 @@ function pageItems() {
 }
 function renderItemList() {
   const kinds = ITEM_GROUPS[itemState.group][1];
-  let list = D.items.filter((it) => (!kinds || kinds.includes(it.kind)) && (itemState.rarity === 'all' || it.rarity === itemState.rarity) && (itemState.cls === 'all' || !it.classId || it.classId === itemState.cls) && nameMatches(it.name, itemState.q));
+  let list = D.items.filter((it) => (!kinds || kinds.includes(it.kind)) && (itemState.rarity === 'all' || it.rarity === itemState.rarity) && (itemState.cls === 'all' || !it.classId || it.classId === itemState.cls) && (itemState.src === 'all' || (itemState.src === 'now') === obtainable(it)) && nameMatches(it.name, itemState.q));
   const key = itemState.sort;
   if (key === 'level') list = [...list].sort((a, b) => (a.reqLevel ?? 0) - (b.reqLevel ?? 0));
   else if (key !== 'default') list = [...list].sort((a, b) => (b[key] ?? 0) - (a[key] ?? 0));
   document.getElementById('item-count').textContent = `${list.length}개`;
   const rows = list.map((it) => {
     const st = [it.atk && `공격 ${it.atk}`, it.def && `방어 ${it.def}`, it.hp && `HP ${it.hp}`, it.allStat && `올스탯 ${it.allStat}`, it.heal && `HP 회복 ${it.heal}`, it.mp && `MP 회복 ${it.mp}`].filter(Boolean).join(' · ');
-    return tr([itemLink(it.id), KIND[it.kind], `<span class="rar-${it.rarity}">${rarName(it.rarity)}</span>`, R(it.reqLevel ? `Lv${it.reqLevel}` : '—'), it.classId ? esc(classOf(it.classId).name) : '<span class="muted">공용</span>', `<span class="small">${st || '—'}</span>`, R(it.price ? fmt(it.price) : '—')]);
+    const where = [...new Set(it.sources.map(srcLabel))];
+    return tr([itemLink(it.id), KIND[it.kind], `<span class="rar-${it.rarity}">${rarName(it.rarity)}</span>`, R(it.reqLevel ? `Lv${it.reqLevel}` : '—'), it.classId ? esc(classOf(it.classId).name) : '<span class="muted">공용</span>', `<span class="small">${st || '—'}</span>`, `<span class="small${obtainable(it) ? '' : ' muted'}">${where.length ? where.slice(0, 3).map(esc).join(' · ') + (where.length > 3 ? ` <span class="muted">외 ${where.length - 3}곳</span>` : '') : '—'}</span>`, R(it.price ? fmt(it.price) : '—')]);
   });
-  document.getElementById('item-list').innerHTML = list.length ? table(['이름', '종류', '등급', { t: '착용', c: 'r' }, '직업', '능력치', { t: '가격', c: 'r' }], rows) : '<div class="empty-state">조건에 맞는 아이템이 없습니다.</div>';
+  document.getElementById('item-list').innerHTML = list.length ? table(['이름', '종류', '등급', { t: '착용', c: 'r' }, '직업', '능력치', '얻는 곳', { t: '가격', c: 'r' }], rows) : '<div class="empty-state">조건에 맞는 아이템이 없습니다.</div>';
 }
 function bindItems() {
   main.querySelectorAll('.seg[data-f]').forEach((seg) => seg.addEventListener('click', (e) => {
@@ -658,7 +680,10 @@ function sourceBlock(it) {
   if (gemShop.length) out.push(`<div class="card"><h3>${esc(npcNameOfRole('gem'))} (잿빛 해안)</h3><ul class="plain">${gemShop.map((s) => `<li>${esc(D.gems.name)} ${s.gems}개</li>`).join('')}${it.id === 'premium_box' ? `<li>기념 이벤트 동안 ${esc(D.gems.swap.name)}: 수상한 상자 ${D.gems.swap.need}개 → 1개</li>` : ''}</ul></div>`);
   const premium = by('premium');
   if (premium.length) out.push(`<div class="card"><h3>고급 상자</h3><ul class="plain">${premium.map((s) => `<li>${pct(s.chance)} — ${esc(s.note)}</li>`).join('')}</ul></div>`);
-  if (!out.length) out.push(`<div class="empty-state">${it.bound ? '운영자 지급 전용 아이템입니다(귀속).' : '지금은 게임 안에서 얻는 곳이 없습니다.'}</div>`);
+  if (by('legacy').length) out.push(`<div class="card"><h3>더 이상 얻을 수 없음</h3><p>등급 개편 전 장비입니다. 이미 가진 사람을 위해 남아 있을 뿐, 드랍·상점·상자 어디에서도 나오지 않습니다. 지금은 섬 세트·레이드 세트의 같은 부위가 일반~유니크 등급으로 굴려져 나옵니다(<a href="#/drops">드랍률</a>).</p></div>`);
+  const grant = by('grant');
+  if (grant.length) out.push(`<div class="card"><h3>운영자 지급</h3><ul class="plain">${grant.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul><p class="muted small" style="margin:8px 0 0">드랍·상점·상자에서는 나오지 않습니다.</p></div>`);
+  if (!out.length) out.push('<div class="empty-state">지금은 게임 안에서 얻는 곳이 없습니다.</div>');
   return out.join('');
 }
 function pageItem(id) {
@@ -817,16 +842,17 @@ function pageWorld() {
   const inf = D.infinite;
   const infCard = `
     <section class="card" id="raid-${inf.id}">
-      <h2 style="margin-top:0">${esc(inf.name)} <span class="chip">입장 Lv${inf.minLevel}</span> <span class="chip">혼자~${inf.size}인</span> <span class="chip">제한 시간 없음</span> <span class="chip">재입장 대기 없음</span></h2>
-      <p>레이드 안내인·항해사의 레이드 목록에서 출발합니다(파티 없이 혼자도 가능). ${inf.firstWaveSec}초 뒤 1웨이브가 몰려오고, 투기장의 몬스터를 모두 쓰러뜨리면 웨이브 클리어 → ${inf.breakSec}초 쉬고 다음 웨이브. <b>웨이브에는 끝이 없습니다.</b> ${inf.bossEvery}웨이브마다 보스(호위 ${inf.bossEscorts})가 나옵니다.</p>
+      <h2 style="margin-top:0">${esc(inf.name)} <span class="chip">입장 Lv${inf.minLevel}</span> <span class="chip">혼자~${inf.size}인</span> <span class="chip">최대 ${inf.maxWave}웨이브</span> <span class="chip">재입장 대기 없음</span></h2>
+      <p>레이드 안내인·항해사의 레이드 목록에서 출발합니다(파티 없이 혼자도 가능). ${inf.firstWaveSec}초 뒤 1웨이브가 몰려오고, 투기장의 몬스터를 모두 쓰러뜨리면 웨이브 클리어 → ${inf.breakSec}초 쉬고 다음 웨이브. ${inf.bossEvery}웨이브마다 보스(호위 ${inf.bossEscorts})가 나옵니다. <b>${inf.maxWave}웨이브를 넘기면 완주</b>로 도전이 끝나고 잠시 뒤 원래 자리로 돌아갑니다.</p>
       <p class="small">몬스터 수치는 웨이브마다 곱으로 커집니다: HP ${fmt(inf.scaling.hp)} × ${inf.scaling.hpGrowth}^(웨이브−1), 공격력 ${inf.scaling.atk} × ${inf.scaling.atkGrowth}^(웨이브−1), 방어력 ${inf.scaling.def} + ${inf.scaling.defStep} × (웨이브−1). 보스 = HP ×${inf.scaling.bossHpMul} · 공격력 ×${inf.scaling.bossAtkMul} · 방어력 +${inf.scaling.bossDefAdd}. 처치 경험치·처치 드랍은 없습니다(보상은 웨이브 클리어 때).</p>
-      ${table([{ t: '웨이브', c: 'r' }, { t: '몬스터', c: 'r' }, { t: 'HP', c: 'r' }, { t: '공격력', c: 'r' }, { t: '방어력', c: 'r' }, '보스', { t: '클리어 베리', c: 'r' }, { t: '경험치', c: 'r' }, { t: '강화석', c: 'r' }, { t: esc(D.gems.name), c: 'r' }], inf.waves.map((w) => tr([R(w.wave), R(w.count), R(fmt(w.mob.hp)), R(fmt(w.mob.atk)), R(fmt(w.mob.def)), w.bossId ? `${mobLink(w.bossId)} <span class="muted small">HP ${fmt(w.bossStats.hp)} · 공격력 ${fmt(w.bossStats.atk)}</span>` : '', R(fmt(w.gold)), R(pct(w.expPct)), R(w.stones || ''), R(pct(w.gem.chance))])))}
+      ${table([{ t: '웨이브', c: 'r' }, { t: '몬스터', c: 'r' }, { t: 'HP', c: 'r' }, { t: '공격력', c: 'r' }, { t: '방어력', c: 'r' }, '보스', { t: '클리어 베리', c: 'r' }, { t: '경험치', c: 'r' }, { t: '강화석', c: 'r' }, { t: esc(D.gems.name), c: 'r' }], inf.waves.map((w) => tr([R(w.wave), R(w.count), R(fmt(w.mob.hp)), R(fmt(w.mob.atk)), R(fmt(w.mob.def)), w.bossId ? `${mobLink(w.bossId)} <span class="muted small">HP ${fmt(w.bossStats.hp)} · 공격력 ${fmt(w.bossStats.atk)}</span>` : '', R(fmt(w.gold)), R(pct(w.expPct)), R(w.stones || ''), R(pct(w.gem.chance))])), { scroll: true })}
       <h3>보상 (웨이브를 넘길 때마다 투기장 안 전원)</h3>
       <ul class="plain small">
         <li>${fmt(inf.rewards.gold)} × ${inf.rewards.goldGrowth}^(웨이브−1) 베리 · 경험치(현재 레벨 필요 경험치의 ${pct(inf.rewards.expPct)} × (1 + ${inf.rewards.expGrowth} × (웨이브−1)) — <b>높은 웨이브일수록 많이</b>) · 보스 웨이브는 강화석(${inf.bossEvery}웨이브마다 ${inf.rewards.stonesPerBoss}개씩 늘어남)</li>
         <li>${esc(D.gems.name)}: 웨이브마다 ${pct(D.gems.drop.wave.chance)}, <b>${D.gems.drop.wave.highFromWave}웨이브부터 ${pct(D.gems.drop.wave.high)}</b>(보스 웨이브는 ×${D.gems.drop.wave.bossMul})</li>
         <li>장비: 웨이브마다 ${pct(D.constants.grades.infiniteChance.wave)}, 보스 웨이브 ${pct(D.constants.grades.infiniteChance.boss)} 확률로 내 레벨 티어 세트 부위 1점(한 명마다 따로). 등급: ${esc(D.constants.grades.infiniteText)}</li>
         <li><b>서버 최초로 ${inf.firstClearWave}웨이브를 넘긴 파티 전원</b>에게 내 레벨 티어 세트 부위 1점을 유니크 등급으로(한 번뿐)</li>
+        ${inf.completeTitle ? `<li><b>서버 최초로 ${inf.maxWave}웨이브를 완주한 파티 전원</b>에게 칭호 <b style="color:${esc(inf.completeTitle.color)}">「${esc(inf.completeTitle.name)}」</b>(한 번뿐 · 랭킹에 최초 완주 기록이 남습니다)</li>` : ''}
         <li>라이프 토큰 ${inf.lifeTokens}개 · 투기장 안 전원이 한꺼번에 쓰러지면 도전이 끝납니다. 웨이브 보상과 기록은 웨이브마다 바로 남습니다.</li>
         <li>랭킹: 메뉴 › 랭킹 › 무한의 던전 — 같은 파티 구성마다 최고 기록(웨이브 → 걸린 시간 순)</li>
       </ul>
@@ -835,8 +861,8 @@ function pageWorld() {
   const augCard = `
     <section class="card" id="raid-${aug.id}">
       <h2 style="margin-top:0">${esc(aug.name)} <span class="chip">베타</span> <span class="chip">입장 Lv${inf.minLevel}</span> <span class="chip">혼자~${inf.size}인</span></h2>
-      <p>${esc(inf.name)}와 같은 투기장·웨이브·보상 규칙에 <b>${aug.every}웨이브를 넘길 때마다 증강 카드 3장 중 1장</b>을 고릅니다(${aug.pickSec}초 안에, 다시 뽑기 ${aug.rerolls}회, 시간이 지나면 무작위). 모두 고를 때까지 다음 웨이브를 기다립니다. 증강은 이번 도전 동안만 유지되고 투기장을 나가면 사라집니다. 같은 증강은 한 번만 가질 수 있습니다.</p>
-      <p class="small">베타: 랭킹·서버 최초 돌파 보상은 없고 개인 최고 기록만 따로 남습니다.</p>
+      <p>${esc(inf.name)}와 같은 투기장·웨이브·보상 규칙(${inf.maxWave}웨이브에서 완주)에 <b>${aug.every}웨이브를 넘길 때마다 증강 카드 3장 중 1장</b>을 고릅니다(${aug.pickSec}초 안에, 다시 뽑기 ${aug.rerolls}회, 시간이 지나면 무작위). 모두 고를 때까지 다음 웨이브를 기다립니다. 증강은 이번 도전 동안만 유지되고 투기장을 나가면 사라집니다. 같은 증강은 한 번만 가질 수 있습니다.</p>
+      <p class="small">베타: 랭킹·서버 최초 돌파 보상·완주 칭호는 없고 개인 최고 기록만 따로 남습니다.</p>
       ${table(['선택', ...Object.values(aug.tierNames).map((n) => ({ t: esc(n), c: 'r' }))], aug.odds.map((o, i) => tr([`${(i + 1) * aug.every}웨이브${i === aug.odds.length - 1 ? '부터' : ''}`, R(`${o.silver}%`), R(`${o.gold}%`), R(`${o.prism}%`)])))}
       ${table(['증강', '등급', '효과'], aug.list.map((a) => tr([esc(a.name), esc(aug.tierNames[a.tier]), esc(a.desc)])))}
     </section>`;
@@ -855,7 +881,20 @@ function pageWorld() {
         <li>끝나면 ${du.resultSec}초 뒤 모두 원래 자리로 돌아가고, 쓰러진 사람도 되살아납니다.</li>
       </ul>
     </section>`;
-  return `${head('지역·레이드', '섬은 항해사(뱃사공)로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다.')}<div class="stack">${islands}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div>`;
+  const tg = D.training;
+  const trainingCard = `
+    <section class="card" id="training">
+      <h2 style="margin-top:0">${esc(tg.name)} <span class="chip">누구나 · 레벨 제한 없음</span> <span class="chip">DPS 측정</span></h2>
+      <p>어느 섬의 항해사(뱃사공)에게서든 목록 맨 끝의 「훈련장」으로 건너갑니다. 허수아비는 움직이지도 반격하지도 않고, HP가 바닥나도 그 자리에서 다시 가득 찹니다. 경험치·전리품·퀘스트 진행은 없습니다.</p>
+      ${table(['허수아비', { t: '레벨', c: 'r' }, { t: 'HP', c: 'r' }, { t: '방어력', c: 'r' }], tg.dummies.map((d) => tr([`<b>${esc(d.name)}</b>`, R(d.level), R(fmt(d.hp)), R(d.def)])))}
+      <ul class="plain small" style="margin-top:12px">
+        <li>허수아비를 때리면 화면 위쪽에 <b>DPS 측정판</b>이 뜹니다: DPS · 총 피해 · 시간 · 타격 수 · 치명타 비율 · 최고 한 방 · 최고 DPS.</li>
+        <li>마지막으로 때린 뒤 ${tg.resetSec}초가 지나면 한 판이 끝나고 허수아비 HP가 다시 가득 찹니다. 다시 때리면 새 판이 시작됩니다.</li>
+        <li>방어력 0짜리로 순수 피해량을, 방어력 ${tg.dummies.at(-1)?.def ?? 0}짜리로 방어가 높은 보스를 상대할 때의 피해를 잽니다(<a href="#/damage">데미지 공식</a>).</li>
+      </ul>
+    </section>`;
+  const index = `<nav class="isl-index" aria-label="섬 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>Lv${isl.levelRange[0]}~${isl.levelRange[1]} · 티어 ${isl.tier}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a></nav>`;
+  return `${head('지역·레이드', '섬은 항해사(뱃사공)로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다.')}<h2>섬</h2>${index}<div class="stack">${islands}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div>`;
 }
 
 // ── 페이지: 성장·강화 ──
@@ -866,7 +905,7 @@ function pageGrowth() {
   return `
     ${head('성장·강화')}
     <h2 style="margin-top:0">스탯 점수</h2>
-    <p>레벨이 오를 때마다 ${c.statPointsPerLevel}점을 받습니다(Lv${D.meta.maxLevel}까지 ${(D.meta.maxLevel - 1) * c.statPointsPerLevel}점). 스탯 창(C키)에서 분배하고, 초기화는 무료입니다.</p>
+    <p>레벨이 오를 때마다 ${c.statPointsPerLevel}점을 받습니다(Lv${D.meta.maxLevel}까지 ${(D.meta.maxLevel - 1) * c.statPointsPerLevel}점). <b>레벨만으로는 능력치가 오르지 않고</b>, 이 점수로만 오릅니다. 스탯 창(C키)에서 분배하고, 「추천 배분」은 남은 점수를 직업 추천 비율대로 나눠 찍습니다. 초기화는 무료입니다.</p>
     ${table(['스탯', '1점당 효과'], effRows)}
 
     <h2>경험치</h2>
@@ -1422,6 +1461,28 @@ const TITLES = { '': '홈', damage: '데미지 공식', drops: '드랍률', clas
 let lastPath = null;
 /** 바로 전에 보던 해시(피드백 글에 '보던 페이지'로 붙인다) */
 let lastHash = '';
+/** 목차에서 지금 읽는 절(목차 바로 아래 선을 지난 마지막 h2)을 표시하고, 목차가 가로로 넘치면 그 칩이 보이게 민다 */
+function spyToc() {
+  const toc = main.querySelector('.toc');
+  if (!toc) return;
+  const line = toc.getBoundingClientRect().bottom + 24;
+  let cur = null;
+  for (const a of toc.querySelectorAll('a[data-sec]')) if ((document.getElementById(a.dataset.sec)?.getBoundingClientRect().top ?? Infinity) <= line) cur = a;
+  for (const a of toc.querySelectorAll('a')) {
+    if (a === cur) a.setAttribute('aria-current', 'true');
+    else a.removeAttribute('aria-current');
+  }
+  if (cur && (cur.offsetLeft < toc.scrollLeft || cur.offsetLeft + cur.offsetWidth > toc.scrollLeft + toc.clientWidth - 40)) toc.scrollLeft = cur.offsetLeft - 16;
+}
+/** 칸이 5개 이상인 표에 .wide와 칸 이름(data-label)을 단다 — 좁은 화면에서 줄마다 카드로 풀 때 쓴다(style.css) */
+function labelTables(root) {
+  for (const t of root.querySelectorAll('table:not([data-cols])')) {
+    const heads = [...t.querySelectorAll('thead th')].map((th) => th.textContent.trim());
+    t.dataset.cols = String(heads.length);
+    if (heads.length >= 5) t.classList.add('wide');
+    for (const row of t.querySelectorAll('tbody tr')) [...row.children].forEach((td, i) => { if (heads[i] && td.colSpan === 1) td.dataset.label = heads[i]; });
+  }
+}
 function render() {
   const { page, id, anchor } = parseHash();
   const path = `${page}/${id ?? ''}`;
@@ -1452,7 +1513,8 @@ function render() {
   // 절이 3개 이상인 문서 페이지는 머리 아래에 절 바로가기를 단다(검색의 문서 결과도 같은 id로 연결된다)
   if (!id && page !== 'search') {
     const secs = sectionize(main).filter((s) => s.id);
-    if (secs.length >= 3) main.querySelector('.page-head')?.insertAdjacentHTML('afterend', `<nav class="toc" aria-label="이 페이지 목차">${secs.map((s) => `<a href="#/${page}#${s.id}">${esc(s.title)}</a>`).join('')}</nav>`);
+    if (secs.length >= 3) main.querySelector('.page-head')?.insertAdjacentHTML('afterend', `<nav class="toc" aria-label="이 페이지 목차">${secs.map((s) => `<a href="#/${page}#${s.id}" data-sec="${s.id}">${esc(s.title)}</a>`).join('')}</nav>`);
+    spyToc();
   }
   document.title = `${title ? `${title} · ` : ''}${D.meta.title}`;
   document.querySelectorAll('.nav a').forEach((a) => {
@@ -1485,6 +1547,22 @@ async function start() {
   initSearch();
   initNav();
   window.addEventListener('hashchange', render);
+  // 표가 그려질 때마다(목록 거르기 포함) 칸 이름을 단다. data-* 속성만 바꾸므로 다시 불리지 않는다
+  new MutationObserver(() => labelTables(main)).observe(main, { childList: true, subtree: true });
+  let spyQueued = false;
+  window.addEventListener('scroll', () => {
+    if (spyQueued) return;
+    spyQueued = true;
+    requestAnimationFrame(() => { spyQueued = false; spyToc(); });
+  }, { passive: true });
+  // 목차 칩은 페이지를 다시 그리지 않고 그 절로 부드럽게 옮긴다(주소만 바꾼다)
+  main.addEventListener('click', (e) => {
+    const a = e.target.closest('.toc a[data-sec]');
+    if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    e.preventDefault();
+    document.getElementById(a.dataset.sec)?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    history.replaceState(null, '', a.getAttribute('href'));
+  });
   render();
 }
 start();
