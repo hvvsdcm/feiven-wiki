@@ -659,7 +659,7 @@ function pageItem(id) {
   const chips = [`<span class="chip">${KIND[it.kind]}</span>`, `<span class="chip rar-${it.rarity}">${rarName(it.rarity)}</span>`, `<span class="chip">티어 ${it.tier}</span>`];
   if (it.reqLevel) chips.push(`<span class="chip">착용 Lv${it.reqLevel}</span>`);
   chips.push(`<span class="chip">${it.classId ? `${esc(classOf(it.classId).name)} 전용` : '공용'}</span>`);
-  if (it.bound) chips.push('<span class="chip accent">귀속</span>');
+  if (it.bound) chips.push(it.disposable ? '<span class="chip accent">귀속 · 거래 불가(판매·버리기 가능)</span>' : '<span class="chip accent">귀속</span>');
   const stats = [['공격력', it.atk], ['방어력', it.def], ['HP', it.hp], ['올스탯', it.allStat], ['HP 회복', it.heal], ['MP 회복', it.mp], ['구매가', it.price && fmt(it.price)], ['판매가', it.sell && fmt(it.sell)]].filter(([, v]) => v);
   let enh = '';
   if (equip) {
