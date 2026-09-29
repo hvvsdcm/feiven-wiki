@@ -363,7 +363,8 @@ function pityKills(base, target, pity = true) {
 function pageDrops() {
   const c = D.constants;
   const rr = c.rareRoll;
-  const rareRows = [['field', '일반 몬스터'], ['elite', '정예 몬스터'], ['boss', '필드 보스']].map(([k, n]) => tr([n, R(`${pct(rr[k].epic)}<br><span class="muted small">${oneIn(rr[k].epic)}</span>`), R(rr[k].legendary ? `${pct(rr[k].legendary)} → 최대 ${pct(rr[k].legendary + c.pityCap)}<br><span class="muted small">${oneIn(rr[k].legendary)}</span>` : '—'), R(rr[k].unique ? `${pct(rr[k].unique)}<br><span class="muted small">Lv${c.uniqueMinMobLevel}+ 몬스터만</span>` : '—')]));
+  const rareRows = [['field', '일반 몬스터'], ['elite', '정예 몬스터'], ['boss', '필드 보스']].map(([k, n]) => tr([n, R(`${pct(rr[k].epic)}<br><span class="muted small">${oneIn(rr[k].epic)}</span>`), R(`${pct(rr[k].legendary)}${k === 'field' ? '' : ` → 최대 ${pct(rr[k].legendary + c.pityCap)}`}<br><span class="muted small">${oneIn(rr[k].legendary)}</span>`)]));
+  const g = c.grades;
   const pityRows = [['정예', rr.elite.legendary], ['필드 보스', rr.boss.legendary]].map(([n, b]) => tr([n, R(`${pityKills(b, 0.5)}마리`), R(`${pityKills(b, 0.9)}마리`), R(`${pityKills(b, 0.5, false)}마리`), R(`${pityKills(b, 0.9, false)}마리`)]));
   const gearAll = (mob) => {
     const gearIds = mob.loot.entries.filter((e) => EQUIP.includes(M.items.get(e.itemId)?.kind));
@@ -372,7 +373,7 @@ function pageDrops() {
   const fieldMobs = D.mobs.filter((m) => m.kind !== 'raidAdd' && m.kind !== 'worldBossAdd').sort((a, b) => a.level - b.level);
   const mobRows = fieldMobs.map((m) => {
     const other = m.loot.entries.filter((e) => !EQUIP.includes(M.items.get(e.itemId)?.kind)).map((e) => `${esc(M.items.get(e.itemId)?.name ?? e.itemId)} ${pct(e.chance)}`).join(', ');
-    return tr([mobLink(m.id), MOB_KIND[m.kind], R(`${fmt(m.loot.gold[0])}~${fmt(m.loot.gold[1])}`), R(pct(gearAll(m))), `<span class="small">${other || '—'}</span>`, R(m.rare.epic ? pct(m.rare.epic) : '—'), R(m.rare.legendary ? pct(m.rare.legendary) : '—'), R(m.rare.unique ? pct(m.rare.unique) : '—')]);
+    return tr([mobLink(m.id), MOB_KIND[m.kind], R(`${fmt(m.loot.gold[0])}~${fmt(m.loot.gold[1])}`), R(pct(gearAll(m))), `<span class="small">${other || '—'}</span>`, R(m.rare.epic ? pct(m.rare.epic) : '—'), R(m.rare.legendary ? pct(m.rare.legendary) : '—')]);
   });
   const chestRows = Object.entries(D.islands.reduce((acc, isl) => { (acc[isl.chestTier] ??= { loot: isl.chestLoot, islands: [] }).islands.push(isl); return acc; }, {})).map(([tier, v]) => {
     const gearP = 1 - v.loot.entries.filter((e) => EQUIP.includes(M.items.get(e.itemId)?.kind)).reduce((m, e) => m * (1 - e.chance), 1);
@@ -381,34 +382,42 @@ function pageDrops() {
   });
   const b = c.boxLoot;
   const m = c.market;
-  const raidRows = D.raids.map((r) => tr([islandLink(r.id), R(`Lv${r.minLevel}`), `전설 장비 ${pct(r.rewards.legendaryChance)}(영웅 등급 없음)${r.rewards.rareDrop ? ` · 거신 장비 ${pct(r.rewards.rareDrop.chance)}` : ''}${r.rewards.uniqueChance ? ` · 유니크 ${pct(r.rewards.uniqueChance)}` : ''}${r.rewards.firstClearUnique ? ' · 캐릭터 첫 클리어 때 유니크 1개 골라 받기' : ''}`, r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')]));
-  const wbRows = D.worldBosses.map((w) => tr([islandLink(w.islandId), R(`${w.minSharePct}% 이상`), w.rewards.uniqueChance ? `유니크 ${pct(w.rewards.uniqueChance)}` : '—', `${fmt(w.rewards.gold)} 베리 · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')} · 경험치(현재 레벨의 ${pct(w.rewards.expLevelFrac)})`]));
+  const raidRows = D.raids.map((r) => tr([islandLink(r.id), R(`Lv${r.minLevel}`), `레이드 세트 ${pct(r.rewards.gearChance)}${r.rewards.rareDrop ? ` · ${esc(M.items.get(r.rewards.rareDrop.pool[0])?.name.split(' ')[0] ?? '')} 세트 ${pct(r.rewards.rareDrop.chance)}` : ''}${r.rewards.firstClearUnique ? ' · 캐릭터 첫 클리어 때 원하는 부위 1개를 유니크로' : ''}`, r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')]));
+  const wbRows = D.worldBosses.map((w) => tr([islandLink(w.islandId), R(`${w.minSharePct}% 이상`), w.rewards.uniqueChance ? `유니크 등급 ${pct(w.rewards.uniqueChance)}(내 레벨 티어 세트 부위)` : '—', `${fmt(w.rewards.gold)} 베리 · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')} · 경험치(현재 레벨의 ${pct(w.rewards.expLevelFrac)})`]));
   return `
     ${head('드랍률', '게임 서버의 전리품 규칙 그대로입니다.')}
     <h2 style="margin-top:0">몬스터 한 마리를 잡으면</h2>
     <ol class="plain">
       <li><b>베리</b>: 처치를 인정받은 사람마다 따로 굴려 바로 들어옵니다(줍지 않아도 됨).</li>
       <li><b>일반 전리품</b>: 몬스터 드랍표의 항목마다 <b>독립적으로</b> 한 번씩 굴립니다. 몬스터당 한 번이며, 바닥에 떨어진 뒤 ${c.dropOwnerSec}초 동안은 처치 인정자(파티 포함)만 줍고, ${c.dropDespawnSec}초 뒤 사라집니다.</li>
-      <li><b>희귀 장비</b>(영웅·전설·유니크): 처치 인정자 <b>한 명 한 명</b>이 따로 굴립니다. 파티로 잡으면 각자 기회가 있습니다.</li>
+      <li><b>등급 장비</b>(영웅·전설): 처치 인정자 <b>한 명 한 명</b>이 따로 굴립니다. 파티로 잡으면 각자 기회가 있습니다.</li>
     </ol>
+
+    <h2>장비 등급</h2>
+    <p>장비의 등급은 아이템 종류가 아니라 <b>얻을 때 굴려서</b> 정해집니다. 섬마다 있는 세트(그 섬 상점·드랍 장비 7부위)와 레이드 세트(보스 이름이 붙은 부위)가 어느 등급으로든 나오고, 등급이 높을수록 수치가 커집니다(${Object.entries(c.rarityMul).filter(([k]) => k !== 'absolute').map(([k, v]) => `<span class="rar-${k}">${rarName(k)}</span> ×${v}`).join(' · ')}).</p>
+    ${table(['어디서', '등급'], [
+      tr(['필드 몬스터·보물상자의 섬 세트 장비', `${esc(g.fieldText)} + 아래 영웅·전설 굴림`]),
+      tr([esc(D.infinite.name), `${esc(g.infiniteText)} · 웨이브 클리어마다 ${pct(g.infiniteChance.wave)}(보스 웨이브 ${pct(g.infiniteChance.boss)})`]),
+      tr(['레이드 클리어', esc(g.raidText)]),
+    ])}
+    <p class="muted small" style="margin-top:8px">대부분은 영웅, 오래 한 사람은 전설을 모으고, 유니크는 레이드·${esc(D.infinite.name)}에서만 드물게 나옵니다. 등급 개편 전의 전설·영웅·유니크 전용 장비는 가진 것은 그대로 쓰지만 더 이상 나오지 않습니다.</p>
     ${note(`처치 인정: 막타를 친 사람과 한 대라도 때린 사람, 그리고 그 파티원 중 반경 ${c.partyExpRadius} 안에 있는 사람 모두입니다. 가상 유저(봇) 파티 덕에만 인정받은 경우 베리·경험치·희귀 굴림이 ${pct(c.botCarryShare)}로 줄어듭니다.`)}
 
-    <h2>희귀 장비 확률 (처치 1회 · 1인 기준)</h2>
-    ${table(['몬스터', { t: '영웅', c: 'r' }, { t: '전설', c: 'r' }, { t: '유니크', c: 'r' }], rareRows)}
+    <h2>영웅·전설 굴림 (처치 1회 · 1인 기준)</h2>
+    ${table(['몬스터', { t: '영웅', c: 'r' }, { t: '전설', c: 'r' }], rareRows)}
     <ul class="plain" style="margin-top:10px">
-      <li>굴리는 순서: 유니크 → 전설 → 영웅. 먼저 뜬 것 하나만 나옵니다.</li>
-      <li><b>영웅</b>은 몬스터 레벨 티어의 영웅 장비 1종이 나옵니다(몬스터 도감 참고).</li>
-      <li><b>전설</b>은 내 직업 무기 · 크라켄 비늘 갑옷 · 심연의 등불 3종 중 하나(각 1/3)입니다.</li>
-      <li><b>유니크</b>는 Lv${c.uniqueMinMobLevel} 이상 정예·보스(잿불 협곡·별무덤 성역)에서만, 내 직업 무기와 공용 6종 중 하나(각 1/7)입니다. 불운 보정이 없습니다.</li>
+      <li>굴리는 순서: 전설 → 영웅. 먼저 뜬 것 하나만 나옵니다.</li>
+      <li>나오는 장비는 <b>그 몬스터 섬의 세트</b> 중 내 직업이 쓰는 7부위(내 무기 + 공용 6부위) 중 하나입니다.</li>
+      <li>필드 몬스터에서는 유니크가 나오지 않습니다.</li>
     </ul>
 
     <h3 style="margin-top:18px">전설 불운 보정</h3>
-    <p>정예·보스에게서 전설이 안 나올 때마다 다음 전설 확률에 <b>+${pct(c.pityStep)}p</b>가 쌓이고, 최대 <b>+${pct(c.pityCap)}p</b>까지 올라갑니다. 전설을 얻으면 0으로 돌아갑니다. 카운터는 캐릭터마다 하나이고 정예·보스가 함께 씁니다(서버에 저장되어 접속을 끊어도 유지).</p>
+    <p>정예·보스에게서 전설이 안 나올 때마다(일반 몬스터는 쌓지 않습니다) 다음 전설 확률에 <b>+${pct(c.pityStep)}p</b>가 쌓이고, 최대 <b>+${pct(c.pityCap)}p</b>까지 올라갑니다. 전설을 얻으면 0으로 돌아갑니다. 카운터는 캐릭터마다 하나이고 정예·보스가 함께 씁니다(서버에 저장되어 접속을 끊어도 유지).</p>
     ${table(['대상', { t: '50% 확률까지', c: 'r' }, { t: '90% 확률까지', c: 'r' }, { t: '보정 없으면 50%', c: 'r' }, { t: '보정 없으면 90%', c: 'r' }], pityRows)}
 
     <h2>몬스터별 드랍</h2>
-    <p class="muted small">장비 칸은 그 티어 장비 11종 중 하나 이상이 떨어질 확률입니다(항목마다 따로 굴림). 필드 몬스터 5%, 필드 보스 60%로 맞춰져 있습니다. 항목별 확률은 몬스터 이름을 누르세요.</p>
-    ${table(['몬스터', '종류', { t: '베리', c: 'r' }, { t: '장비', c: 'r' }, '기타', { t: '영웅', c: 'r' }, { t: '전설', c: 'r' }, { t: '유니크', c: 'r' }], mobRows, { scroll: true })}
+    <p class="muted small">장비 칸은 그 티어 장비 11종 중 하나 이상이 떨어질 확률입니다(항목마다 따로 굴림, 등급은 ${esc(g.fieldText)}). 필드 몬스터 5%, 필드 보스 60%로 맞춰져 있습니다. 항목별 확률은 몬스터 이름을 누르세요.</p>
+    ${table(['몬스터', '종류', { t: '베리', c: 'r' }, { t: '장비', c: 'r' }, '기타', { t: '영웅', c: 'r' }, { t: '전설', c: 'r' }], mobRows, { scroll: true })}
 
     <h2>보물상자</h2>
     <p class="muted small">섬마다 놓인 상자를 F로 엽니다. 연 뒤 ${c.chestRespawnSec / 60}분 뒤 다시 생깁니다. 회복 물약 1~2개는 반드시 나옵니다.</p>
@@ -418,12 +427,12 @@ function pageDrops() {
     <div class="grid g2">
       <div class="card">
         <h3>${itemLink('mystery_box')}</h3>
-        <p class="small muted">암거래상만 파는 상자(${fmt(M.items.get('mystery_box')?.price ?? 0)} 베리). 열면 아래 중 하나가 나옵니다.</p>
+        <p class="small muted">암거래상만 파는 상자(${fmt(M.items.get('mystery_box')?.price ?? 0)} 베리). 열면 아래 중 하나가 나옵니다. 장비는 내 레벨 티어 세트 중 내 직업이 쓰는 7부위 중 하나입니다.</p>
         ${table(['결과', { t: '확률', c: 'r' }], [
-          tr([`<span class="rar-unique">유니크 장비</span> (Lv${b.uniqueMinLevel} 이상만, 직업이 쓸 수 있는 것 중 1)`, R(pct(b.unique))]),
-          tr([`<span class="rar-legendary">전설 장비</span> (직업이 쓸 수 있는 3종 중 1)`, R(pct(b.legendary))]),
-          tr([`<span class="rar-epic">영웅 장비</span> (내 레벨 티어의 영웅 장비)`, R(pct(b.epic))]),
-          tr([`<span class="rar-rare">희귀 등급</span> 내 레벨 티어의 직업 무기·갑옷·목걸이·투구·장갑·신발·반지 중 1`, R(pct(b.rare))]),
+          tr([`<span class="rar-unique">유니크 등급</span> 장비 (Lv${b.uniqueMinLevel} 이상만)`, R(pct(b.unique))]),
+          tr([`<span class="rar-legendary">전설 등급</span> 장비`, R(pct(b.legendary))]),
+          tr([`<span class="rar-epic">영웅 등급</span> 장비`, R(pct(b.epic))]),
+          tr([`<span class="rar-rare">희귀 등급</span> 장비`, R(pct(b.rare))]),
           tr([`베리 ${fmt(b.gold[0])}~${fmt(b.gold[1])} + 강화석 ${b.scrap[0]}~${b.scrap[1]}개 + 내 티어 강화 재료 ${b.mats[0]}~${b.mats[1]}개`, R(`${pct(1 - b.unique - b.legendary - b.epic - b.rare)} 이상`)]),
         ])}
       </div>
@@ -432,7 +441,7 @@ function pageDrops() {
         <ul class="plain small">
           <li>서버가 켜지고 ${m.firstDelaySec[0] / 60}~${m.firstDelaySec[1] / 60}분 뒤 처음 나타나고, 그 뒤 ${m.intervalSec[0] / 60}~${m.intervalSec[1] / 60}분마다 다시 나타납니다.</li>
           <li>사람이 있는 섬의 부두 근처에 ${m.staySec / 60}분 머뭅니다(서버 전체 공지).</li>
-          <li>재고: 가장 높은 티어 영웅 장비 ${m.epicStock}종 + 수상한 상자 ${m.boxStock}개 + ${pct(m.legendaryChance)} 확률로 전설 장비 1종.</li>
+          <li>재고: 가장 높은 섬 티어부터 ${m.epicStock}개 티어에서 공용 부위 1종씩 영웅 등급(값 ×${m.gradePriceMul.epic}) + 수상한 상자 ${m.boxStock}개 + ${pct(m.legendaryChance)} 확률로 최고 티어 공용 부위 1종을 전설 등급(값 ×${m.gradePriceMul.legendary}).</li>
           <li>전설 장비는 한 번 나타날 때 한 사람당 ${m.legendaryPerPlayer}개까지 살 수 있습니다.</li>
           <li>수상한 상자는 한 번 나타날 때 캐릭터마다 ${m.boxPerPlayer}개까지 살 수 있습니다.</li>
         </ul>
@@ -454,11 +463,11 @@ function pageDrops() {
       </div>
       <div class="card">
         <h3>${itemLink('premium_box')}</h3>
-        <p class="small muted">젬으로만 사는 상자. 여는 사람의 직업·레벨 티어에 맞춰 아래 중 하나가 나오고, 여는 순간 등급에 따라 빛이 달라지는 연출이 나옵니다.</p>
+        <p class="small muted">젬으로만 사는 상자. 여는 사람의 직업·레벨 티어에 맞춰 아래 중 하나가 나오고(장비는 내 레벨 티어 세트 부위), 여는 순간 등급에 따라 빛이 달라지는 연출이 나옵니다.</p>
         ${table(['결과', { t: '확률', c: 'r' }], [
-          tr([`<span class="rar-unique">유니크 장비</span> (직업이 쓸 수 있는 것 중 1)`, R(pct(D.gems.premium.unique))]),
-          tr([`<span class="rar-legendary">전설 장비</span> (직업이 쓸 수 있는 3종 중 1)`, R(pct(D.gems.premium.legendary))]),
-          tr([`<span class="rar-epic">영웅 장비</span> (내 레벨 티어의 영웅 장비)`, R(pct(D.gems.premium.epic))]),
+          tr([`<span class="rar-unique">유니크 등급</span> 장비`, R(pct(D.gems.premium.unique))]),
+          tr([`<span class="rar-legendary">전설 등급</span> 장비`, R(pct(D.gems.premium.legendary))]),
+          tr([`<span class="rar-epic">영웅 등급</span> 장비`, R(pct(D.gems.premium.epic))]),
           tr([`베리 ${fmt(D.gems.premium.gold[0])}~${fmt(D.gems.premium.gold[1])} + 강화석 ${D.gems.premium.stones[0]}~${D.gems.premium.stones[1]}개 + 내 티어 강화 재료 ${D.gems.premium.mats[0]}~${D.gems.premium.mats[1]}개`, R(pct(1 - D.gems.premium.unique - D.gems.premium.legendary - D.gems.premium.epic))]),
         ])}
         <p style="margin-top:10px"><b>천장</b>: 유니크 없이 ${D.gems.pity - 1}번 열면 <b>${D.gems.pity}번째는 유니크 확정</b>입니다. 유니크가 나오면(확률이든 천장이든) 카운트가 처음부터 다시 셉니다. 남은 횟수는 젬 상점과 개봉 화면에 보입니다(캐릭터마다).</p>
@@ -468,7 +477,7 @@ function pageDrops() {
 
     <h2>레이드 보상</h2>
     ${table(['레이드', { t: '입장', c: 'r' }, '장비', '고정 보상'], raidRows)}
-    <p class="muted small" style="margin-top:8px">레이드 장비는 참가자마다 따로 굴리며, 내 직업이 쓸 수 있는 것 중에서만 뽑힙니다. 유니크는 불운 보정이 없습니다(${pct(c.uniqueRaidChance)}). 클리어마다 ${pct(D.gems.drop.raid.chance)} 확률로 ${esc(D.gems.name)}도 나옵니다.</p>
+    <p class="muted small" style="margin-top:8px">레이드 장비는 참가자마다 따로 굴리며, 내 직업이 쓸 수 있는 부위 중에서만 뽑힙니다. 등급은 ${esc(g.raidText)}입니다. 클리어마다 ${pct(D.gems.drop.raid.chance)} 확률로 ${esc(D.gems.name)}도 나옵니다.</p>
 
     <h2>필드 보스 원정 보상</h2>
     ${table(['전장', { t: '기여 지분', c: 'r' }, '장비', '고정 보상'], wbRows)}
@@ -630,7 +639,7 @@ function sourceBlock(it) {
   const mob = by('mob').sort((a, b) => b.chance - a.chance);
   if (mob.length) out.push(`<div class="card"><h3>몬스터 드랍</h3>${table(['몬스터', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }], mob.map((s) => tr([mobLink(s.mob), R(pct(s.chance)), R(s.qty ? `${s.qty[0]}~${s.qty[1]}` : 1)])), { scroll: mob.length > 10 })}</div>`);
   const rare = by('rare').sort((a, b) => b.chance / b.pick - a.chance / a.pick);
-  if (rare.length) out.push(`<div class="card"><h3>희귀 드랍 (처치 1회 · 1인)</h3>${table(['몬스터', '등급', { t: '이 아이템일 확률', c: 'r' }], rare.map((s) => tr([mobLink(s.mob), `<span class="rar-${s.rarity}">${rarName(s.rarity)}</span>${s.pity ? ' <span class="chip">불운 보정</span>' : ''}`, R(`${pct(s.chance / s.pick)}${s.pick > 1 ? `<br><span class="muted small">${rarName(s.rarity)} ${pct(s.chance)} × 1/${s.pick}</span>` : ''}`)])), { scroll: rare.length > 10 })}<p class="muted small" style="margin:8px 0 0">${it.classId ? '' : '직업 무기가 아닌 장비는 모든 직업에게 같은 확률입니다. '}전설·유니크는 내 직업이 쓸 수 있는 것 중에서만 뽑힙니다.</p></div>`);
+  if (rare.length) out.push(`<div class="card"><h3>영웅·전설 등급 드랍 (처치 1회 · 1인)</h3>${table(['몬스터', '등급', { t: '이 아이템일 확률', c: 'r' }], rare.map((s) => tr([mobLink(s.mob), `<span class="rar-${s.rarity}">${rarName(s.rarity)}</span>${s.pity ? ' <span class="chip">불운 보정</span>' : ''}`, R(`${pct(s.chance / s.pick)}${s.pick > 1 ? `<br><span class="muted small">${rarName(s.rarity)} ${pct(s.chance)} × 1/${s.pick}</span>` : ''}`)])), { scroll: rare.length > 10 })}<p class="muted small" style="margin:8px 0 0">${it.classId ? '' : '직업 무기가 아닌 장비는 모든 직업에게 같은 확률입니다. '}내 직업이 쓸 수 있는 7부위 중에서만 뽑힙니다.</p></div>`);
   const chest = by('chest');
   if (chest.length) out.push(`<div class="card"><h3>보물상자</h3>${table(['섬', { t: '확률', c: 'r' }], chest.map((s) => tr([D.islands.filter((i) => i.chestTier === s.tier).map((i) => islandLink(i.id)).join(', '), R(`${pct(s.chance)}${s.qty ? ` · ${s.qty[0]}~${s.qty[1]}개` : ''}`)])))}</div>`);
   const raid = by('raid');
@@ -721,9 +730,10 @@ function pageMob(id) {
   const stats = [['레벨', m.level], ['HP', fmt(m.hp)], ['공격력', fmt(m.atk)], ['방어력', fmt(m.def)], ['공격 계수', `${Math.round(atk.coef * 100)}%`], ['공격 간격', `${atk.cdSec}초`], ['공격 방식', atk.kind === 'melee' ? `근접 ${atk.range}` : `원거리 ${atk.range}`], ['이동 속도', m.speed], ['경험치', fmt(m.exp)], ['리스폰', m.respawnSec ? `${m.respawnSec >= 60 ? `${m.respawnSec / 60}분` : `${m.respawnSec}초`}` : '—']];
   const lootRows = [...m.loot.entries].sort((a, b) => b.chance - a.chance).map((e) => tr([itemLink(e.itemId), R(pct(e.chance)), R(e.qty ? `${e.qty[0]}~${e.qty[1]}` : 1), R(`<span class="muted small">${oneIn(e.chance)}</span>`)]));
   const rare = [];
-  if (m.rare.unique) rare.push(tr([`<span class="rar-unique">유니크</span> (공용 6종 + 내 무기 중 1)`, R(pct(m.rare.unique)), R(`<span class="muted small">${oneIn(m.rare.unique)}</span>`)]));
-  if (m.rare.legendary) rare.push(tr([`<span class="rar-legendary">전설</span> (내 무기·갑옷·목걸이 중 1) <span class="chip">불운 보정</span>`, R(`${pct(m.rare.legendary)} ~ ${pct(m.rare.legendary + c.pityCap)}`), R(`<span class="muted small">${oneIn(m.rare.legendary)}</span>`)]));
-  if (m.rare.epic) rare.push(tr([`<span class="rar-epic">영웅</span> ${itemLink(m.rare.epicItem)}`, R(pct(m.rare.epic)), R(`<span class="muted small">${oneIn(m.rare.epic)}</span>`)]));
+  const pityOn = m.rare.table !== 'field';
+  const setName = esc(M.items.get(`armor_t${m.rare.gearTier}`)?.name.split(' ')[0] ?? '');
+  if (m.rare.legendary) rare.push(tr([`<span class="rar-legendary">전설</span> ${setName} 세트 부위(내 무기 + 공용 6부위 중 1)${pityOn ? ' <span class="chip">불운 보정</span>' : ''}`, R(pityOn ? `${pct(m.rare.legendary)} ~ ${pct(m.rare.legendary + c.pityCap)}` : pct(m.rare.legendary)), R(`<span class="muted small">${oneIn(m.rare.legendary)}</span>`)]));
+  if (m.rare.epic) rare.push(tr([`<span class="rar-epic">영웅</span> ${setName} 세트 부위(내 무기 + 공용 6부위 중 1)`, R(pct(m.rare.epic)), R(`<span class="muted small">${oneIn(m.rare.epic)}</span>`)]));
   const raid = D.raids.find((r) => r.bossId === m.id);
   const wb = D.worldBosses.find((w) => w.bossId === m.id);
   return `
@@ -772,7 +782,7 @@ function pageWorld() {
             <div class="chips">${isl.shop.map((id) => { const it = M.items.get(id); return `<a class="chip" href="#/items/${id}">${esc(it?.name ?? id)}</a>`; }).join('')}</div>
           </div>
         </div>
-        ${quests.length ? `<details style="margin-top:12px"><summary>퀘스트 ${quests.length}개</summary>${table(['퀘스트', { t: 'Lv', c: 'r' }, '목표', '보상'], quests.map((q) => tr([`${esc(q.name)}<div class="muted small">${esc(q.npc)}</div>`, R(q.minLevel), `<span class="small">${q.objectives.map(objectiveText).join('<br>')}</span>`, `<span class="small">경험치 ${fmt(q.rewards.exp)} · ${fmt(q.rewards.gold)} 베리${(q.rewards.items ?? []).map((i) => `<br>${esc(M.items.get(i.itemId)?.name ?? i.itemId)} ×${i.qty}`).join('')}</span>`])))}</details>` : ''}
+        ${quests.length ? `<details style="margin-top:12px"><summary>퀘스트 ${quests.length}개 (곁가지 의뢰 ${quests.filter((q) => q.side).length}개 — 섬 안내인이 주는 선택 퀘스트, 한 번씩)</summary>${table(['퀘스트', { t: 'Lv', c: 'r' }, '목표', '보상'], quests.map((q) => tr([`${esc(q.name)}${q.side ? ' <span class="chip">곁가지</span>' : ''}<div class="muted small">${esc(q.npc)}</div>`, R(q.minLevel), `<span class="small">${q.objectives.map(objectiveText).join('<br>')}</span>`, `<span class="small">경험치 ${fmt(q.rewards.exp)} · ${fmt(q.rewards.gold)} 베리${(q.rewards.items ?? []).map((i) => `<br>${esc(M.items.get(i.itemId)?.name ?? i.itemId)} ×${i.qty}`).join('')}</span>`])))}</details>` : ''}
       </section>`;
   }).join('');
   const raids = D.raids.map((r) => `
@@ -786,10 +796,9 @@ function pageWorld() {
       <h3>보상 (참가자 전원)</h3>
       <ul class="plain small">
         <li>경험치 ${fmt(r.rewards.exp)} · ${fmt(r.rewards.gold)} 베리 · ${r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')}</li>
-        <li>${pct(r.rewards.legendaryChance)} 확률로 전설 등급 레이드 장비 1점(${r.rewards.gearPool.length}종 중 내가 쓸 수 있는 것, 첫 클리어는 자기 직업 무기). 레이드에서는 영웅 등급이 나오지 않습니다.</li>
-        ${r.rewards.rareDrop ? `<li>${pct(r.rewards.rareDrop.chance)} 확률로 거신 장비 1점 추가</li>` : ''}
-        ${r.rewards.uniqueChance ? `<li>${pct(r.rewards.uniqueChance)} 확률로 유니크 장비 1점</li>` : ''}
-        ${r.rewards.firstClearUnique ? '<li><b>캐릭터마다 처음 깰 때 한 번</b>: 내 직업 무기 + 직업 무관 유니크 중 원하는 1개를 골라 받습니다(귀속 아님). 가방이 차 있거나 창을 닫아도 다음에 접속할 때 다시 고를 수 있습니다. 서버 최초 칭호는 없습니다.</li>' : ''}
+        <li>${pct(r.rewards.gearChance)} 확률로 레이드 세트 1점(${r.rewards.gearPool.length}종 중 내가 쓸 수 있는 것, 첫 클리어는 자기 직업 무기). 등급: ${esc(D.constants.grades.raidText)}</li>
+        ${r.rewards.rareDrop ? `<li>${pct(r.rewards.rareDrop.chance)} 확률로 ${esc(M.items.get(r.rewards.rareDrop.pool[0])?.name.split(' ')[0] ?? '')} 세트 1점 추가(같은 등급표)</li>` : ''}
+        ${r.rewards.firstClearUnique ? '<li><b>캐릭터마다 처음 깰 때 한 번</b>: 이 레이드 세트 중 내 직업 무기 + 직업 무관 부위에서 원하는 1개를 골라 <b>유니크 등급</b>으로 받습니다(귀속 아님). 가방이 차 있거나 창을 닫아도 다음에 접속할 때 다시 고를 수 있습니다. 서버 최초 칭호는 없습니다.</li>' : ''}
       </ul>
     </section>`).join('');
   const worldBosses = D.worldBosses.map((w) => `
@@ -801,7 +810,7 @@ function pageWorld() {
       <h3>보상 (처치 때 기여 지분 ${w.minSharePct}% 이상인 사람 — 기여 = 피해 + 치유 × ${D.constants.worldBossHealWeight})</h3>
       <ul class="plain small">
         <li>${fmt(w.rewards.gold)} 베리 · 경험치(현재 레벨 필요 경험치의 ${pct(w.rewards.expLevelFrac)}) · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')}</li>
-        ${w.rewards.uniqueChance ? `<li>${pct(w.rewards.uniqueChance)} 확률로 유니크 장비 1점</li>` : ''}
+        ${w.rewards.uniqueChance ? `<li>${pct(w.rewards.uniqueChance)} 확률로 내 레벨 티어 세트 부위 1점을 유니크 등급으로</li>` : ''}
         <li>지분이 모자라면 보상이 없습니다. 전투 중 보스 바 아래에 내 지분과 순위가 보입니다.</li>
       </ul>
     </section>`).join('');
@@ -810,14 +819,14 @@ function pageWorld() {
     <section class="card" id="raid-${inf.id}">
       <h2 style="margin-top:0">${esc(inf.name)} <span class="chip">입장 Lv${inf.minLevel}</span> <span class="chip">혼자~${inf.size}인</span> <span class="chip">제한 시간 없음</span> <span class="chip">재입장 대기 없음</span></h2>
       <p>레이드 안내인·항해사의 레이드 목록에서 출발합니다(파티 없이 혼자도 가능). ${inf.firstWaveSec}초 뒤 1웨이브가 몰려오고, 투기장의 몬스터를 모두 쓰러뜨리면 웨이브 클리어 → ${inf.breakSec}초 쉬고 다음 웨이브. <b>웨이브에는 끝이 없습니다.</b> ${inf.bossEvery}웨이브마다 보스(호위 ${inf.bossEscorts})가 나옵니다.</p>
-      <p class="small">몬스터 수치는 웨이브마다 곱으로 커집니다: HP ${fmt(inf.scaling.hp)} × ${inf.scaling.hpGrowth}^(웨이브−1), 공격력 ${inf.scaling.atk} × ${inf.scaling.atkGrowth}^(웨이브−1), 방어력 ${inf.scaling.def} + ${inf.scaling.defStep} × (웨이브−1). 보스 = HP ×${inf.scaling.bossHpMul} · 공격력 ×${inf.scaling.bossAtkMul} · 방어력 +${inf.scaling.bossDefAdd}. 처치 경험치·일반 드랍은 없습니다(${D.gems.infUnique.fromWave}웨이브부터 유니크 굴림만 있습니다).</p>
+      <p class="small">몬스터 수치는 웨이브마다 곱으로 커집니다: HP ${fmt(inf.scaling.hp)} × ${inf.scaling.hpGrowth}^(웨이브−1), 공격력 ${inf.scaling.atk} × ${inf.scaling.atkGrowth}^(웨이브−1), 방어력 ${inf.scaling.def} + ${inf.scaling.defStep} × (웨이브−1). 보스 = HP ×${inf.scaling.bossHpMul} · 공격력 ×${inf.scaling.bossAtkMul} · 방어력 +${inf.scaling.bossDefAdd}. 처치 경험치·처치 드랍은 없습니다(보상은 웨이브 클리어 때).</p>
       ${table([{ t: '웨이브', c: 'r' }, { t: '몬스터', c: 'r' }, { t: 'HP', c: 'r' }, { t: '공격력', c: 'r' }, { t: '방어력', c: 'r' }, '보스', { t: '클리어 베리', c: 'r' }, { t: '경험치', c: 'r' }, { t: '강화석', c: 'r' }, { t: esc(D.gems.name), c: 'r' }], inf.waves.map((w) => tr([R(w.wave), R(w.count), R(fmt(w.mob.hp)), R(fmt(w.mob.atk)), R(fmt(w.mob.def)), w.bossId ? `${mobLink(w.bossId)} <span class="muted small">HP ${fmt(w.bossStats.hp)} · 공격력 ${fmt(w.bossStats.atk)}</span>` : '', R(fmt(w.gold)), R(pct(w.expPct)), R(w.stones || ''), R(pct(w.gem.chance))])))}
       <h3>보상 (웨이브를 넘길 때마다 투기장 안 전원)</h3>
       <ul class="plain small">
         <li>${fmt(inf.rewards.gold)} × ${inf.rewards.goldGrowth}^(웨이브−1) 베리 · 경험치(현재 레벨 필요 경험치의 ${pct(inf.rewards.expPct)} × (1 + ${inf.rewards.expGrowth} × (웨이브−1)) — <b>높은 웨이브일수록 많이</b>) · 보스 웨이브는 강화석(${inf.bossEvery}웨이브마다 ${inf.rewards.stonesPerBoss}개씩 늘어남)</li>
         <li>${esc(D.gems.name)}: 웨이브마다 ${pct(D.gems.drop.wave.chance)}, <b>${D.gems.drop.wave.highFromWave}웨이브부터 ${pct(D.gems.drop.wave.high)}</b>(보스 웨이브는 ×${D.gems.drop.wave.bossMul})</li>
-        <li><b>${D.gems.infUnique.fromWave}웨이브부터</b> 몬스터를 잡을 때마다 유니크 장비 굴림: 일반 몬스터 ${pct(D.gems.infUnique.mob)}, 보스 ${pct(D.gems.infUnique.boss)}(투기장 안 한 명마다 따로, 직업에 맞는 것)</li>
-        <li><b>서버 최초로 ${inf.firstClearWave}웨이브를 넘긴 파티 전원</b>에게 직업에 맞는 유니크 장비 1점(한 번뿐)</li>
+        <li>장비: 웨이브마다 ${pct(D.constants.grades.infiniteChance.wave)}, 보스 웨이브 ${pct(D.constants.grades.infiniteChance.boss)} 확률로 내 레벨 티어 세트 부위 1점(한 명마다 따로). 등급: ${esc(D.constants.grades.infiniteText)}</li>
+        <li><b>서버 최초로 ${inf.firstClearWave}웨이브를 넘긴 파티 전원</b>에게 내 레벨 티어 세트 부위 1점을 유니크 등급으로(한 번뿐)</li>
         <li>라이프 토큰 ${inf.lifeTokens}개 · 투기장 안 전원이 한꺼번에 쓰러지면 도전이 끝납니다. 웨이브 보상과 기록은 웨이브마다 바로 남습니다.</li>
         <li>랭킹: 메뉴 › 랭킹 › 무한의 던전 — 같은 파티 구성마다 최고 기록(웨이브 → 걸린 시간 순)</li>
       </ul>
@@ -831,7 +840,22 @@ function pageWorld() {
       ${table(['선택', ...Object.values(aug.tierNames).map((n) => ({ t: esc(n), c: 'r' }))], aug.odds.map((o, i) => tr([`${(i + 1) * aug.every}웨이브${i === aug.odds.length - 1 ? '부터' : ''}`, R(`${o.silver}%`), R(`${o.gold}%`), R(`${o.prism}%`)])))}
       ${table(['증강', '등급', '효과'], aug.list.map((a) => tr([esc(a.name), esc(aug.tierNames[a.tier]), esc(a.desc)])))}
     </section>`;
-  return `${head('지역·레이드', '섬은 항해사(뱃사공)로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다.')}<div class="stack">${islands}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div>`;
+  const du = D.duel;
+  const duelCard = `
+    <section class="card" id="duel">
+      <h2 style="margin-top:0">${esc(du.name)} <span class="chip">PvP</span> <span class="chip">입장 Lv${du.minLevel}</span> ${du.modes.map((m) => `<span class="chip">${esc(m.name)}</span>`).join(' ')}</h2>
+      <p>메뉴(ESC) › 결투장에서 모드별로 <b>매칭</b>을 시작하거나, 다른 플레이어에게 <b>결투 신청</b>을 보냅니다(우클릭 메뉴 · 접속자 목록 · 채팅 <code>/결투 이름</code>, 3 대 3은 <code>/결투3 이름</code>).</p>
+      <ul class="plain small">
+        <li>점수: 모드마다 따로, 처음 ${du.ratingStart}점. 매칭 경기만 점수가 바뀝니다(Elo, K=${du.eloK}, 편 평균 점수끼리 · 최저 ${du.ratingMin}점).</li>
+        <li>매칭: 점수 차 <b>${du.matchRange}점 이내</b>끼리만 잡힙니다(기다려도 범위가 넓어지지 않습니다). 3 대 3은 혼자 또는 파티장이 3명 이하 파티째로 들어가고, 한 경기에 든 모든 대기 묶음(파티는 파티원 평균)이 서로 ${du.matchRange}점 이내여야 합니다.</li>
+        <li>결투 신청(친선): 점수와 무관하게 싸우고 점수·전적이 바뀌지 않습니다. 1 대 1은 누구에게나, 3 대 3은 3명 파티의 파티장이 상대 3명 파티에게(상대 파티장이 받습니다). 응답 시간 ${du.challengeSec}초.</li>
+        <li>경기: 입장하면 HP·MP가 가득 차고 버프가 지워집니다. ${du.countdownSec}초 뒤 시작, 제한 시간 ${du.modes.map((m) => `${esc(m.name)} ${m.timeLimitSec / 60}분`).join(' · ')}.</li>
+        <li>승패: 상대 편 전원을 쓰러뜨리면 승리. 제한 시간이 끝나면 남은 HP 비율 합이 큰 편이 이기고, 같으면 무승부. 도중에 나가거나 접속을 끊으면 그 사람은 패배로 처리됩니다.</li>
+        <li>규칙: 플레이어끼리 주는 피해 ${pct(du.damageMul)}, 치유·보호막 ${pct(du.healMul)}. 물약과 자연 회복은 없습니다. 쓰러지면 경기가 끝날 때까지 부활할 수 없고 관전합니다.</li>
+        <li>끝나면 ${du.resultSec}초 뒤 모두 원래 자리로 돌아가고, 쓰러진 사람도 되살아납니다.</li>
+      </ul>
+    </section>`;
+  return `${head('지역·레이드', '섬은 항해사(뱃사공)로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다.')}<div class="stack">${islands}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div>`;
 }
 
 // ── 페이지: 성장·강화 ──
@@ -994,6 +1018,7 @@ function buildSearch() {
   add('레이드', D.infinite.name, `#/world#raid-${D.infinite.id}`, `웨이브 던전 · 입장 Lv${D.infinite.minLevel} · 혼자~${D.infinite.size}인`, ph('crown'), '무한 웨이브 랭킹 서버 최초 유니크', '레이드');
   add('레이드', D.augment.name, `#/world#raid-${D.augment.id}`, `웨이브 던전 베타 · ${D.augment.every}웨이브마다 증강 카드`, ph('crown'), D.augment.list.map((a) => `${a.name} ${a.desc}`).join(' · '), '레이드 증강 베타 카드');
   for (const w of D.worldBosses) add('레이드', w.name, `#/world#wb-${w.id}`, `필드 보스 원정 · ${M.mobs.get(w.bossId)?.name ?? ''}`, ph('crown'), w.phases.map((p) => p.label).join(' · '), '필드보스 월드보스 원정');
+  add('콘텐츠', D.duel.name, '#/world#duel', `PvP · ${D.duel.modes.map((m) => m.name).join(' · ')} · 입장 Lv${D.duel.minLevel}`, ph('swords'), `점수 매칭 ±${D.duel.matchRange} 결투 신청 친선`, '결투장 PvP 대전 결투 점수 레이팅');
   searchIndex = entries;
 }
 /** 점수 높은 순 [{e, name, snip}] — 이름 > 분류어 > 본문 */
