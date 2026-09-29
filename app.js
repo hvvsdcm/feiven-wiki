@@ -381,7 +381,7 @@ function pageDrops() {
   });
   const b = c.boxLoot;
   const m = c.market;
-  const raidRows = D.raids.map((r) => tr([islandLink(r.id), R(`Lv${r.minLevel}`), `전설 장비 ${pct(r.rewards.legendaryChance)}(영웅 등급 없음)${r.rewards.rareDrop ? ` · 거신 장비 ${pct(r.rewards.rareDrop.chance)}` : ''}${r.rewards.uniqueChance ? ` · 유니크 ${pct(r.rewards.uniqueChance)}` : ''}`, r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')]));
+  const raidRows = D.raids.map((r) => tr([islandLink(r.id), R(`Lv${r.minLevel}`), `전설 장비 ${pct(r.rewards.legendaryChance)}(영웅 등급 없음)${r.rewards.rareDrop ? ` · 거신 장비 ${pct(r.rewards.rareDrop.chance)}` : ''}${r.rewards.uniqueChance ? ` · 유니크 ${pct(r.rewards.uniqueChance)}` : ''}${r.rewards.firstClearUnique ? ' · 캐릭터 첫 클리어 때 유니크 1개 골라 받기' : ''}`, r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')]));
   const wbRows = D.worldBosses.map((w) => tr([islandLink(w.islandId), R(`${w.minSharePct}% 이상`), w.rewards.uniqueChance ? `유니크 ${pct(w.rewards.uniqueChance)}` : '—', `${fmt(w.rewards.gold)} 베리 · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')} · 경험치(현재 레벨의 ${pct(w.rewards.expLevelFrac)})`]));
   return `
     ${head('드랍률', '게임 서버의 전리품 규칙 그대로입니다.')}
@@ -461,7 +461,7 @@ function pageDrops() {
           tr([`베리 ${fmt(D.gems.premium.gold[0])}~${fmt(D.gems.premium.gold[1])} + 강화석 ${D.gems.premium.stones[0]}~${D.gems.premium.stones[1]}개 + 내 티어 강화 재료 ${D.gems.premium.mats[0]}~${D.gems.premium.mats[1]}개`, R(pct(1 - D.gems.premium.unique - D.gems.premium.legendary - D.gems.premium.epic))]),
         ])}
         <p style="margin-top:10px"><b>천장</b>: 유니크 없이 ${D.gems.pity - 1}번 열면 <b>${D.gems.pity}번째는 유니크 확정</b>입니다. 유니크가 나오면(확률이든 천장이든) 카운트가 처음부터 다시 셉니다. 남은 횟수는 젬 상점과 개봉 화면에 보입니다(캐릭터마다).</p>
-        <p class="muted small">기념 이벤트: ${esc(D.gems.swap.name)}이(가) 잿빛 해안에 ${D.gems.swap.hours}시간 동안 머물며 수상한 상자 ${D.gems.swap.need}개를 고급 상자 1개로 바꿔 줍니다.</p>
+        <p class="muted small">기념 이벤트: ${esc(D.gems.swap.name)}이(가) 잿빛 해안에 ${D.gems.swap.hours}시간 동안 머물며 수상한 상자 ${D.gems.swap.need}개를 고급 상자 1개로 바꿔 줍니다. 이벤트 전부터 가지고 있던 상자만 교환됩니다(교환상이 머무는 동안 처음 접속할 때 가방에 있던 수 + 계정 창고 상자는 먼저 접속한 캐릭터 몫). 그 뒤에 새로 얻은 상자는 교환되지 않습니다.</p>
       </div>
     </div>
 
@@ -788,6 +788,7 @@ function pageWorld() {
         <li>${pct(r.rewards.legendaryChance)} 확률로 전설 등급 레이드 장비 1점(${r.rewards.gearPool.length}종 중 내가 쓸 수 있는 것, 첫 클리어는 자기 직업 무기). 레이드에서는 영웅 등급이 나오지 않습니다.</li>
         ${r.rewards.rareDrop ? `<li>${pct(r.rewards.rareDrop.chance)} 확률로 거신 장비 1점 추가</li>` : ''}
         ${r.rewards.uniqueChance ? `<li>${pct(r.rewards.uniqueChance)} 확률로 유니크 장비 1점</li>` : ''}
+        ${r.rewards.firstClearUnique ? '<li><b>캐릭터마다 처음 깰 때 한 번</b>: 내 직업 무기 + 직업 무관 유니크 중 원하는 1개를 골라 받습니다(귀속 아님). 가방이 차 있거나 창을 닫아도 다음에 접속할 때 다시 고를 수 있습니다. 서버 최초 칭호는 없습니다.</li>' : ''}
       </ul>
     </section>`).join('');
   const worldBosses = D.worldBosses.map((w) => `
