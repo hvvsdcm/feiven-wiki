@@ -31,7 +31,7 @@ const M = {}; // id → 정의
 function rarName(r) { return D.constants.rarityName[r] ?? r; }
 function itemIcon(it, size = 'sm') {
   const cls = `ico ${size} rb-${it.rarity}`;
-  return it.icon ? `<img class="${cls}" src="${esc(it.icon)}" alt="" loading="lazy" width="40" height="40">` : `<span class="${cls} ph">${icon('backpack')}</span>`;
+  return it.icon ? `<img class="${cls}" src="${esc(it.icon)}" alt="" loading="lazy" width="40" height="40"${it.tint ? ` style="filter:${esc(it.tint)}"` : ''}>` : `<span class="${cls} ph">${icon('backpack')}</span>`;
 }
 function itemLink(id, size = 'sm') {
   const it = M.items.get(id);
@@ -434,6 +434,7 @@ function pageDrops() {
           <li>사람이 있는 섬의 부두 근처에 ${m.staySec / 60}분 머뭅니다(서버 전체 공지).</li>
           <li>재고: 가장 높은 티어 영웅 장비 ${m.epicStock}종 + 수상한 상자 ${m.boxStock}개 + ${pct(m.legendaryChance)} 확률로 전설 장비 1종.</li>
           <li>전설 장비는 한 번 나타날 때 한 사람당 ${m.legendaryPerPlayer}개까지 살 수 있습니다.</li>
+          <li>수상한 상자는 한 번 나타날 때 캐릭터마다 ${m.boxPerPlayer}개까지 살 수 있습니다.</li>
         </ul>
       </div>
     </div>
@@ -849,7 +850,7 @@ function pageGrowth() {
 내가 ${c.expPenaltyDiff[0]}레벨 이상 높으면 × 0.5, ${c.expPenaltyDiff[1]}레벨 이상 높으면 × 0.1</div>
     <ul class="plain">
       <li>처치에 기여한 사람과 반경 ${c.partyExpRadius} 안의 파티원이 <b>각자 전액</b>을 받습니다(나누지 않음).</li>
-      <li>Lv${c.slowFrom}부터는 필요 경험치가 레벨마다 1.15배씩 더 늘어납니다.</li>
+      <li>Lv${c.slowFrom}부터 기본 곡선에 곱하는 배율이 레벨마다 1.15배씩 늘며, 최대 ${c.slowCap}배에서 멈춥니다. Lv184부터는 기본 곡선의 성장만 이어집니다.</li>
       <li>HP는 교전이 끝나고 ${c.hpRegen.delaySec}초 뒤부터 초당 ${c.hpRegen.pctPerSec}%씩 찹니다. MP는 전투 밖 초당 ${c.mpRegenPct}%, 전투 중 ${c.mpRegenCombatPct}%, 처치할 때 ${c.mpOnKillPct}% 찹니다.</li>
     </ul>
     <div class="filters" style="margin-top:12px"><label class="f">레벨로 이동<input type="number" id="exp-jump" min="1" max="${D.meta.maxLevel}" value="${growthState.level}"></label></div>
@@ -859,9 +860,9 @@ function pageGrowth() {
 
     <h2>강화</h2>
     <p>대장장이에게서 +${c.enhanceMax}까지 올립니다. <b>장비가 부서지지는 않습니다.</b> 목표가 +4 이하면 실패해도 그대로, +5 이상이면 한 단계 내려갑니다. 목표 +4부터는 그 장비 티어의 필드 재료도 듭니다.</p>
-    <div class="filters"><label class="f">장비 티어(비용 기준)<select id="enh-tier">${[1, 2, 3, 4, 5, 6, 7, 8].map((t) => `<option value="${t}" ${t === growthState.tier ? 'selected' : ''}>티어 ${t}</option>`).join('')}</select></label></div>
+    <div class="filters"><label class="f">장비 티어(비용 기준)<select id="enh-tier">${D.awaken.tiers.map(({ tier: t }) => `<option value="${t}" ${t === growthState.tier ? 'selected' : ''}>티어 ${t}</option>`).join('')}</select></label></div>
     <div id="enh-table">${enhanceTable()}</div>
-    <p class="muted small" style="margin-top:8px">기대값은 +0에서 시작해 그 단계에 처음 닿을 때까지의 평균입니다(실패로 내려간 뒤 다시 올리는 비용 포함). 비용은 50 × 티어 × (현재 단계 + 1) 베리, 강화석은 단계와 상관없이 1개, 목표 +4~+6은 필드 재료 2개, +7부터 3개입니다.</p>
+    <p class="muted small" style="margin-top:8px">기대값은 +0에서 시작해 그 단계에 처음 닿을 때까지의 평균입니다(실패로 내려간 뒤 다시 올리는 비용 포함). 비용은 티어 × 반올림(120 × (현재 단계 + 1)^1.7) 베리, 강화석은 단계와 상관없이 1개, 목표 +4~+6은 필드 재료 2개, +7부터 3개입니다.</p>
 
     <h2>각성</h2>
     <p>+${c.enhanceMax} 장비는 대장장이에게서 각성에 도전할 수 있습니다. 성공률은 ${D.awaken.rate}%에서 시작해 <b>실패할 때마다 그 장비의 성공률이 ${D.awaken.step}%씩 오릅니다</b>. 실패해도 강화 단계는 +${c.enhanceMax} 그대로입니다(재료·베리만 듭니다). 성공하면 칸 테두리가 붉게 빛나는 각성 장비가 되고 수치가 +${c.enhanceMax} 강화 배율의 ×${D.awaken.mul}이 됩니다. 각성 장비는 그대로 거래·경매장 등록이 됩니다.</p>
