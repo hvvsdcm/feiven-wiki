@@ -891,16 +891,20 @@ function pageWorld() {
   const dg = D.dungeons;
   const lvDg = dg.list.find((d) => d.kind === 'levelup');
   const gearDg = dg.list.find((d) => d.kind === 'gear');
+  const roomFlow = (d) => d.rooms.map((k, i) => `${i + 1}구역 ${k === 'mid' ? '<b>중간 보스</b>' : k === 'boss' ? '<b>최종 보스</b>' : `몬스터 ${d.packSize}마리`}`).join(' → ');
+  const midNo = lvDg.rooms.indexOf('mid') + 1;
   const dungeonCards = `
     <section class="card" id="dungeons">
-      <h2 style="margin-top:0">일일 던전 <span class="chip">하루(KST) 던전마다 ${lvDg.dailyLimit}번</span> <span class="chip">혼자~${lvDg.size}인</span> <span class="chip">${lvDg.maxWave}웨이브</span></h2>
-      <p>레이드 안내인·항해사의 레이드 목록에서 출발합니다. 입장할 때마다 1회로 세고, 파티로 가면 <b>파티원 모두</b> 남은 횟수가 있어야 출발합니다. 몬스터는 웨이브 번호가 아니라 <b>입장한 파티의 평균 레벨과 인원</b>에 맞춰집니다(그 레벨 지역의 몬스터를 기준으로 인원이 늘 때마다 HP가 불어납니다). ${lvDg.maxWave}웨이브의 마지막이 보스 웨이브입니다. 랭킹·서버 최초 보상은 없습니다.</p>
+      <h2 style="margin-top:0">일일 던전 <span class="chip">하루(KST) 던전마다 ${lvDg.dailyLimit}번</span> <span class="chip">혼자~${lvDg.size}인</span> <span class="chip">${lvDg.maxWave}구역</span></h2>
+      <p>레이드 안내인·항해사의 레이드 목록에서 출발합니다. 입장할 때마다 1회로 세고, 파티로 가면 <b>파티원 모두</b> 남은 횟수가 있어야 출발합니다. 랭킹·서버 최초 보상은 없습니다.</p>
+      <p><b>방을 뚫고 나아가는 던전</b>입니다. 입구에서 회랑을 따라 방 ${lvDg.maxWave}곳을 차례로 지나며, <b>파티가 방에 들어서야</b> 그 방 몬스터가 나타납니다(방을 정리해야 다음 방이 열립니다). ${midNo}구역에는 <b>중간 보스</b>(한 단계 아래 지역의 섬 보스 · 최종 보스 수치 대비 HP ${pct(lvDg.midBoss?.hp ?? 0)} · 공격력 ${pct(lvDg.midBoss?.atk ?? 0)} · 호위 ${lvDg.midBoss?.escorts ?? 0}), 마지막 ${lvDg.maxWave}구역에는 <b>최종 보스</b>(그 레벨 지역의 섬 보스 · 호위 ${lvDg.bossEscorts})가 기다립니다. 진행 창의 화살표가 다음 방 쪽을 가리킵니다.</p>
+      <p class="small">몬스터는 구역 번호가 아니라 <b>입장한 파티의 평균 레벨과 인원</b>에 맞춰집니다(그 레벨 지역의 몬스터를 기준으로 인원이 늘 때마다 HP가 불어납니다). 순서: ${roomFlow(lvDg)}</p>
       <div class="grid g2">
         <div class="card">
           <h3>${esc(lvDg.name)}</h3>
           <ul class="plain small">
-            <li>경험치: 입장 레벨부터 <b>몇 레벨 오르는 만큼</b>을 줍니다. 웨이브마다 ${pct(dg.levelupWaveShare)}씩, 나머지는 보스 웨이브에 들어옵니다.</li>
-            <li>보스 웨이브 클리어 때 ${itemLink(D.scrolls.id)} ${lvDg.scrollsPerBoss}장.</li>
+            <li>경험치: 입장 레벨부터 <b>몇 레벨 오르는 만큼</b>을 줍니다. 구역마다 ${pct(dg.levelupWaveShare)}씩, 나머지는 최종 보스를 쓰러뜨릴 때 들어옵니다.</li>
+            <li>최종 보스 처치 때 ${itemLink(D.scrolls.id)} ${lvDg.scrollsPerBoss}장.</li>
             <li>몬스터 HP: 파티원 1명 늘 때마다 +${pct(lvDg.partyHpMul)}.</li>
           </ul>
           ${table([{ t: '입장 레벨', c: 'r' }, { t: '한 번에 오르는 레벨', c: 'r' }], dg.levelup.map((l) => tr([R(`Lv${l.level}`), R(`약 ${l.levels}레벨`)])))}
@@ -908,9 +912,9 @@ function pageWorld() {
         <div class="card">
           <h3>${esc(gearDg.name)}</h3>
           <ul class="plain small">
-            <li>웨이브 클리어마다(한 사람) ${pct(gearDg.gearChance)} 확률로 장비 1점. 등급: ${esc(dg.gear.gradesText)}. <b>보스 웨이브는 반드시 1점</b>이고 ${rarName('legendary')} ${pct(dg.gear.bossLegendary)} · ${rarName('unique')} ${pct(dg.gear.bossUnique)}가 더해집니다(유니크는 레이드 세트만).</li>
+            <li>일반 구역을 정리할 때마다(한 사람) ${pct(gearDg.gearChance)} 확률로 장비 1점. 등급: ${esc(dg.gear.gradesText)}. <b>중간 보스·최종 보스는 반드시 1점</b>이고, 최종 보스는 ${rarName('legendary')} ${pct(dg.gear.bossLegendary)} · ${rarName('unique')} ${pct(dg.gear.bossUnique)}가 더해집니다(유니크는 레이드 세트만).</li>
             <li>나오는 장비: <b>내 레벨 지역의 세트</b>와 <b>내가 입장할 수 있는 가장 높은 레이드 세트</b> 중 내 직업이 쓰는 부위.</li>
-            <li>보스 웨이브 클리어 때 ${itemLink(D.scrolls.id)} ${gearDg.scrollsPerBoss}장.</li>
+            <li>최종 보스 처치 때 ${itemLink(D.scrolls.id)} ${gearDg.scrollsPerBoss}장.</li>
             <li>몬스터 HP: 파티원 1명 늘 때마다 +${pct(gearDg.partyHpMul)}.</li>
           </ul>
         </div>
