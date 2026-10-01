@@ -13,11 +13,12 @@
   --accent-soft: rgba(49, 130, 246, 0.16);
   --good: #3fd08a;
   --bad: #ff6b6b;
-  --r-common: #d1d5db;
-  --r-rare: #5ea8ff;
-  --r-epic: #c29bff;
-  --r-legendary: #ffb547;
-  --r-unique: #ff6b8b;
+  --r-common: #b8b8b8;
+  --r-rare: #4fbf5a;
+  --r-saga: #4f8fd1;
+  --r-epic: #9a5fd6;
+  --r-legendary: #e0862e;
+  --r-unique: #f0c64a;
   --r-absolute: #ff3434;
   --radius: 16px;
   --radius-lg: 22px;
@@ -174,21 +175,24 @@ tbody tr.hl td { background: var(--accent-soft); }
 /* 등급 */
 .rar-common { color: var(--r-common); }
 .rar-rare { color: var(--r-rare); }
+.rar-saga { color: var(--r-saga); }
 .rar-epic { color: var(--r-epic); }
 .rar-legendary { color: var(--r-legendary); }
 .rar-unique { color: var(--r-unique); }
 .rar-absolute { color: var(--r-absolute); font-weight: 700; }
 .ico.rb-rare { border-color: var(--r-rare); }
+.ico.rb-saga { border-color: var(--r-saga); }
 .ico.rb-epic { border-color: var(--r-epic); }
-.ico.rb-legendary { border-color: var(--r-legendary); box-shadow: 0 0 14px rgba(255, 181, 71, .28); }
-.ico.rb-unique { border-color: var(--r-unique); box-shadow: 0 0 16px rgba(255, 107, 139, .32); }
+.ico.rb-legendary { border-color: var(--r-legendary); box-shadow: 0 0 14px rgba(224, 134, 46, .3); }
+.ico.rb-unique { border-color: var(--r-unique); box-shadow: 0 0 16px rgba(240, 198, 74, .34); }
 .ico.rb-absolute { border-color: var(--r-absolute); box-shadow: 0 0 18px rgba(255, 52, 52, .45); }
 .name-cell.rar-rare a { color: var(--r-rare); }
+.name-cell.rar-saga a { color: var(--r-saga); }
 .name-cell.rar-epic a { color: var(--r-epic); }
 .name-cell.rar-legendary a { color: var(--r-legendary); }
 .name-cell.rar-unique a { color: var(--r-unique); }
 .name-cell.rar-absolute a { color: var(--r-absolute); }
-.chip.rar-rare, .chip.rar-epic, .chip.rar-legendary, .chip.rar-unique, .chip.rar-absolute { background: color-mix(in srgb, currentColor 16%, transparent); }
+.chip.rar-rare, .chip.rar-saga, .chip.rar-epic, .chip.rar-legendary, .chip.rar-unique, .chip.rar-absolute { background: color-mix(in srgb, currentColor 16%, transparent); }
 
 /* 공식 */
 .formula { background: var(--s1); border-radius: var(--radius-lg); padding: 22px 24px; font-size: 16px; line-height: 1.95; color: var(--sub); overflow-x: auto; white-space: pre-wrap; font-variant-numeric: tabular-nums; }
