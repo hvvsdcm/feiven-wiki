@@ -1,4 +1,4 @@
-// 오푸스 온라인 위키 화면. data.json(tools/wiki/build.ts가 게임 데이터에서 만든다)만 읽어 해시 라우팅으로 그린다.
+// 페이븐 위키 화면. data.json(tools/wiki/build.ts가 게임 데이터에서 만든다)만 읽어 해시 라우팅으로 그린다.
 
 const main = document.getElementById('main');
 
