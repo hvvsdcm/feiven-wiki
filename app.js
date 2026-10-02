@@ -16,12 +16,11 @@ function pct(p) {
 const oneIn = (p) => (p > 0 ? `약 ${fmt(Math.round(1 / p))}번에 1번` : '—');
 const icon = (name, cls = 'i') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 
-const KIND = { weapon: '무기', helmet: '투구', armor: '갑옷', gloves: '장갑', boots: '신발', accessory: '목걸이', ring: '반지', potion: '회복 물약', mp_potion: '마나 물약', scroll: '두루마리', material: '재료', box: '상자', ticket: '확장권', boost: '부스트' };
+const KIND = { weapon: '무기', helmet: '투구', armor: '갑옷', gloves: '장갑', boots: '신발', accessory: '목걸이', ring: '반지', potion: '회복 물약', mp_potion: '마나 물약', scroll: '두루마리', material: '재료', box: '상자', ticket: '이용권', boost: '부스트' };
 const EQUIP = ['weapon', 'helmet', 'armor', 'gloves', 'boots', 'accessory', 'ring'];
 const ROLE = { chief: '촌장(전직)', quest: '퀘스트', shop: '상인', smith: '대장장이(강화)', sailor: '뱃사공(이동)', raid: '레이드 안내', flavor: '주민' };
 const MOB_KIND = { field: '일반', elite: '정예', boss: '필드 보스', raid: '레이드 보스', raidAdd: '레이드 소환수', worldBoss: '원정 필드 보스', worldBossAdd: '원정 소환수' };
-const STAT = { str: '힘', int: '지능', vit: '체력', mana: '마나', def: '방어' };
-const PASSIVE = { patkPct: ['물리 공격력', '%'], matkPct: ['마법 공격력', '%'], maxHpPct: ['최대 HP', '%'], defPct: ['방어력', '%'], maxMpPct: ['최대 MP', '%'], critPct: ['치명타 확률', '%p'] };
+const PASSIVE = { patkPct: ['물리 공격력', '%'], matkPct: ['마법 공격력', '%'], maxHpPct: ['최대 HP', '%'], maxMpPct: ['최대 MP', '%'], critPct: ['치명타 확률', '%p'] };
 const DMG = { phys: '물리', magic: '마법' };
 const RARITIES = ['common', 'rare', 'saga', 'epic', 'legendary', 'unique', 'absolute'];
 
@@ -29,6 +28,13 @@ let D; // data.json
 const M = {}; // id → 정의
 
 function rarName(r) { return D.constants.rarityName[r] ?? r; }
+/** 퀘스트 장비 보상 한 줄: "직업 무기(희귀, 내 레벨 티어 · 귀속)" — 티어는 완료할 때 내 레벨로 정해진다 */
+function questGearText(g) { return `${g.part === 'weapon' ? '직업 무기' : esc(KIND[g.part] ?? g.part)}(${esc(rarName(g.rarity))}, 내 레벨 티어 · 귀속)`; }
+/** 반복 보상(웨이브·필드 보스) 경험치 문구: 한 레벨 몫의 비율. 한 레벨 몫은 Lv rewardLevelFrom 위로 그 레벨의 같은 레벨 몬스터 수로 고정된다 */
+function levelShare(ratio) {
+  const L = D.constants.rewardLevelFrom;
+  return `현재 레벨 필요 경험치의 ${ratio} — Lv${L} 위로는 Lv${L} 기준(같은 레벨 몬스터 수)으로 고정`;
+}
 function itemIcon(it, size = 'sm') {
   const cls = `ico ${size} rb-${it.rarity}`;
   return it.icon ? `<img class="${cls}" src="${esc(it.icon)}" alt="" loading="lazy" width="40" height="40"${it.tint ? ` style="filter:${esc(it.tint)}"` : ''}>` : `<span class="${cls} ph">${icon('backpack')}</span>`;
@@ -67,14 +73,14 @@ function classOf(id) { return M.classes.get(id); }
 
 // ── 공식(서버와 같은 식) ──
 /** shared/sim/combatMath.ts damage */
-function damage(atk, coef, def, roll) {
-  return Math.max(1, Math.round((atk * coef * (0.9 + roll * 0.2) * 100) / (100 + Math.max(0, def))));
+function damage(atk, coef, roll) {
+  return Math.max(1, Math.round(atk * coef * (0.9 + roll * 0.2)));
 }
 /** 편차 0.9~1.1 균등 분포에서 반올림한 피해의 평균 */
-function avgDamage(atk, coef, def) {
+function avgDamage(atk, coef) {
   let sum = 0;
   const N = 200;
-  for (let i = 0; i <= N; i++) sum += damage(atk, coef, def, i / N);
+  for (let i = 0; i <= N; i++) sum += damage(atk, coef, i / N);
   return sum / (N + 1);
 }
 /** 장비 1점 수치(server/systems/items/equip.ts gearStats). enh = 강화 단계, enhanceMax + 1 = 각성(+최대 배율 × 각성 배율) */
@@ -82,40 +88,42 @@ function gearStats(it, enh, rarity = it.rarity) {
   const per = D.constants.enhanceBonusPer[it.kind] ?? 0;
   const max = D.constants.enhanceMax;
   const mul = (it.mul?.[rarity] ?? D.constants.rarityMul[rarity]) * (enh > max ? (1 + per * max) * D.awaken.mul : 1 + per * enh);
-  return { atk: Math.round(it.atk * mul), def: Math.round(it.def * mul), hp: Math.round(it.hp * mul) };
+  return { atk: Math.round(it.atk * mul), hp: Math.round(it.hp * mul) };
 }
-/** 레벨·배분·장비·전직으로 능력치(GameServer.recomputeStats와 같은 순서: 직업 Lv1 기본+배분 → 장비 → 전직 패시브(1차 + 2차 합산)). 레벨은 점수 총량만 정한다 */
-function playerStats(cls, level, alloc, gear, branch, second = false) {
-  const eff = D.constants.statEffect;
-  const s = { patk: cls.baseAtk, matk: cls.baseAtk, maxHp: cls.baseHp, maxMp: cls.baseMp, def: cls.baseDef };
-  const addPoints = (key, n) => {
-    for (const [field, v] of Object.entries(eff[key])) s[field] += v * n;
-  };
-  for (const k of Object.keys(STAT)) addPoints(k, alloc[k] || 0);
-  let gearAtk = 0;
+/** 레벨·장비·전직으로 능력치(GameServer.recomputeStats와 같은 순서: 직업 기본 + 레벨 성장(HP·공격력·MP) → 장비 합 × 직업 gearMul + 올스탯 → 전직 패시브(1차 + 2차 합산)) */
+function playerStats(cls, level, gear, branch, second = false) {
+  const ae = D.constants.allStatEffect;
+  const grown = Math.max(0, level - 1);
+  const baseAtk = Math.round(cls.baseAtk + cls.atkPerLevel * grown);
+  const s = { patk: baseAtk, matk: baseAtk, maxHp: Math.round(cls.baseHp + cls.hpPerLevel * grown), maxMp: Math.round(cls.baseMp + cls.mpPerLevel * grown) };
+  let gearAtk = 0, gearHp = 0;
   for (const g of gear) {
     const st = gearStats(g.item, g.enh);
     gearAtk += st.atk;
-    s.def += st.def;
-    s.maxHp += st.hp;
-    if (g.item.allStat) for (const k of Object.keys(STAT)) addPoints(k, g.item.allStat);
+    gearHp += st.hp;
+    const all = g.item.allStat ?? 0;
+    s.patk += ae.atk * all;
+    s.matk += ae.atk * all;
+    s.maxHp += ae.maxHp * all;
+    s.maxMp += ae.maxMp * all;
   }
+  s.maxHp += gearHp * cls.gearMul.hp;
+  gearAtk *= cls.gearMul.atk;
   const p = { ...(branch?.passive ?? {}) };
   if (second && branch) for (const [k, v] of Object.entries(branch.second.passive)) p[k] = (p[k] ?? 0) + v;
   if (p.patkPct) s.patk *= 1 + p.patkPct / 100;
   if (p.matkPct) s.matk *= 1 + p.matkPct / 100;
   if (p.maxHpPct) s.maxHp = Math.round(s.maxHp * (1 + p.maxHpPct / 100));
-  if (p.defPct) s.def = Math.round(s.def * (1 + p.defPct / 100));
   if (p.maxMpPct) s.maxMp *= 1 + p.maxMpPct / 100;
   const patk = Math.round(s.patk + gearAtk);
   const matk = Math.round(s.matk + gearAtk);
-  return { patk, matk, atk: cls.dmgType === 'magic' ? matk : patk, def: s.def, maxHp: s.maxHp, maxMp: Math.max(0, Math.round(s.maxMp)), crit: cls.critPct + (p.critPct ?? 0), gearAtk };
+  return { patk, matk, atk: cls.dmgType === 'magic' ? matk : patk, maxHp: Math.round(s.maxHp), maxMp: Math.max(0, Math.round(s.maxMp)), crit: cls.critPct + (p.critPct ?? 0), gearAtk: Math.round(gearAtk) };
 }
 /** 슬롯 1~4 스킬(shared/data/branches.ts skillsFor). 2차 전직이면 네 칸 모두 2차 스킬 */
 function skillsFor(cls, branch, awakened, second = false) {
   if (!branch) return cls.skills;
   if (second) return branch.second.skills;
-  return [cls.skills[0], branch.skills[0], branch.skills[1], awakened ? branch.awaken : branch.skills[2]];
+  return [branch.skill1 ?? cls.skills[0], branch.skills[0], branch.skills[1], awakened ? branch.awaken : branch.skills[2]];
 }
 
 // ── 페이지: 홈 ──
@@ -123,18 +131,18 @@ function pageHome() {
   const c = D.constants;
   const tiles = [
     ['damage', 'calculator', '#6ea8ff', '데미지 공식', '피해식과 직접 넣어 보는 계산기'],
-    ['drops', 'dices', '#ffb547', '드랍률', '등급 · 지역 세트 · 레이드 세트 · 합성'],
+    ['drops', 'dices', '#ffb547', '드랍률', '등급 · 티어 장비 · 레이드 세트 · 합성'],
     ['classes', 'git-branch', '#c29bff', '직업·전직', `직업 ${D.classes.length}개 · 전직 ${D.branches.length}갈래 · 각성`],
     ['skills', 'sparkles', '#3fd08a', '스킬 도감', `스킬 ${D.skills.length}개 · 계수 · 쿨다운`],
     ['items', 'backpack', '#ff8a4c', '아이템 도감', `아이템 ${D.items.length}개 · 얻는 곳`],
     ['mobs', 'skull', '#ff6b6b', '몬스터 도감', `몬스터 ${D.mobs.length}종 · 드랍표`],
-    ['world', 'map', '#2dd4bf', '지역·레이드', `지역 ${D.regions.length}곳 · 레이드 ${D.raids.length}개 · 일일 던전 ${D.dungeons.list.length}개 · 필드 보스 원정 ${D.worldBosses.length}곳 · 퀘스트 ${D.quests.length}개`],
+    ['world', 'map', '#2dd4bf', '지역·레이드', `지역 ${D.islands.length}곳 · 레이드 ${D.raids.length}개 · 일일 던전 ${D.dungeons.list.length}개 · 필드 보스 원정 ${D.worldBosses.length}곳 · 퀘스트 ${D.quests.length}개`],
     ['growth', 'trending-up', '#f472b6', '성장·강화', '경험치 표 · 강화 · 각성 · 합성'],
   ];
   const tries = ['합성', '강화서', '강화 성공률', '치명타', '크라켄', 'ㅎㄱㅅ'];
   const kv = [
     ['만렙', `Lv ${D.meta.maxLevel}`], ['1차 전직', `Lv ${c.advanceLevel}`], ['각성', `Lv ${c.awakenLevel}`], ['치명타 배율', `×${c.critMul}`],
-    ['강화 한계', `+${c.enhanceMax}`], ['레벨당 스탯', `${c.statPointsPerLevel}점`], ['보스 전설 확률', pct(c.rareRoll.boss.legendary)], ['사망 후 부활', `${c.respawnSec}초`],
+    ['강화 한계', `+${c.enhanceMax}`], ['장비 티어', `T1~T${D.tiers.length}`], ['필드 장비 드랍', pct(c.gearDrop.field)], ['사망 후 부활', `${c.respawnSec}초`],
   ];
   return `
     <section class="hero" style="background-image:url('${esc(D.meta.hero ?? '')}')">
@@ -153,90 +161,62 @@ function pageHome() {
 // ── 페이지: 데미지 ──
 function pageDamage() {
   const c = D.constants;
-  const defRows = [0, 10, 25, 50, 75, 100, 150, 200, 300, 400].map((d) => tr([R(d), R(pct(100 / (100 + d))), R(pct(1 - 100 / (100 + d)))]));
   const classRows = D.classes.map((k) => tr([
-    `<a href="#/classes/${k.id}">${esc(k.name)}</a>`, DMG[k.dmgType], R(k.baseAtk), planText(k), R(k.growth.find((g) => g.level === 100)?.atk ?? '-'), R(k.growth.find((g) => g.level === D.meta.maxLevel)?.atk ?? '-'), R(`${k.critPct}%`),
+    `<a href="#/classes/${k.id}">${esc(k.name)}</a>`, DMG[k.dmgType], R(k.baseAtk), R(`×${k.gearMul.atk}`), R(k.growth.find((g) => g.level === 100)?.atk ?? '-'), R(k.growth.find((g) => g.level === D.meta.maxLevel)?.atk ?? '-'), R(`${k.critPct}%`),
   ]));
   const rarRows = c.grades.list.map((r) => tr([`<span class="rar-${r.id}">${esc(r.name)}</span>`, ...c.grades.mulExamples.map((ex) => R(`×${ex.mul.find((x) => x.rarity === r.id).mul}`))]));
   const enhRows = EQUIP.map((k) => tr([KIND[k], R(`+${pct(c.enhanceBonusPer[k])}`), R(`×${(1 + c.enhanceBonusPer[k] * c.enhanceMax).toFixed(2)}`)]));
   return `
     ${head('데미지 공식', '게임 서버가 쓰는 식 그대로입니다.')}
     <div class="stack">
-      <div class="formula">피해 = max(1, 반올림(<b>공격력</b> × <b>계수</b> × <b>편차</b> × 100 ÷ (100 + <b>대상 방어력</b>)))
+      <div class="formula">피해 = max(1, 반올림(<b>공격력</b> × <b>계수</b> × <b>편차</b>))
 편차 = 0.9 ~ 1.1 사이 균등 난수
 치명타면 피해 × ${c.critMul} (다시 반올림)</div>
       <ul class="plain">
         <li><b>계수</b>: 기본 공격·스킬마다 정해진 배율입니다(스킬 도감의 "계수"). 도적 기본 공격처럼 여러 번 때리는 공격은 타마다 따로 계산합니다.</li>
-        <li><b>방어력</b>은 빼는 값이 아니라 나누는 값이라, 방어력 100이면 피해가 정확히 절반이 됩니다. 아무리 약해도 최소 1은 들어갑니다.</li>
-        <li><b>방어력 증가 버프</b>(도발 등 defUp)는 대상 방어력에 (1 + %)를 곱합니다.</li>
+        <li>대상의 능력치와 상관없이 같은 공격은 같은 피해를 줍니다. 아무리 약해도 최소 1은 들어갑니다.</li>
+        <li><b>받는 피해 감소 버프</b>(도발 등 guard)는 받는 피해에 (1 − %)를 곱합니다.</li>
         <li><b>다음 공격 강화</b>: dmgNext 버프는 공격력에 배율을 곱하고, critNext는 치명타를 확정합니다. 한 번 쓰면 사라집니다.</li>
-        <li>중독 피해와 지속 장판(연막·먹물 등의 틱)은 치명타가 없고, 중독은 방어력도 무시하는 고정 피해입니다(걸 때 시전자 공격력 × 초당 계수).</li>
+        <li>중독 피해와 지속 장판(연막·먹물 등의 틱)은 치명타가 없고, 중독은 시전자 공격력으로 정해지는 고정 피해입니다(걸 때 시전자 공격력 × 초당 계수).</li>
       </ul>
     </div>
 
     <h2 id="calc">계산기</h2>
     <div id="calc-root"></div>
 
-    <h2>방어력에 따른 받는 피해</h2>
-    ${table([{ t: '방어력', c: 'r' }, { t: '받는 피해', c: 'r' }, { t: '줄어드는 비율', c: 'r' }], defRows)}
-
     <h2>공격력은 어떻게 정해지나</h2>
-    <div class="formula">기본 공격력 = 직업 기본값(Lv1, 레벨로 오르지 않음)
-물리 공격력 = 기본 공격력 + <b>힘</b> 점수 (+ 올스탯)     ← 기사·활잽이·도적이 씀
-마법 공격력 = 기본 공격력 + <b>지능</b> 점수 (+ 올스탯)   ← 마법사·힐러가 씀
-전직 패시브(공격력 %)는 여기까지의 값에 곱함
-최종 공격력 = 반올림(위 값 + 장비 공격력 합)
+    <div class="formula">공격력 = 직업 기본값(Lv1) + 레벨당 공격력 × (레벨 − 1) + 장비 공격력 합 × 직업 장비 배율
+전직 패시브(공격력 %)는 직업 기본값(레벨 성장 포함) 쪽에만 곱함 (+ 올스탯)
 장비 수치 = 반올림(기본 수치 × 등급 배율 × (1 + 강화 단계 × 상승률))</div>
-    <p class="muted small">전직 공격력 %는 장비 공격력(무기·장갑·반지)에는 붙지 않습니다. 힘과 지능은 한쪽 계열에만 쓰이므로, 자기 직업 계열이 아닌 스탯은 공격력을 올리지 않습니다.</p>
-    ${table(['직업', '계열', { t: '기본 공격력(Lv1)', c: 'r' }, '추천 배분 비율', { t: 'Lv100 추천 배분', c: 'r' }, { t: `Lv${D.meta.maxLevel} 추천 배분`, c: 'r' }, { t: '치명타', c: 'r' }], classRows)}
+    <p class="muted small">전직 공격력 %는 장비 공격력(무기·장갑·반지)에는 붙지 않습니다. 물리·마법 공격력은 같은 값에서 출발하고, 직업 피해 종류(물리/마법)에 맞는 쪽을 씁니다.</p>
+    ${table(['직업', '계열', { t: '기본 공격력(Lv1)', c: 'r' }, { t: '장비 공격 배율', c: 'r' }, { t: 'Lv100 일반 장비 공격력', c: 'r' }, { t: `Lv${D.meta.maxLevel} 일반 장비 공격력`, c: 'r' }, { t: '치명타', c: 'r' }], classRows)}
     <div class="grid g2" style="margin-top:12px">
-      <div>${table(['등급', ...c.grades.mulExamples.map((ex) => ({ t: `지역 ${ex.rank} 세트 배율`, c: 'r' }))], rarRows)}<p class="muted small" style="margin-top:6px">등급 한 칸 = 지역 반 칸 · 지역마다 다른 곡선이라 <a href="#/drops">드랍률</a>에서 자세히 봅니다.</p></div>
+      <div>${table(['등급', ...c.grades.mulExamples.map((ex) => ({ t: `T${ex.tier} 배율`, c: 'r' }))], rarRows)}<p class="muted small" style="margin-top:6px">등급 한 칸 = 티어 ¼칸(한 칸 최소 ×${c.grades.minMul}) · 티어마다 다른 곡선이라 <a href="#/drops">드랍률</a>에서 자세히 봅니다.</p></div>
       <div>${table(['장비 칸', { t: '강화 1단계당', c: 'r' }, { t: `+${c.enhanceMax} 배율`, c: 'r' }], enhRows)}</div>
     </div>
 
-    <h2>방어력·HP·MP</h2>
-    <div class="formula">방어력 = 직업 기본 + <b>방어</b> 점수 + 장비 방어력 → 전직 방어력 % 곱(반올림)
-최대 HP = 직업 기본 + <b>체력</b> 점수 × ${c.statEffect.vit.maxHp} + 장비 HP → 전직 HP % 곱(반올림)
-최대 MP = 직업 기본 + <b>마나</b> 점수 × ${c.statEffect.mana.maxMp} → 전직 MP % 곱</div>
-    <p class="muted small">레벨만 올라서는 능력치가 오르지 않습니다. 레벨업마다 받는 스탯 ${c.statPointsPerLevel}점을 어디에 찍느냐가 전부입니다(공격력도 같은 규칙: 직업 기본 + 힘 또는 지능).</p>
+    <h2>HP·MP</h2>
+    <div class="formula">최대 HP = 직업 기본 + 레벨당 HP × (레벨 − 1) + 장비 HP 합 × 직업 장비 배율 → 전직 HP % 곱(반올림)
+최대 MP = 직업 기본 + 레벨당 MP × (레벨 − 1) → 전직 MP % 곱</div>
+    <p class="muted small">레벨이 오르면 HP·공격력·MP가 조금씩 오르지만, 큰 몫은 장비입니다 — 더 높은 티어 장비·등급·강화가 곧 성장입니다. 직업 배율과 올스탯은 <a href="#/growth">성장·강화</a>에서 봅니다.</p>
 
     <h2>치명타</h2>
     <p>치명타 확률 = 직업 기본값 + 전직 패시브(%p). 치명타가 뜨면 피해 × ${c.critMul}. 활잽이는 기본 15%, 나머지 직업은 10%에서 시작합니다. 몬스터 공격은 치명타가 없습니다.</p>
 
     <h2>치유량·보호막</h2>
     <div class="formula">치유량(보호막) = 대상 최대 HP × 스킬 HP % + 시전자 마법 공격력 × 스킬 마법 공격력 %</div>
-    <p class="muted small">힐러 스킬은 마법 공격력 비중이 커서 지능·무기로 마법 공격력을 올려야 회복량이 늡니다(예: 치유의 빛 = 마법 공격력 150% + 대상 최대 HP 12%). 기사의 자가 회복·성역 보호막은 최대 HP만 탑니다. 스킬 도감의 수치 줄에 스킬마다 두 비율이 나옵니다. 회복 물약·마나 물약은 티어마다 정해진 양을 회복합니다(아이템 도감 참고, 쿨 회복 ${c.potionCdSec}초·마나 ${c.mpPotionCdSec}초 따로). 엘릭서는 HP·MP를 함께 채우고 회복 물약 쿨을 같이 씁니다.</p>
+    <p class="muted small">힐러 스킬은 마법 공격력 비중이 커서 장비로 마법 공격력을 올려야 회복량이 늡니다(예: 치유의 빛 = 마법 공격력 150% + 대상 최대 HP 12%). 기사의 자가 회복·성역 보호막은 최대 HP만 탑니다. 스킬 도감의 수치 줄에 스킬마다 두 비율이 나옵니다. 회복 물약·마나 물약은 티어마다 정해진 양을 회복합니다(아이템 도감 참고, 쿨 회복 ${c.potionCdSec}초·마나 ${c.mpPotionCdSec}초 따로). 엘릭서는 HP·MP를 함께 채우고 회복 물약 쿨을 같이 씁니다.</p>
 
     <h2>몬스터가 주는 피해</h2>
-    <div class="formula">받는 피해 = max(1, 반올림(몬스터 공격력 × 공격 계수 × 편차 × 100 ÷ (100 + 내 방어력)))</div>
+    <div class="formula">받는 피해 = max(1, 반올림(몬스터 공격력 × 공격 계수 × 편차))</div>
     <ul class="plain">
       <li>몬스터는 치명타가 없습니다. 근접 공격은 휘두르기 시작 뒤 조금 있다 판정되어 대시로 피할 수 있습니다.</li>
-      <li>정예 몬스터는 같은 섬 기준 몬스터보다 HP ×${c.elite.hpMul}, 공격력 ×${c.elite.atkMul}, 방어력 ×${c.elite.defMul}(+2), 레벨 +${c.elite.levelBonus}입니다.</li>
+      <li>정예 몬스터는 같은 섬 기준 몬스터보다 HP ×${c.elite.hpMul}, 공격력 ×${c.elite.atkMul}, 레벨 +${c.elite.levelBonus}입니다.</li>
       <li>레이드 보스는 제한 시간 안에 못 잡으면 격노해 피해가 커집니다(지역·레이드 참고).</li>
     </ul>`;
 }
 
-const calc = { cls: 'knight', branch: '', level: 100, alloc: { str: 0, int: 0, vit: 0, mana: 0, def: 0 }, gear: {}, mob: '', customDef: 50 };
-/** 직업 추천 배분(shared/sim/stats recommendedAlloc과 같은 계산): 1점씩, statPlan 비율 목표에 가장 못 미친 스탯에 */
-function recommended(cls, pts) {
-  const out = { str: 0, int: 0, vit: 0, mana: 0, def: 0 };
-  const keys = Object.keys(out).filter((k) => (cls.statPlan[k] ?? 0) > 0);
-  const sum = keys.reduce((a, k) => a + cls.statPlan[k], 0);
-  for (let i = 0; i < pts && keys.length; i++) {
-    let best = keys[0];
-    let gap = -Infinity;
-    for (const k of keys) {
-      const g = (cls.statPlan[k] * pts) / sum - out[k];
-      if (g > gap) { best = k; gap = g; }
-    }
-    out[best] += 1;
-  }
-  return out;
-}
-/** "힘 12 : 체력 11 : 방어 5 : 마나 2"(비율 큰 순) */
-function planText(cls) {
-  return Object.entries(cls.statPlan).sort((a, b) => b[1] - a[1]).map(([k, w]) => `${STAT[k]} ${w}`).join(' : ');
-}
+const calc = { cls: 'knight', branch: '', level: 100, gear: {}, mob: '' };
 function defaultGear(cls, level) {
   const out = {};
   for (const kind of EQUIP) {
@@ -251,7 +231,6 @@ function resetCalcFor(clsId) {
   const cls = classOf(clsId);
   calc.cls = clsId;
   calc.branch = '';
-  calc.alloc = recommended(cls, (calc.level - 1) * D.constants.statPointsPerLevel);
   calc.gear = defaultGear(cls, calc.level);
 }
 function renderCalc() {
@@ -261,20 +240,17 @@ function renderCalc() {
   const branches = D.branches.filter((b) => b.classId === cls.id);
   const canAdvance = calc.level >= D.constants.advanceLevel;
   const branch = canAdvance ? M.branches.get(calc.branch) : undefined;
-  const totalPts = (calc.level - 1) * D.constants.statPointsPerLevel;
-  const used = Object.values(calc.alloc).reduce((a, b) => a + (Number(b) || 0), 0);
   const gear = EQUIP.map((k) => calc.gear[k]).filter((g) => g && g.id).map((g) => ({ item: M.items.get(g.id), enh: g.enh })).filter((g) => g.item);
   const second = !!branch && calc.level >= D.constants.secondLevel;
-  const st = playerStats(cls, calc.level, calc.alloc, gear, branch, second);
+  const st = playerStats(cls, calc.level, gear, branch, second);
   const mob = M.mobs.get(calc.mob);
-  const tDef = mob ? mob.def : Number(calc.customDef) || 0;
   const awakened = !!branch && calc.level >= D.constants.awakenLevel;
   const slots = skillsFor(cls, branch, awakened, second).map((id) => M.skills.get(id));
   const crit = Math.min(100, st.crit) / 100;
   const rowsFor = (label, iconHtml, coefs, locked) => coefs.map((cf, i) => {
-    const mn = damage(st.atk, cf.coef, tDef, 0);
-    const mx = damage(st.atk, cf.coef, tDef, 1);
-    const avg = avgDamage(st.atk, cf.coef, tDef);
+    const mn = damage(st.atk, cf.coef, 0);
+    const mx = damage(st.atk, cf.coef, 1);
+    const avg = avgDamage(st.atk, cf.coef);
     const exp = avg * (1 - crit) + Math.round(avg * D.constants.critMul) * crit;
     const perUse = exp * (cf.hits ?? 1);
     const kill = mob ? Math.ceil(mob.hp / perUse) : null;
@@ -287,7 +263,7 @@ function renderCalc() {
     if (!s || !s.coefs.length) return;
     rows += rowsFor(`<a href="#/skills/${s.id}">${esc(s.name)}</a> <span class="slot">${i + 1}</span>`, skillIcon(s, 'sm'), s.coefs, calc.level < s.unlockLevel ? s.unlockLevel : 0);
   });
-  const mobHit = mob ? { mn: damage(mob.atk, mob.attack.coef, st.def, 0), mx: damage(mob.atk, mob.attack.coef, st.def, 1) } : null;
+  const mobHit = mob ? { mn: damage(mob.atk, mob.attack.coef, 0), mx: damage(mob.atk, mob.attack.coef, 1) } : null;
 
   const gearOptions = (kind) => D.items.filter((it) => it.kind === kind && (!it.classId || it.classId === cls.id)).sort((a, b) => a.reqLevel - b.reqLevel || RARITIES.indexOf(a.rarity) - RARITIES.indexOf(b.rarity));
   const mobGroups = [...D.islands.map((isl) => [isl.name, D.mobs.filter((m) => m.islands.includes(isl.id))]), ...D.raids.map((r) => [r.name, D.mobs.filter((m) => m.islands.includes(r.id))]), ...D.worldBosses.map((w) => [w.name, D.mobs.filter((m) => m.islands.includes(w.islandId))])];
@@ -301,10 +277,6 @@ function renderCalc() {
         <label class="f">전직<select data-k="branch" ${canAdvance ? '' : 'disabled'}><option value="">견습${canAdvance ? '' : ` (Lv${D.constants.advanceLevel}부터)`}</option>${branches.map((b) => `<option value="${b.id}" ${b.id === calc.branch && canAdvance ? 'selected' : ''}>${esc(b.name)}${calc.level >= D.constants.secondLevel ? ` → ${esc(b.second.name)}` : ''}</option>`).join('')}</select></label>
       </div>
       <div>
-        <div class="row" style="justify-content:space-between;margin-bottom:6px"><b class="small">스탯 분배 <span class="muted">${used} / ${totalPts}점${used > totalPts ? ' · 초과' : ''}</span></b><button class="chip accent" type="button" data-act="rec">추천대로 분배</button></div>
-        <div class="row">${Object.keys(STAT).map((k) => `<label class="f">${STAT[k]}<input type="number" min="0" max="${totalPts}" value="${calc.alloc[k]}" data-stat="${k}"></label>`).join('')}</div>
-      </div>
-      <div>
         <div class="row" style="justify-content:space-between;margin-bottom:6px"><b class="small">장비 <span class="muted">(오른쪽은 강화 단계)</span></b><button class="chip accent" type="button" data-act="gear">레벨에 맞는 상점 장비</button></div>
         <div class="stack" style="--gap:6px">${EQUIP.map((kind) => {
           const g = calc.gear[kind] ?? { id: '', enh: 0 };
@@ -312,8 +284,7 @@ function renderCalc() {
         }).join('')}</div>
       </div>
       <div class="row">
-        <label class="f" style="flex:1;min-width:200px">때릴 대상<select data-k="mob"><option value="">직접 방어력 입력</option>${mobGroups.map(([g, list]) => `<optgroup label="${esc(g)}">${list.map((m) => `<option value="${m.id}" ${m.id === calc.mob ? 'selected' : ''}>${esc(m.name)} (Lv${m.level} · 방어 ${m.def})</option>`).join('')}</optgroup>`).join('')}</select></label>
-        ${mob ? '' : `<label class="f">대상 방어력<input type="number" min="0" value="${calc.customDef}" data-k="customDef"></label>`}
+        <label class="f" style="flex:1;min-width:200px">때릴 대상<select data-k="mob"><option value="">대상 지정 안 함</option>${mobGroups.map(([g, list]) => `<optgroup label="${esc(g)}">${list.map((m) => `<option value="${m.id}" ${m.id === calc.mob ? 'selected' : ''}>${esc(m.name)} (Lv${m.level})</option>`).join('')}</optgroup>`).join('')}</select></label>
       </div>
     </div>
     <div class="stack">
@@ -321,7 +292,6 @@ function renderCalc() {
         <h3>내 능력치</h3>
         <dl class="stats">
           <div class="stat"><dt>${cls.dmgType === 'magic' ? '마법' : '물리'} 공격력</dt><dd>${fmt(st.atk)}</dd></div>
-          <div class="stat"><dt>방어력</dt><dd>${fmt(st.def)}</dd></div>
           <div class="stat"><dt>최대 HP</dt><dd>${fmt(st.maxHp)}</dd></div>
           <div class="stat"><dt>최대 MP</dt><dd>${fmt(st.maxMp)}</dd></div>
           <div class="stat"><dt>치명타</dt><dd>${st.crit}%</dd></div>
@@ -344,15 +314,13 @@ function bindCalc() {
     else if (k === 'level') {
       calc.level = Math.min(D.meta.maxLevel, Math.max(1, Math.floor(Number(t.value) || 1)));
     } else if (k) calc[k] = t.value;
-    if (t.dataset.stat) calc.alloc[t.dataset.stat] = Math.max(0, Math.floor(Number(t.value) || 0));
     if (t.dataset.gear) calc.gear[t.dataset.gear] = { id: t.value, enh: calc.gear[t.dataset.gear]?.enh ?? 0 };
     if (t.dataset.enh) calc.gear[t.dataset.enh] = { id: calc.gear[t.dataset.enh]?.id ?? '', enh: Number(t.value) };
     renderCalc();
   });
   root.addEventListener('click', (e) => {
     const act = e.target.closest('[data-act]')?.dataset.act;
-    if (act === 'rec') calc.alloc = recommended(classOf(calc.cls), (calc.level - 1) * D.constants.statPointsPerLevel);
-    else if (act === 'gear') calc.gear = defaultGear(classOf(calc.cls), calc.level);
+    if (act === 'gear') calc.gear = defaultGear(classOf(calc.cls), calc.level);
     else return;
     renderCalc();
   });
@@ -362,31 +330,29 @@ function bindCalc() {
 // ── 페이지: 드랍률 ──
 function pageDrops() {
   const c = D.constants;
-  const rr = c.rareRoll;
-  const rareRows = [['field', '일반 몬스터'], ['elite', '정예 몬스터'], ['boss', '섬 보스']].map(([k, n]) => tr([n, R(`${pct(rr[k].epic)}<br><span class="muted small">${oneIn(rr[k].epic)}</span>`), R(rr[k].legendary ? `${pct(rr[k].legendary)}<br><span class="muted small">${oneIn(rr[k].legendary)}</span>` : '—')]));
   const g = c.grades;
   const gearAll = (mob) => {
     const gearIds = mob.loot.entries.filter((e) => EQUIP.includes(M.items.get(e.itemId)?.kind));
     return 1 - gearIds.reduce((m, e) => m * (1 - e.chance), 1);
   };
   const fieldMobs = D.mobs.filter((m) => m.kind !== 'raidAdd' && m.kind !== 'worldBossAdd').sort((a, b) => a.level - b.level);
+  const GRADE_TABLE = { field: '필드 표', fieldBoss: '섬 보스 표' };
   const mobRows = fieldMobs.map((m) => {
     const other = m.loot.entries.filter((e) => !EQUIP.includes(M.items.get(e.itemId)?.kind)).map((e) => `${esc(M.items.get(e.itemId)?.name ?? e.itemId)} ${pct(e.chance)}`).join(', ');
-    return tr([mobLink(m.id), MOB_KIND[m.kind], R(`${fmt(m.loot.gold[0])}~${fmt(m.loot.gold[1])}`), R(pct(gearAll(m))), `<span class="small">${other || '—'}</span>`, R(m.rare.epic ? pct(m.rare.epic) : '—'), R(m.rare.legendary ? pct(m.rare.legendary) : '—')]);
+    const gear = gearAll(m);
+    return tr([mobLink(m.id), MOB_KIND[m.kind], R(`${fmt(m.loot.gold[0])}~${fmt(m.loot.gold[1])}`), R(gear ? pct(gear) : '—'), R(gear ? `T${m.gearTier}` : '—'), gear ? GRADE_TABLE[m.gearGrades] : '—', `<span class="small">${other || '—'}</span>`]);
   });
-  // 같은 상자 표를 쓰는 섬끼리 지역 순서(순위)대로 묶는다
-  const chestGroups = new Map();
-  for (const isl of D.islands) {
-    if (!chestGroups.has(isl.chestTier)) chestGroups.set(isl.chestTier, { loot: isl.chestLoot, islands: [] });
-    chestGroups.get(isl.chestTier).islands.push(isl);
-  }
-  const chestRows = [...chestGroups.values()].map((v) => {
-    const gearP = 1 - v.loot.entries.filter((e) => EQUIP.includes(M.items.get(e.itemId)?.kind)).reduce((m, e) => m * (1 - e.chance), 1);
-    const scroll = v.loot.entries.find((e) => e.itemId === D.scrolls.id);
-    return tr([v.islands.map((i) => islandLink(i.id)).join(', '), R(`${fmt(v.loot.gold[0])}~${fmt(v.loot.gold[1])}`), R('100%'), R(pct(v.loot.entries.find((e) => e.itemId === 'scroll_return')?.chance ?? 0)), R(pct(gearP)), R(scroll ? pct(scroll.chance) : '—')]);
+  // 섬마다 상자 표가 따로 있다(그 섬 물약·베리, 섬 시작 레벨 티어 장비)
+  const chestRows = D.islands.filter((isl) => isl.chestLoot).map((isl) => {
+    const loot = isl.chestLoot;
+    const gearIds = loot.entries.filter((e) => EQUIP.includes(M.items.get(e.itemId)?.kind));
+    const gearP = 1 - gearIds.reduce((m, e) => m * (1 - e.chance), 1);
+    const scroll = loot.entries.find((e) => e.itemId === D.scrolls.id);
+    const gearTier = M.items.get(gearIds[0]?.itemId)?.tier;
+    return tr([islandLink(isl.id), R(`${fmt(loot.gold[0])}~${fmt(loot.gold[1])}`), R('100%'), R(pct(loot.entries.find((e) => e.itemId === 'scroll_return')?.chance ?? 0)), R(`${pct(gearP)}${gearTier ? ` · T${gearTier}` : ''}`), R(scroll ? pct(scroll.chance) : '—')]);
   });
   const gradeRows = g.list.map((r) => tr([`<span class="rar-${r.id}">${esc(r.name)}</span>`, R(`${r.step}칸`), ...g.mulExamples.map((ex) => R(`×${ex.mul.find((x) => x.rarity === r.id).mul}`))]));
-  const regionRows = D.regions.map((r) => tr([R(r.rank), r.islandId ? islandLink(r.islandId) : esc(r.name), R(r.levelRange ? `Lv${r.levelRange[0]}~${r.levelRange[1]}` : '—'), esc(r.gearSet), r.boss ? mobLink(r.boss) : '—']));
+  const tierRows = D.tiers.map((t) => tr([R(`T${t.tier}`), esc(t.set), R(`Lv${t.fromLevel}`), R(t.band), t.shops.map(islandLink).join(', ') || '—', t.bosses.map(mobLink).join(', ') || '—']));
   const raidSetRows = D.raidSets.map((s) => tr([R(s.rank), s.raidId ? islandLink(s.raidId) : esc(s.raidName), R(`Lv${s.reqLevel}`), esc(`${s.prefix} 세트`), s.bossId ? mobLink(s.bossId) : '—']));
   const inf = D.infinite;
   const m = c.market;
@@ -394,52 +360,45 @@ function pageDrops() {
     const set = D.raidSets.find((s) => s.raidId === r.id);
     return tr([islandLink(r.id), R(`Lv${r.minLevel}`), `${set ? `${esc(set.prefix)} 세트` : '보스 세트'} 1점 ${r.rewards.gearChance >= 1 ? '확정' : pct(r.rewards.gearChance)}${r.rewards.firstClearUnique ? ' · 캐릭터 첫 클리어 때 원하는 부위 1개를 유니크로' : ''}`, r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')]);
   });
-  const wbRows = D.worldBosses.map((w) => tr([islandLink(w.islandId), R(`${w.minSharePct}% 이상`), w.rewards.legendaryChance ? `전설 등급 ${pct(w.rewards.legendaryChance)}(내 레벨 지역 세트 부위)` : '—', `${fmt(w.rewards.gold)} 베리 · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')} · 경험치(현재 레벨의 ${pct(w.rewards.expLevelFrac)})`]));
+  const wbRows = D.worldBosses.map((w) => tr([islandLink(w.islandId), R(`${w.minSharePct}% 이상`), w.rewards.legendaryChance ? `전설 등급 ${pct(w.rewards.legendaryChance)}(내 레벨 티어 장비 부위)` : '—', `${fmt(w.rewards.gold)} 베리 · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')} · 경험치(${levelShare(pct(w.rewards.expLevelFrac))})`]));
   return `
     ${head('드랍률', '게임 서버의 전리품 규칙 그대로입니다.')}
     <h2 style="margin-top:0">몬스터 한 마리를 잡으면</h2>
     <ol class="plain">
       <li><b>베리</b>: 처치를 인정받은 사람마다 따로 굴려 바로 들어옵니다(줍지 않아도 됨).</li>
-      <li><b>일반 전리품</b>: 몬스터 드랍표의 항목마다 <b>독립적으로</b> 한 번씩 굴립니다. 몬스터당 한 번이며, 바닥에 떨어진 뒤 ${c.dropOwnerSec}초 동안은 처치 인정자(파티 포함)만 줍고, ${c.dropDespawnSec}초 뒤 사라집니다. ${itemLink(D.scrolls.id)}도 여기서 나옵니다(일반 몬스터 약 ${pct(D.scrolls.fieldDrop)}).</li>
-      <li><b>등급 장비</b>(영웅·전설): 처치 인정자 <b>한 명 한 명</b>이 따로 굴립니다. 파티로 잡으면 각자 기회가 있습니다.</li>
+      <li><b>전리품</b>: 몬스터 드랍표의 항목마다 <b>독립적으로</b> 한 번씩 굴립니다. 몬스터당 한 번이며, 바닥에 떨어진 뒤 ${c.dropOwnerSec}초 동안은 처치 인정자(파티 포함)만 보고 주울 수 있고(다른 사람 화면에는 보이지 않음), ${c.dropDespawnSec}초 뒤 사라집니다. ${itemLink(D.scrolls.id)}도 여기서 나옵니다(필드 몬스터 ${pct(D.scrolls.fieldDrop)}).</li>
+      <li><b>장비</b>: 몬스터 레벨의 티어 장비 11종이 드랍표에 들어 있고(하나 이상 나올 확률 필드 몬스터 ${pct(c.gearDrop.field)} · 섬 보스 ${pct(c.gearDrop.boss)}), 떨어질 때 <a href="#/drops#grades">등급</a>을 한 번 굴립니다. 정예는 레벨 보너스를 뺀 원종 레벨의 티어입니다.</li>
     </ol>
 
     <h2 id="grades">장비 등급</h2>
-    <p>장비의 등급은 아이템 종류가 아니라 <b>얻을 때 굴려서</b> 정해집니다. 등급은 ${g.list.map((r) => `<span class="rar-${r.id}">${esc(r.name)}</span>`).join(' → ')} 6단계이고, <b>등급 한 칸은 지역 반 칸</b>입니다. 같은 지역 세트의 ${esc(rarName('saga'))}(2칸)이 다음 지역의 ${esc(rarName('common'))}과 비슷하고, ${esc(rarName('legendary'))}(4칸)은 두 지역 위의 ${esc(rarName('common'))}과 비슷합니다. 지역 세트는 ${esc(g.mergeCaps.regionName)}까지, 레이드 세트는 ${esc(g.mergeCaps.raidName)}까지 나옵니다.</p>
-    ${table(['등급', { t: '지역 기준', c: 'r' }, ...g.mulExamples.map((ex) => ({ t: `지역 ${ex.rank} (${esc(ex.name)}) 배율`, c: 'r' }))], gradeRows)}
-    <p class="muted small" style="margin-top:8px">배율은 그 지역 세트 일반 등급 수치에 곱하는 값입니다. 지역 사이는 로그 선형으로 이어 계산합니다. 등급 개편 전 장비(옛 전설·영웅·유니크)는 옛 고정 배율(${Object.entries(c.rarityMul).filter(([k]) => k !== 'absolute').map(([k, v]) => `<span class="rar-${k}">${rarName(k)}</span> ×${v}`).join(' · ')})을 씁니다.</p>
+    <p>장비의 등급은 아이템 종류가 아니라 <b>얻을 때 굴려서</b> 정해집니다. 등급은 ${g.list.map((r) => `<span class="rar-${r.id}">${esc(r.name)}</span>`).join(' → ')} 6단계입니다. <b>등급 한 칸은 티어 ¼칸</b>이되 한 칸에 최소 ×${g.minMul}입니다: 티어 간격이 큰 T1·T2는 ${esc(rarName('legendary'))}(4칸)이 다음 티어 ${esc(rarName('common'))}과 같고, T3부터는 한 칸마다 ×${g.minMul}입니다. 티어 장비·레이드 세트 모두 ${esc(g.mergeCaps.name)}까지 합성할 수 있고, ${esc(rarName('unique'))}는 레이드 보스 드랍으로만 나옵니다.</p>
+    ${table(['등급', { t: '칸', c: 'r' }, ...g.mulExamples.map((ex) => ({ t: `T${ex.tier} (${esc(ex.name)}) 배율`, c: 'r' }))], gradeRows)}
+    <p class="muted small" style="margin-top:8px">배율은 그 장비 일반 등급 수치에 곱하는 값입니다. 티어 사이는 로그 선형으로 이어 계산합니다. 등급 개편 전 장비(옛 전설·영웅·유니크)는 옛 고정 배율(${Object.entries(c.rarityMul).filter(([k]) => k !== 'absolute').map(([k, v]) => `<span class="rar-${k}">${rarName(k)}</span> ×${v}`).join(' · ')})을 씁니다.</p>
     ${table(['어디서', '등급'], [
-      tr(['필드 몬스터·보물상자의 지역 세트 장비', `${esc(g.fieldText)} + 아래 영웅·전설 굴림`]),
-      tr([`${esc(inf.name)} — 지역 세트`, `${esc(g.infiniteText)} · 웨이브 클리어마다 ${pct(g.infiniteChance.wave)}(보스 웨이브 ${pct(g.infiniteChance.boss)}) · ${inf.gear.floorsPerRegion}층마다 한 지역씩(1~${inf.gear.floorsPerRegion}층 지역 1, ${inf.gear.floorsPerRegion + 1}~${inf.gear.floorsPerRegion * 2}층 지역 2 …), 내 레벨 지역까지`]),
+      tr(['필드 몬스터·정예·보물상자의 티어 장비', esc(g.fieldText)]),
+      tr(['섬 보스의 티어 장비', esc(g.fieldBossText)]),
+      tr([`${esc(inf.name)} — 티어 장비`, `${esc(g.infiniteText)} · 웨이브 클리어마다 ${pct(g.infiniteChance.wave)}(보스 웨이브 ${pct(g.infiniteChance.boss)}) · ${inf.gear.floorsPerTier}층마다 한 티어씩(1~${inf.gear.floorsPerTier}층 T1, ${inf.gear.floorsPerTier + 1}~${inf.gear.floorsPerTier * 2}층 T2 …), 내 레벨 티어까지`]),
       tr([`${esc(inf.name)} — 레이드 세트`, `${g.infiniteRaidRoll.fromWave}웨이브부터 웨이브 클리어마다 ${rarName('legendary')} ${pct(g.infiniteRaidRoll.legendary)} · ${rarName('unique')} ${pct(g.infiniteRaidRoll.unique)} (내가 입장할 수 있는 가장 높은 레이드 세트)`]),
-      tr(['<a href="#/world#dungeons">장비 던전</a>', `${esc(g.gearDungeonText)} · 보스 웨이브는 전설 ${pct(D.dungeons.gear.bossLegendary)} · 유니크 ${pct(D.dungeons.gear.bossUnique)}(유니크는 레이드 세트만)`]),
+      tr(['<a href="#/world#dungeons">장비 던전</a>', `완주하면 내 레벨 티어 장비 ${D.dungeons.list.find((d) => d.kind === 'gear')?.clearGear ?? 0}점 · 한 점마다 ${esc(g.gearDungeonText)}`]),
       tr(['레이드 클리어', `${esc(g.raidText)} — 그 보스 전용 세트 1점 확정`]),
     ])}
-    <p class="muted small" style="margin-top:8px">유니크는 레이드 세트에서만 나옵니다. 같은 장비 두 개를 <a href="#/growth#merge">합성</a>하면 한 등급 위가 됩니다. 등급 개편 전의 전설·영웅·유니크 전용 장비는 가진 것은 그대로 쓰지만 더 이상 나오지 않습니다.</p>
-    ${note(`처치 인정: 막타를 친 사람과 한 대라도 때린 사람, 그리고 그 파티원 중 반경 ${c.partyExpRadius} 안에 있는 사람 모두입니다. 가상 유저(봇) 파티 덕에만 인정받은 경우 베리·경험치·희귀 굴림이 ${pct(c.botCarryShare)}로 줄어듭니다.`)}
+    <p class="muted small" style="margin-top:8px">같은 장비·같은 등급 세 개를 <a href="#/growth#merge">합성</a>하면 한 등급 위가 됩니다. 등급 개편 전의 전설·영웅·유니크 전용 장비는 가진 것은 그대로 쓰지만 더 이상 나오지 않습니다.</p>
+    ${note(`처치 인정: 막타를 친 사람과 한 대라도 때린 사람, 그리고 그 파티원 중 반경 ${c.partyExpRadius} 안에 있는 사람 모두입니다. 가상 유저(봇) 파티 덕에만 인정받은 경우 베리·경험치가 ${pct(c.botCarryShare)}로 줄어듭니다.`)}
 
-    <h2 id="regions">지역 세트 (10곳)</h2>
-    <p class="muted small">지역 순위 순서입니다. 각 지역 섬의 상점·드랍 장비 7부위(직업 무기 + 공용 6부위)가 한 세트입니다.</p>
-    ${table([{ t: '순위', c: 'r' }, '지역', { t: '레벨', c: 'r' }, '장비 세트', '섬 보스'], regionRows)}
+    <h2 id="tiers">장비 티어 (T1~T${D.tiers.length})</h2>
+    <p class="muted small">티어는 레벨 구간입니다. 티어 장비는 <b>그 티어 시작 레벨</b>부터 낄 수 있고, 한 티어에 장비 11종(직업 무기 5 + 공용 6부위)이 있습니다. 섬 상점은 그 섬 레벨대에 걸친 티어를 모두 팝니다.</p>
+    ${table([{ t: '티어', c: 'r' }, '장비 세트', { t: '착용', c: 'r' }, { t: '레벨 구간', c: 'r' }, '파는 상점', '떨어뜨리는 섬 보스'], tierRows)}
 
     <h2 id="raid-sets">레이드 세트</h2>
-    <p class="muted small">레이드 보스마다 전용 세트가 하나씩 있습니다. 레이드를 클리어하면 그 세트 중 쓸 수 있는 부위 1점이 반드시 나옵니다(등급 ${esc(g.raidText)}). 순위는 지역 곡선 위의 기준점이라 강화·각성 비용에 쓰입니다.</p>
+    <p class="muted small">레이드 보스마다 전용 세트가 하나씩 있습니다. 레이드를 클리어하면 그 세트 중 쓸 수 있는 부위 1점이 반드시 나옵니다(등급 ${esc(g.raidText)}). 순위는 티어 곡선 위의 기준점이라 수치·강화·각성 비용에 쓰입니다.</p>
     ${table([{ t: '순위', c: 'r' }, '레이드', { t: '입장', c: 'r' }, '장비 세트', '보스'], raidSetRows)}
 
-    <h2>영웅·전설 굴림 (처치 1회 · 1인 기준)</h2>
-    ${table(['몬스터', { t: '영웅', c: 'r' }, { t: '전설', c: 'r' }], rareRows)}
-    <ul class="plain" style="margin-top:10px">
-      <li>굴리는 순서: 전설 → 영웅. 먼저 뜬 것 하나만 나옵니다.</li>
-      <li>나오는 장비는 <b>그 몬스터 지역의 세트</b> 중 내 직업이 쓰는 7부위(내 무기 + 공용 6부위) 중 하나입니다.</li>
-      <li>일반 몬스터는 전설이 나오지 않고, 섬 보스와 <a href="#/world">필드 보스 원정</a>이 전설 ${pct(rr.boss.legendary)}입니다. 불운 보정(천장)은 없습니다.</li>
-    </ul>
-
     <h2>몬스터별 드랍</h2>
-    <p class="muted small">장비 칸은 그 지역 장비 11종 중 하나 이상이 떨어질 확률입니다(항목마다 따로 굴림, 등급은 ${esc(g.fieldText)}). 필드 몬스터 5%, 섬 보스 60%로 맞춰져 있습니다. 항목별 확률은 몬스터 이름을 누르세요.</p>
-    ${table(['몬스터', '종류', { t: '베리', c: 'r' }, { t: '장비', c: 'r' }, '기타', { t: '영웅', c: 'r' }, { t: '전설', c: 'r' }], mobRows, { scroll: true })}
+    <p class="muted small">장비 칸은 그 몬스터 티어 장비 11종 중 하나 이상이 떨어질 확률입니다(항목마다 따로 굴림). 필드 몬스터 ${pct(c.gearDrop.field)}, 섬 보스 ${pct(c.gearDrop.boss)}로 맞춰져 있고, 등급은 필드 표(${esc(g.fieldText)}) 또는 섬 보스 표(${esc(g.fieldBossText)})로 굴립니다. 항목별 확률은 몬스터 이름을 누르세요.</p>
+    ${table(['몬스터', '종류', { t: '베리', c: 'r' }, { t: '장비', c: 'r' }, { t: '티어', c: 'r' }, '등급표', '기타'], mobRows, { scroll: true })}
 
     <h2>보물상자</h2>
-    <p class="muted small">섬마다 놓인 상자를 F로 엽니다. 연 뒤 ${c.chestRespawnSec / 60}분 뒤 다시 생깁니다. 회복 물약 1~2개는 반드시 나옵니다.</p>
+    <p class="muted small">섬마다 놓인 상자를 F로 엽니다. 연 뒤 ${c.chestRespawnSec / 60}분 뒤 다시 생깁니다. 그 섬 회복 물약 1~2개는 반드시 나오고, 장비는 그 섬 시작 레벨 티어(등급은 필드 표)입니다.</p>
     ${table(['섬', { t: '베리', c: 'r' }, { t: '회복 물약', c: 'r' }, { t: '귀환 두루마리', c: 'r' }, { t: '장비(아무거나)', c: 'r' }, { t: '강화서', c: 'r' }], chestRows)}
 
     <h2>암거래상</h2>
@@ -448,7 +407,7 @@ function pageDrops() {
       <ul class="plain small">
         <li>서버가 켜지고 ${m.firstDelaySec[0] / 60}~${m.firstDelaySec[1] / 60}분 뒤 처음 나타나고, 그 뒤 ${m.intervalSec[0] / 60}~${m.intervalSec[1] / 60}분마다 다시 나타납니다.</li>
         <li>사람이 있는 섬의 부두 근처에 ${m.staySec / 60}분 머뭅니다(서버 전체 공지).</li>
-        <li>재고: ${m.epicStock}개 지역에서 공용 부위 1종씩 영웅 등급(값 ×${m.gradePriceMul.epic}).</li>
+        <li>재고: 높은 티어부터 ${m.epicStock}개 티어에서 공용 부위 1종씩 영웅 등급(값 ×${m.gradePriceMul.epic}).</li>
       </ul>
     </div>
 
@@ -467,7 +426,7 @@ function pageDrops() {
       </div>
       <div class="card">
         <h3>${itemLink('premium_box')}</h3>
-        <p class="small muted">젬으로만 사는 상자. 여는 사람의 직업·레벨 지역에 맞춰 아래 중 하나가 나오고(장비는 내 레벨 지역 세트 부위), 여는 순간 등급에 따라 빛이 달라지는 연출이 나옵니다.</p>
+        <p class="small muted">젬으로만 사는 상자. 여는 사람의 직업·레벨 티어에 맞춰 아래 중 하나가 나오고(장비는 내 레벨 티어 장비 부위), 여는 순간 등급에 따라 빛이 달라지는 연출이 나옵니다.</p>
         ${table(['결과', { t: '확률', c: 'r' }], [
           tr([`<span class="rar-unique">유니크 등급</span> 레이드 세트 장비(들어갈 수 있는 가장 높은 레이드, 아직 없으면 첫 레이드)`, R(pct(D.gems.premium.unique))]),
           tr([`<span class="rar-legendary">전설 등급</span> 장비`, R(pct(D.gems.premium.legendary))]),
@@ -484,7 +443,7 @@ function pageDrops() {
 
     <h2>필드 보스 원정 보상</h2>
     ${table(['전장', { t: '기여 지분', c: 'r' }, '장비', '고정 보상'], wbRows)}
-    <p class="muted small" style="margin-top:8px">처치 순간 기여(보스에게 넣은 피해 + 보스와 싸우는 동안 채운 치유량 × ${c.worldBossHealWeight})가 전체의 기준 % 이상인 사람만 받습니다. 힐러는 치유로도 기준을 넘길 수 있습니다. 처치 경험치와 희귀 장비 굴림은 없습니다.</p>`;
+    <p class="muted small" style="margin-top:8px">처치 순간 기여(보스에게 넣은 피해 + 보스와 싸우는 동안 채운 치유량 × ${c.worldBossHealWeight})가 전체의 기준 % 이상인 사람만 받습니다. 힐러는 치유로도 기준을 넘길 수 있습니다. 처치 경험치와 전리품은 없습니다.</p>`;
 }
 
 // ── 페이지: 직업·전직 ──
@@ -508,13 +467,14 @@ function pageClasses() {
       <span class="step"><b>각성</b> Lv${D.constants.awakenLevel} · 선택 없이 4번 스킬 강화</span>${icon('chevron-right')}
       <span class="step"><b>2차 전직</b> Lv${D.constants.secondLevel} · 촌장에게 의식(갈래마다 정해진 상위 직업)</span>
     </div>
-    <p class="muted small" style="margin-top:10px">전직하면 1번 스킬은 그대로, 2·3·4번 스킬이 갈래 전용 스킬로 바뀌고 패시브 능력치가 붙습니다. 2차 전직하면 1~4번 스킬이 모두 훨씬 강한 2차 스킬로 바뀌고 2차 패시브가 1차 패시브에 더해집니다.</p>
+    <p class="muted small" style="margin-top:10px">전직하면 2·3·4번 스킬이 갈래 전용 스킬로 바뀌고(공허술사·합주가·전투 시인처럼 1번 스킬까지 바뀌는 갈래도 있습니다) 패시브 능력치가 붙습니다. 2차 전직하면 1~4번 스킬이 모두 훨씬 강한 2차 스킬로 바뀌고 2차 패시브가 1차 패시브에 더해집니다.</p>
     ${table(['직업', '갈래', '콘셉트', '패시브', '2차 전직', '2차 패시브'], D.branches.map((b) => tr([esc(classOf(b.classId).name), `<a href="#/classes/${b.classId}#br-${b.id}" style="color:${esc(b.color)}">${esc(b.name)}</a>`, `<span class="small">${esc(b.concept)}</span>`, passiveText(b.passive), `<a href="#/classes/${b.classId}#br2-${b.id}" style="color:${esc(b.second.color)}">${esc(b.second.name)}</a>`, passiveText(b.second.passive)])))}`;
 }
 function skillRow(s, compareTo) {
   if (!s) return '';
   const chips = [`<span class="chip">Lv${s.unlockLevel} 해금</span>`, `<span class="chip">${icon('clock')}${s.cdSec}초</span>`, `<span class="chip">${icon('droplet')}MP ${s.mpCost}</span>`];
   if (s.castSec) chips.push(`<span class="chip">시전 ${s.castSec}초</span>`);
+  if (s.toggle) chips.push(`<span class="chip accent">켜기/끄기</span>`, `<span class="chip">${icon('droplet')}지속 마나 ${s.toggle.mpPctPerSec}%/초</span>`);
   if (s.awaken) chips.push('<span class="chip accent">각성</span>');
   if (s.second) chips.push('<span class="chip accent">2차</span>');
   const base = compareTo && compareTo.id !== s.id ? `<div class="muted small">기본: ${esc(compareTo.name)}</div>` : '';
@@ -525,19 +485,20 @@ function pageClass(id) {
   if (!k) return notFound();
   const brs = D.branches.filter((b) => b.classId === id);
   const basicLine = k.basic.kind === 'melee' ? `근접 ${k.basic.arc}° · 사거리 ${k.basic.range}` : `투사체 사거리 ${k.basic.range}`;
-  const growthRows = k.growth.map((g) => tr([R(`Lv${g.level}`), R(fmt(g.atk)), R(fmt(g.maxHp)), R(fmt(g.maxMp)), R(fmt(g.def))]));
+  const growthRows = k.growth.map((g) => tr([R(`Lv${g.level}`), R(`T${g.tier}`), R(fmt(g.atk)), R(fmt(g.maxHp)), R(fmt(g.maxMp))]));
   return `
     ${crumb('#/classes', '직업 목록')}
     <div class="detail-head">${k.icon ? `<img class="ico lg" src="${esc(k.icon)}" alt="">` : ''}<div><h1 style="color:${esc(k.color)}">${esc(k.name)}</h1>
-      <div class="chips"><span class="chip">${esc(k.role)}</span><span class="chip">${DMG[k.dmgType]} 피해</span><span class="chip">치명타 ${k.critPct}%</span><span class="chip">추천 비율 ${esc(planText(k))}</span></div></div></div>
+      <div class="chips"><span class="chip">${esc(k.role)}</span><span class="chip">${DMG[k.dmgType]} 피해</span><span class="chip">치명타 ${k.critPct}%</span><span class="chip">장비 배율 공격 ×${k.gearMul.atk} · HP ×${k.gearMul.hp}</span></div></div></div>
     <div class="grid g2">
-      <div class="card"><h3>레벨별 능력치(추천 배분 · 장비 없음)</h3><p class="muted small">레벨만 올라서는 능력치가 오르지 않습니다. 받은 점수를 전부 추천 비율로 찍었을 때입니다.</p>${table([{ t: '레벨', c: 'r' }, { t: '공격력', c: 'r' }, { t: 'HP', c: 'r' }, { t: 'MP', c: 'r' }, { t: '방어력', c: 'r' }], growthRows)}</div>
+      <div class="card"><h3>레벨별 능력치(그 티어 일반 장비 7칸)</h3><p class="muted small">레벨마다 HP +${k.hpPerLevel} · 공격력 +${k.atkPerLevel} · MP +${k.mpPerLevel}씩 오릅니다. 표는 그 레벨 성장분에 그 레벨 티어의 일반 장비 7칸을 모두 끼고 직업 배율을 곱한 능력치입니다(강화·등급 제외).</p>${table([{ t: '레벨', c: 'r' }, { t: '장비 티어', c: 'r' }, { t: '공격력', c: 'r' }, { t: '최대 HP', c: 'r' }, { t: '최대 MP', c: 'r' }], growthRows)}</div>
       <div class="card"><h3>기본 공격</h3>
         <div class="skill-row">${skillIcon({ icon: k.basicIcon })}<div><b>기본 공격</b><div class="meta"><span class="chip">${icon('clock')}${k.basic.cdSec}초</span><span class="chip">MP 0</span></div><ul><li>${basicLine} · 계수 ${Math.round(k.basic.coef * 100)}%${k.basic.hits > 1 ? ` × ${k.basic.hits}타` : ''}</li></ul></div></div>
         <h3 style="margin-top:14px">견습 스킬</h3>
         ${k.skills.map((sid) => skillRow(M.skills.get(sid))).join('')}
       </div>
     </div>
+    ${k.id === 'necromancer' ? summonSection() : ''}${k.id === 'bard' ? songSection() : ''}
     <h2>전직 갈래</h2>
     <div class="tree">
       <div class="tree-root card"><b>견습 ${esc(k.name)}</b><div class="muted small">Lv${D.constants.advanceLevel}에 하나 선택</div></div>
@@ -546,10 +507,54 @@ function pageClass(id) {
         <div class="card branch" id="br-${b.id}" style="--c:${esc(b.color)}">
           <h3><span style="color:${esc(b.color)}">${esc(b.name)}</span> ${passiveText(b.passive)}</h3>
           <p class="muted small">${esc(b.concept)}</p>
-          ${[...b.skills, b.awaken].map((sid) => { const s = M.skills.get(sid); return skillRow(s, M.skills.get(k.skills[s.slot - 1])); }).join('')}
+          ${[...(b.skill1 ? [b.skill1] : []), ...b.skills, b.awaken].map((sid) => { const s = M.skills.get(sid); return skillRow(s, M.skills.get(k.skills[s.slot - 1])); }).join('')}
         </div>
         ${secondCard(k, b)}`).join('')}</div>
     </div>`;
+}
+/** 네크로맨서: 소환수 표와 공통 규칙 */
+function summonSection() {
+  const S = D.summons;
+  const atk = (a) => `${a.kind === 'melee' ? `근접 ${a.arc === 360 ? '전방위' : `${a.arc}°`}` : `투사체${a.aoeR ? ` · 착탄 반경 ${a.aoeR} 폭발` : ''}`} · 사거리 ${a.range} · ${a.cdSec}초마다 · 계수 ${Math.round(a.coef * 100)}%`;
+  const rows = S.list.map((s) => tr([
+    `<b>${esc(s.name)}</b>`, `<span class="small">${atk(s.attack)}</span>`, R(`${s.hpPct}%`), R(`${s.lifeSec}초`),
+    s.taunt ? `<span class="small">${s.taunt.everySec}초마다 반경 ${s.taunt.r} 적 ${s.taunt.sec}초 도발</span>` : '<span class="muted small">-</span>',
+    `<span class="small">${s.callers.map((c) => `<a href="#/skills/${c.id}">${esc(c.name)}</a> ${c.n}기 <span class="muted">(${esc(c.stage)})</span>`).join('<br>')}</span>`,
+  ]));
+  return `
+    <h2 id="summons">소환수</h2>
+    <div class="card">
+      <p class="muted small">소환수의 공격 한 번은 주인 마법 공격력 × 계수, 최대 HP는 주인 최대 HP × 비율입니다. 피해식과 치명타는 주인과 같습니다.</p>
+      ${table(['소환수', '공격', { t: '최대 HP(주인 HP 대비)', c: 'r' }, { t: '유지 시간', c: 'r' }, '도발', '부르는 스킬'], rows)}
+      <ul class="small" style="margin-top:10px">
+        <li>한 사람이 부릴 수 있는 소환수는 <b>최대 ${S.max}기</b>입니다. 아홉 번째를 부르면 가장 오래된 소환수가 무너지고 새 소환수로 바뀝니다.</li>
+        <li>주인이 쓰러지거나 다른 섬으로 옮기거나 접속을 끊으면 소환수가 모두 사라집니다. 유지 시간이 끝나거나 HP가 다해도 사라집니다.</li>
+        <li>소환수가 준 피해와 처치, 경험치·드랍·퀘스트·레이드 지분은 모두 <b>주인에게</b> 갑니다.</li>
+        <li>주인에게서 ${S.leash} 넘게 떨어지면 주인 곁으로 순간이동하고, 주인 반경 ${S.aggroR} 안의 적만 노립니다.</li>
+        <li>일반 몬스터는 도발을 당했을 때만 소환수를 노립니다. 보스는 도발이 통하지 않지만 광역 공격과 투사체에는 소환수도 맞습니다.</li>
+        <li>소환수는 버프·디버프를 받지 않습니다.</li>
+      </ul>
+      ${S.empowers.length ? `<h3 style="margin-top:14px">소환수 강화</h3>${S.empowers.map((e) => `<div class="small"><a href="#/skills/${e.id}"><b>${esc(e.name)}</b></a> <span class="muted">(${esc(e.stage)})</span> — ${e.lines.map(esc).join(' · ')}</div>`).join('')}` : ''}
+    </div>`;
+}
+/** 바드: 노래 표와 겹침 규칙·궁극기 */
+function songSection() {
+  const Sg = D.songs;
+  const amt = (so, c) => (so.id === 'songCdr' ? `−${c.pct}%${c.cdCut ? ` · 즉시 ${c.cdCut}%` : ''}` : `+${c.pct}%`);
+  const cards = Sg.list.map((so) => `
+    <div class="card">
+      <h3>${so.icon ? `<img class="ico sm" src="${esc(so.icon)}" alt=""> ` : ''}${esc(so.name)}</h3>
+      <p class="muted small">${esc(so.effect)}</p>
+      ${table(['스킬', '단계', { t: '수치', c: 'r' }, { t: '지속', c: 'r' }, { t: '반경', c: 'r' }], so.casts.map((c) => tr([`<a href="#/skills/${c.skillId}">${esc(c.skillName)}</a>`, `<span class="small">${esc(c.stage)}</span>`, R(amt(so, c)), R(`${c.sec}초`), R(c.r)])))}
+    </div>`).join('');
+  const ult = Sg.ultimates.map((u) => `<div class="skill-row" id="sk-${esc(u.id)}">${u.icon ? `<span class="ico lg"><img src="${esc(u.icon)}" alt=""></span>` : ''}<div><b><a href="#/skills/${u.id}">${esc(u.name)}</a></b> <span class="muted small">(${esc(u.stage)})</span><div class="meta"><span class="chip">${icon('clock')}${u.cdSec}초</span><span class="chip">${icon('droplet')}MP ${u.mpCost}</span></div><div class="small">${esc(u.desc)}</div><ul>${u.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></div></div>`).join('');
+  return `
+    <h2 id="songs">노래</h2>
+    <p class="muted small">노래는 바드 자신을 포함해 반경 안 아군 플레이어 전원에게 걸리는 버프입니다. 슬롯마다 노래가 하나씩이고, 노래를 부르면 주변 적에게 음파 피해도 줍니다.</p>
+    <div class="grid g2">${cards}</div>
+    ${note('<b>겹침 규칙</b> — 같은 노래는 하나만 걸립니다. 바드 둘이 같은 노래를 불러도 쌓이지 않고 더 센 쪽만 남으며(같거나 더 세면 지속 시간만 갱신), 더 센 노래가 걸려 있는 동안 약한 노래는 덮어쓰지 못합니다. 서로 다른 노래끼리는 함께 걸리고, 다른 버프와도 곱해집니다.')}
+    <h3 style="margin-top:14px">궁극기</h3>
+    <div class="card">${ult}</div>`;
 }
 /** 2차 전직 카드: 이름·콘셉트·추가 패시브·스킬 4개(이전 단계 스킬과 비교) */
 function secondCard(k, b) {
@@ -573,7 +578,7 @@ function pageSkills(focusId) {
     <div class="filters"><div class="seg" role="group" aria-label="직업">${D.classes.map((c) => `<button type="button" data-cls="${c.id}" aria-pressed="${c.id === k.id}">${esc(c.name)}</button>`).join('')}</div></div>
     <div class="grid g2">
       <div class="card"><h3>견습 (${esc(k.name)})</h3>${k.skills.map((sid) => skillRow(M.skills.get(sid))).join('')}</div>
-      ${brs.map((b) => `<div class="card branch" style="--c:${esc(b.color)}"><h3><a href="#/classes/${k.id}#br-${b.id}" style="color:${esc(b.color)}">${esc(b.name)}</a> ${passiveText(b.passive)}</h3>${[...b.skills, b.awaken].map((sid) => { const s = M.skills.get(sid); return skillRow(s, M.skills.get(k.skills[s.slot - 1])); }).join('')}</div>${secondCard(k, b)}`).join('')}
+      ${brs.map((b) => `<div class="card branch" style="--c:${esc(b.color)}"><h3><a href="#/classes/${k.id}#br-${b.id}" style="color:${esc(b.color)}">${esc(b.name)}</a> ${passiveText(b.passive)}</h3>${[...(b.skill1 ? [b.skill1] : []), ...b.skills, b.awaken].map((sid) => { const s = M.skills.get(sid); return skillRow(s, M.skills.get(k.skills[s.slot - 1])); }).join('')}</div>${secondCard(k, b)}`).join('')}
     </div>`;
   return html;
 }
@@ -595,7 +600,7 @@ function bindSkills(focusId) {
 const ITEM_GROUPS = { all: ['전체', null], weapon: ['무기', ['weapon']], armor: ['방어구', ['armor', 'helmet', 'gloves', 'boots']], acc: ['장신구', ['accessory', 'ring']], use: ['소모품', ['potion', 'mp_potion', 'scroll', 'boost', 'box', 'ticket']], mat: ['재료', ['material']] };
 const itemState = { group: 'all', rarity: 'all', cls: 'all', q: '', sort: 'default', src: 'all' };
 /** 얻는 곳 한 줄 요약(도감 목록 칸). 레이드 출처는 무한의 던전·레이드를 가른다 */
-const SRC_LABEL = { shop: '상점', mob: '몬스터', rare: '등급 드랍', chest: '보물상자', worldBoss: '필드 보스', quest: '퀘스트', questDrop: '퀘스트 수집', premium: '고급 상자', gemShop: '젬 상점', legacy: '옛 장비', grant: '운영자 지급' };
+const SRC_LABEL = { shop: '상점', mob: '몬스터', rare: '등급 드랍', chest: '보물상자', worldBoss: '필드 보스', quest: '퀘스트', questDrop: '퀘스트 수집', premium: '고급 상자', gemShop: '젬 상점', legacy: '옛 장비', grant: '운영자 지급', cash: '현금 상점' };
 function srcLabel(s) {
   if (s.type === 'raid') return s.raid === D.infinite.id ? '무한의 던전' : M.dungeons.has(s.raid) ? '일일 던전' : '레이드';
   if (s.type === 'market') return D.constants.market.name;
@@ -613,7 +618,7 @@ function pageItems() {
     </div>
     <div class="filters">
       <select data-f="cls" aria-label="직업"><option value="all">모든 직업</option>${D.classes.map((c) => `<option value="${c.id}" ${itemState.cls === c.id ? 'selected' : ''}>${esc(c.name)}이 쓸 수 있는</option>`).join('')}</select>
-      <select data-f="sort" aria-label="정렬"><option value="default">기본 순서</option><option value="level">착용 레벨 순</option><option value="atk">공격력 순</option><option value="def">방어력 순</option><option value="hp">HP 순</option><option value="price">가격 순</option></select>
+      <select data-f="sort" aria-label="정렬"><option value="default">기본 순서</option><option value="level">착용 레벨 순</option><option value="atk">공격력 순</option><option value="hp">HP 순</option><option value="price">가격 순</option></select>
       <input class="field" type="text" data-f="q" placeholder="이름으로 거르기" value="${esc(itemState.q)}" aria-label="아이템 이름으로 거르기">
       <span class="count" id="item-count"></span>
     </div>
@@ -627,7 +632,7 @@ function renderItemList() {
   else if (key !== 'default') list = [...list].sort((a, b) => (b[key] ?? 0) - (a[key] ?? 0));
   document.getElementById('item-count').textContent = `${list.length}개`;
   const rows = list.map((it) => {
-    const st = [it.atk && `공격 ${it.atk}`, it.def && `방어 ${it.def}`, it.hp && `HP ${it.hp}`, it.allStat && `올스탯 ${it.allStat}`, it.heal && `HP 회복 ${it.heal}`, it.mp && `MP 회복 ${it.mp}`].filter(Boolean).join(' · ');
+    const st = [it.atk && `공격 ${it.atk}`, it.hp && `HP ${it.hp}`, it.allStat && `올스탯 ${it.allStat}`, it.heal && `HP 회복 ${it.heal}`, it.mp && `MP 회복 ${it.mp}`].filter(Boolean).join(' · ');
     const where = [...new Set(it.sources.map(srcLabel))];
     return tr([itemLink(it.id), KIND[it.kind], `<span class="rar-${it.rarity}">${rarName(it.rarity)}</span>`, R(it.reqLevel ? `Lv${it.reqLevel}` : '—'), it.classId ? esc(classOf(it.classId).name) : '<span class="muted">공용</span>', `<span class="small">${st || '—'}</span>`, `<span class="small${obtainable(it) ? '' : ' muted'}">${where.length ? where.slice(0, 3).map(esc).join(' · ') + (where.length > 3 ? ` <span class="muted">외 ${where.length - 3}곳</span>` : '') : '—'}</span>`, R(it.price ? fmt(it.price) : '—')]);
   });
@@ -651,17 +656,18 @@ function sourceBlock(it) {
   const shop = by('shop');
   if (shop.length) out.push(`<div class="card"><h3>${icon('coins', 'i')} 상점</h3><p>${shop.map((s) => islandLink(s.island)).join(', ')} 상인 · ${fmt(it.price)} 베리</p></div>`);
   const mob = by('mob').sort((a, b) => b.chance - a.chance);
-  if (mob.length) out.push(`<div class="card"><h3>몬스터 드랍</h3>${table(['몬스터', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }], mob.map((s) => tr([mobLink(s.mob), R(pct(s.chance)), R(s.qty ? `${s.qty[0]}~${s.qty[1]}` : 1)])), { scroll: mob.length > 10 })}</div>`);
-  const rare = by('rare').sort((a, b) => b.chance / b.pick - a.chance / a.pick);
-  if (rare.length) out.push(`<div class="card"><h3>영웅·전설 등급 드랍 (처치 1회 · 1인)</h3>${table(['몬스터', '등급', { t: '이 아이템일 확률', c: 'r' }], rare.map((s) => tr([mobLink(s.mob), `<span class="rar-${s.rarity}">${rarName(s.rarity)}</span>`, R(`${pct(s.chance / s.pick)}${s.pick > 1 ? `<br><span class="muted small">${rarName(s.rarity)} ${pct(s.chance)} × 1/${s.pick}</span>` : ''}`)])), { scroll: rare.length > 10 })}<p class="muted small" style="margin:8px 0 0">${it.classId ? '' : '직업 무기가 아닌 장비는 모든 직업에게 같은 확률입니다. '}내 직업이 쓸 수 있는 7부위 중에서만 뽑힙니다.</p></div>`);
+  if (mob.length) {
+    const grades = [...new Set(mob.map((s) => s.grades).filter(Boolean))].map((k) => `${k === 'fieldBoss' ? '섬 보스' : '필드 몬스터'} ${esc(D.constants.grades[`${k}Text`])}`);
+    out.push(`<div class="card"><h3>몬스터 드랍</h3>${table(['몬스터', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }], mob.map((s) => tr([mobLink(s.mob), R(pct(s.chance)), R(s.qty ? `${s.qty[0]}~${s.qty[1]}` : 1)])), { scroll: mob.length > 10 })}${grades.length ? `<p class="muted small" style="margin:8px 0 0">떨어질 때 등급을 굴립니다: ${grades.join(' / ')}</p>` : ''}</div>`);
+  }
   const chest = by('chest');
-  if (chest.length) out.push(`<div class="card"><h3>보물상자</h3>${table(['섬', { t: '확률', c: 'r' }], chest.map((s) => tr([D.islands.filter((i) => i.chestTier === s.tier).map((i) => islandLink(i.id)).join(', '), R(`${pct(s.chance)}${s.qty ? ` · ${s.qty[0]}~${s.qty[1]}개` : ''}`)])))}</div>`);
+  if (chest.length) out.push(`<div class="card"><h3>보물상자</h3>${table(['섬', { t: '확률', c: 'r' }], chest.map((s) => tr([islandLink(s.island), R(`${pct(s.chance)}${s.qty ? ` · ${s.qty[0]}~${s.qty[1]}개` : ''}`)])))}</div>`);
   const raid = by('raid');
   if (raid.length) out.push(`<div class="card"><h3>레이드</h3><ul class="plain">${raid.map((s) => `<li>${islandLink(s.raid)} — ${esc(s.note)}</li>`).join('')}</ul></div>`);
   const wb = by('worldBoss');
   if (wb.length) out.push(`<div class="card"><h3>필드 보스 원정</h3><ul class="plain">${wb.map((s) => `<li>${islandLink(M.worldBosses.get(s.boss)?.islandId ?? s.boss)} — ${esc(s.note)}</li>`).join('')}</ul></div>`);
   const quest = by('quest');
-  if (quest.length) out.push(`<div class="card"><h3>퀘스트 보상</h3><ul class="plain">${quest.map((s) => `<li>${esc(M.quests.get(s.quest)?.name ?? s.quest)} ×${s.qty}</li>`).join('')}</ul></div>`);
+  if (quest.length) out.push(`<div class="card"><h3>퀘스트 보상</h3><ul class="plain">${quest.map((s) => `<li>${esc(M.quests.get(s.quest)?.name ?? s.quest)} ${s.note ? `— ${esc(s.note)}` : `×${s.qty}`}</li>`).join('')}</ul></div>`);
   const qdrop = by('questDrop');
   if (qdrop.length) out.push(`<div class="card"><h3>퀘스트 수집품</h3><ul class="plain">${qdrop.map((s) => `<li>${esc(M.quests.get(s.quest)?.name ?? s.quest)} 진행 중 ${mobLink(s.mob)}에게서 ${pct(s.chance)} (${s.n}개 필요)</li>`).join('')}</ul></div>`);
   const market = by('market');
@@ -670,9 +676,11 @@ function sourceBlock(it) {
   if (gemShop.length) out.push(`<div class="card"><h3>${esc(npcNameOfRole('gem'))} (태초마을)</h3><ul class="plain">${gemShop.map((s) => `<li>${esc(D.gems.name)} ${s.gems}개</li>`).join('')}</ul></div>`);
   const premium = by('premium');
   if (premium.length) out.push(`<div class="card"><h3>고급 상자</h3><ul class="plain">${premium.map((s) => `<li>${pct(s.chance)} — ${esc(s.note)}</li>`).join('')}</ul></div>`);
-  if (by('legacy').length) out.push(`<div class="card"><h3>더 이상 얻을 수 없음</h3><p>등급 개편 전 장비입니다. 이미 가진 사람을 위해 남아 있을 뿐, 드랍·상점·상자 어디에서도 나오지 않습니다. 지금은 지역 세트·레이드 세트의 같은 부위가 일반~유니크 등급으로 굴려져 나옵니다(<a href="#/drops">드랍률</a>).</p></div>`);
+  if (by('legacy').length) out.push(`<div class="card"><h3>더 이상 얻을 수 없음</h3><p>등급 개편 전 장비입니다. 이미 가진 사람을 위해 남아 있을 뿐, 드랍·상점·상자 어디에서도 나오지 않습니다. 지금은 티어 장비·레이드 세트의 같은 부위가 일반~유니크 등급으로 굴려져 나옵니다(<a href="#/drops">드랍률</a>).</p></div>`);
   const grant = by('grant');
   if (grant.length) out.push(`<div class="card"><h3>운영자 지급</h3><ul class="plain">${grant.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul><p class="muted small" style="margin:8px 0 0">드랍·상점·상자에서는 나오지 않습니다.</p></div>`);
+  const cash = by('cash');
+  if (cash.length) out.push(`<div class="card"><h3>현금 상점</h3><ul class="plain">${cash.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul><p class="muted small" style="margin:8px 0 0">드랍·상점·상자에서는 나오지 않습니다.</p></div>`);
   if (!out.length) out.push('<div class="empty-state">지금은 게임 안에서 얻는 곳이 없습니다.</div>');
   return out.join('');
 }
@@ -681,24 +689,24 @@ function pageItem(id) {
   if (!it) return notFound();
   const c = D.constants;
   const equip = EQUIP.includes(it.kind);
-  const region = D.regions.find((r) => r.tier === it.tier);
+  const tier = it.gearTier ? D.tiers[it.gearTier - 1] : undefined;
   const chips = [`<span class="chip">${KIND[it.kind]}</span>`, `<span class="chip rar-${it.rarity}">${rarName(it.rarity)}</span>`];
-  if (equip && it.rank !== null) chips.push(`<span class="chip">장비 순위 ${it.rank}${region ? ` · ${esc(region.name)}` : ''}</span>`);
-  else if (region) chips.push(`<span class="chip">${esc(region.name)}</span>`);
+  if (tier) chips.push(`<span class="chip">T${tier.tier} ${esc(tier.set)}</span>`);
+  if (equip && it.rank !== null) chips.push(`<span class="chip">장비 순위 ${it.rank}</span>`);
   if (it.reqLevel) chips.push(`<span class="chip">착용 Lv${it.reqLevel}</span>`);
   chips.push(`<span class="chip">${it.classId ? `${esc(classOf(it.classId).name)} 전용` : '공용'}</span>`);
   if (it.bound) chips.push(it.disposable ? '<span class="chip accent">귀속 · 거래 불가(판매·버리기 가능)</span>' : '<span class="chip accent">귀속</span>');
-  const stats = [['공격력', it.atk], ['방어력', it.def], ['HP', it.hp], ['올스탯', it.allStat], ['HP 회복', it.heal], ['MP 회복', it.mp], ['구매가', it.price && fmt(it.price)], ['판매가', it.sell && fmt(it.sell)]].filter(([, v]) => v);
+  const stats = [['공격력', it.atk], ['HP', it.hp], ['올스탯', it.allStat], ['HP 회복', it.heal], ['MP 회복', it.mp], ['구매가', it.price && fmt(it.price)], ['판매가', it.sell && fmt(it.sell)]].filter(([, v]) => v);
   let enh = '';
   if (equip) {
-    const keys = [['atk', '공격력'], ['def', '방어력'], ['hp', 'HP']].filter(([k]) => it[k]);
+    const keys = [['atk', '공격력'], ['hp', 'HP']].filter(([k]) => it[k]);
     const rows = Array.from({ length: c.enhanceMax + 2 }, (_, lv) => {
       const g = gearStats(it, lv);
-      return tr([R(lv > c.enhanceMax ? '<span style="color:var(--bad)">각성</span>' : `+${lv}`), ...keys.map(([k]) => R(fmt(g[k]))), R(lv < c.enhanceMax ? `${D.enhance[lv].rate}%` : lv === c.enhanceMax ? `각성 ${D.awaken.rate}% (실패마다 +${D.awaken.step}%)` : '—'), R(lv < c.enhanceMax ? `${fmt(Math.round(D.enhance[lv].goldPerRank * it.rank))} 베리 + 강화서 ${D.enhance[lv].scrolls}장` : lv === c.enhanceMax ? `${fmt(D.awaken.regions[0].gold * it.rank)} 베리 + 강화서 ${D.scrolls.awaken}장` : '—')]);
+      return tr([R(lv > c.enhanceMax ? '<span style="color:var(--bad)">각성</span>' : `+${lv}`), ...keys.map(([k]) => R(fmt(g[k]))), R(lv < c.enhanceMax ? `${D.enhance[lv].rate}%` : lv === c.enhanceMax ? `각성 ${D.awaken.rate}% (실패마다 +${D.awaken.step}%)` : '—'), R(lv < c.enhanceMax ? `${fmt(Math.round(D.enhance[lv].goldPerRank * it.rank))} 베리 + 강화서 ${D.enhance[lv].scrolls}장` : lv === c.enhanceMax ? `${fmt(D.awaken.tiers[0].gold * it.rank)} 베리 + 강화서 ${D.scrolls.awaken}장` : '—')]);
     });
     const gradeIds = c.grades.list.map((x) => x.id);
     const gradeRows = it.mul ? c.grades.list.filter((r) => gradeIds.indexOf(r.id) <= gradeIds.indexOf(it.maxGrade)).map((r) => { const g = gearStats(it, 0, r.id); return tr([`<span class="rar-${r.id}">${esc(r.name)}</span>`, R(`×${it.mul[r.id]}`), ...keys.map(([k]) => R(fmt(g[k])))]); }) : [];
-    const gradeTable = gradeRows.length ? `<h3>등급별 수치 (+0)</h3>${table(['등급', { t: '배율', c: 'r' }, ...keys.map(([, n]) => ({ t: n, c: 'r' }))], gradeRows)}<p class="muted small">이 장비는 ${esc(rarName(it.maxGrade))} 등급까지 나오고 합성할 수 있습니다. 같은 장비 두 개(같은 등급)를 대장장이에게서 <a href="#/growth#merge">합성</a>하면 한 등급 위가 됩니다.</p>` : '';
+    const gradeTable = gradeRows.length ? `<h3>등급별 수치 (+0)</h3>${table(['등급', { t: '배율', c: 'r' }, ...keys.map(([, n]) => ({ t: n, c: 'r' }))], gradeRows)}<p class="muted small">이 장비는 ${esc(rarName(it.maxGrade))} 등급까지 합성할 수 있습니다. 같은 장비·같은 등급 세 개를 대장장이에게서 <a href="#/growth#merge">합성</a>하면 한 등급 위가 됩니다.</p>` : '';
     enh = `<h2>강화 수치</h2><p class="muted small">${rarName(it.rarity)} 등급 기준(×${it.mul?.[it.rarity] ?? c.rarityMul[it.rarity]}). 단계당 +${pct(c.enhanceBonusPer[it.kind])}, 각성은 +${c.enhanceMax} 배율의 ×${D.awaken.mul}. 비용·성공률은 그 단계에서 다음 단계로 올릴 때 값입니다(장비 순위 ${it.rank} 기준).</p>${table([{ t: '단계', c: 'r' }, ...keys.map(([, n]) => ({ t: n, c: 'r' })), { t: '다음 성공률', c: 'r' }, { t: '비용', c: 'r' }], rows)}${gradeTable}`;
   }
   return `
@@ -728,7 +736,7 @@ function pageMobs() {
 function renderMobList() {
   const list = D.mobs.filter((m) => (mobState.island === 'all' || m.islands.includes(mobState.island)) && (mobState.kind === 'all' || m.kind === mobState.kind) && nameMatches(m.name, mobState.q)).sort((a, b) => a.level - b.level);
   document.getElementById('mob-count').textContent = `${list.length}종`;
-  document.getElementById('mob-list').innerHTML = table(['이름', '종류', { t: 'HP', c: 'r' }, { t: '공격력', c: 'r' }, { t: '방어력', c: 'r' }, { t: '경험치', c: 'r' }, '지역', '선공'], list.map((m) => tr([mobLink(m.id), MOB_KIND[m.kind], R(fmt(m.hp)), R(fmt(m.atk)), R(fmt(m.def)), R(fmt(m.exp)), m.islands.map(islandLink).join(', '), m.aggro === 'aggressive' ? '<span style="color:var(--bad)">선공</span>' : '<span class="muted">비선공</span>'])));
+  document.getElementById('mob-list').innerHTML = table(['이름', '종류', { t: 'HP', c: 'r' }, { t: '공격력', c: 'r' }, { t: '경험치', c: 'r' }, '지역', '선공'], list.map((m) => tr([mobLink(m.id), MOB_KIND[m.kind], R(fmt(m.hp)), R(fmt(m.atk)), R(fmt(m.exp)), m.islands.map(islandLink).join(', '), m.aggro === 'aggressive' ? '<span style="color:var(--bad)">선공</span>' : '<span class="muted">비선공</span>'])));
 }
 function bindMobs() {
   main.querySelector('select[data-f="island"]').addEventListener('input', (e) => { mobState.island = e.target.value; renderMobList(); });
@@ -748,12 +756,11 @@ function pageMob(id) {
   if (!m) return notFound();
   const c = D.constants;
   const atk = m.attack;
-  const stats = [['레벨', m.level], ['HP', fmt(m.hp)], ['공격력', fmt(m.atk)], ['방어력', fmt(m.def)], ['공격 계수', `${Math.round(atk.coef * 100)}%`], ['공격 간격', `${atk.cdSec}초`], ['공격 방식', atk.kind === 'melee' ? `근접 ${atk.range}` : `원거리 ${atk.range}`], ['이동 속도', m.speed], ['경험치', fmt(m.exp)], ['리스폰', m.respawnSec ? `${m.respawnSec >= 60 ? `${m.respawnSec / 60}분` : `${m.respawnSec}초`}` : '—']];
+  const stats = [['레벨', m.level], ['HP', fmt(m.hp)], ['공격력', fmt(m.atk)], ['공격 계수', `${Math.round(atk.coef * 100)}%`], ['공격 간격', `${atk.cdSec}초`], ['공격 방식', atk.kind === 'melee' ? `근접 ${atk.range}` : `원거리 ${atk.range}`], ['이동 속도', m.speed], ['경험치', fmt(m.exp)], ['리스폰', m.respawnSec ? `${m.respawnSec >= 60 ? `${m.respawnSec / 60}분` : `${m.respawnSec}초`}` : '—']];
   const lootRows = [...m.loot.entries].sort((a, b) => b.chance - a.chance).map((e) => tr([itemLink(e.itemId), R(pct(e.chance)), R(e.qty ? `${e.qty[0]}~${e.qty[1]}` : 1), R(`<span class="muted small">${oneIn(e.chance)}</span>`)]));
-  const rare = [];
-  const setName = esc(M.items.get(`armor_t${m.rare.gearTier}`)?.name.split(' ')[0] ?? '');
-  if (m.rare.legendary) rare.push(tr([`<span class="rar-legendary">전설</span> ${setName} 세트 부위(내 무기 + 공용 6부위 중 1)`, R(pct(m.rare.legendary)), R(`<span class="muted small">${oneIn(m.rare.legendary)}</span>`)]));
-  if (m.rare.epic) rare.push(tr([`<span class="rar-epic">영웅</span> ${setName} 세트 부위(내 무기 + 공용 6부위 중 1)`, R(pct(m.rare.epic)), R(`<span class="muted small">${oneIn(m.rare.epic)}</span>`)]));
+  const gearIds = m.loot.entries.filter((e) => EQUIP.includes(M.items.get(e.itemId)?.kind));
+  const gearP = 1 - gearIds.reduce((p, e) => p * (1 - e.chance), 1);
+  const gearNote = gearIds.length ? `<p class="small" style="margin-top:10px">장비: T${m.gearTier} ${esc(D.tiers[m.gearTier - 1]?.set ?? '')} 11종 중 하나 이상 ${pct(gearP)}(항목마다 따로 굴림). 떨어질 때 등급을 굴립니다: ${esc(m.gearGrades === 'fieldBoss' ? D.constants.grades.fieldBossText : D.constants.grades.fieldText)}</p>` : '';
   const raid = D.raids.find((r) => r.bossId === m.id);
   const wb = D.worldBosses.find((w) => w.bossId === m.id);
   return `
@@ -764,7 +771,7 @@ function pageMob(id) {
     ${wb ? `<p style="margin-top:12px">${islandLink(wb.islandId)}의 원정 필드 보스입니다. 처치 때 기여 지분(피해 + 치유) ${wb.minSharePct}% 이상인 사람만 <a href="#/world#wb-${esc(wb.id)}">원정 보상</a>을 받습니다.</p>` : ''}
     <h2>드랍표 <span class="muted small">베리 ${fmt(m.loot.gold[0])}~${fmt(m.loot.gold[1])}</span></h2>
     ${table(['아이템', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }, { t: '', c: 'r' }], lootRows)}
-    ${rare.length ? `<h2>희귀 장비 (1인 기준)</h2>${table(['결과', { t: '확률', c: 'r' }, { t: '', c: 'r' }], rare)}` : ''}
+    ${gearNote}
     <p class="muted small" style="margin-top:10px">경험치는 몬스터와 레벨이 같을 때 값입니다. 내가 ${c.expPenaltyDiff[0]}레벨 이상 높으면 50%, ${c.expPenaltyDiff[1]}레벨 이상 높으면 10%만 받습니다.</p>`;
 }
 
@@ -786,7 +793,7 @@ function pageWorld() {
     const quests = isl.quests.map((q) => M.quests.get(q));
     return `
       <section class="card" id="isl-${isl.id}">
-        <h2 style="margin-top:0">${esc(isl.name)} <span class="chip">Lv${isl.levelRange[0]}~${isl.levelRange[1]}</span> <span class="chip">입장 Lv${isl.minLevel}</span> <span class="chip">지역 ${isl.rank}</span> <span class="chip">${esc(D.regions[isl.rank - 1]?.gearSet ?? '')}</span></h2>
+        <h2 style="margin-top:0">${esc(isl.name)} <span class="chip">Lv${isl.levelRange[0]}~${isl.levelRange[1]}</span> <span class="chip">입장 Lv${isl.minLevel}</span> <span class="chip">상점 ${isl.shopTiers.map((t) => `T${t}`).join('·')}</span></h2>
         <div class="grid g2">
           <div>
             <h3>몬스터</h3>
@@ -802,7 +809,7 @@ function pageWorld() {
             <div class="chips">${isl.shop.map((id) => { const it = M.items.get(id); return `<a class="chip" href="#/items/${id}">${esc(it?.name ?? id)}</a>`; }).join('')}</div>
           </div>
         </div>
-        ${quests.length ? `<details style="margin-top:12px"><summary>퀘스트 ${quests.length}개 (곁가지 의뢰 ${quests.filter((q) => q.side).length}개 — 섬 안내인이 주는 선택 퀘스트, 한 번씩)</summary>${table(['퀘스트', { t: 'Lv', c: 'r' }, '목표', '보상'], quests.map((q) => tr([`${esc(q.name)}${q.side ? ' <span class="chip">곁가지</span>' : ''}<div class="muted small">${esc(q.npc)}</div>`, R(q.minLevel), `<span class="small">${q.objectives.map(objectiveText).join('<br>')}</span>`, `<span class="small">경험치 ${fmt(q.rewards.exp)} · ${fmt(q.rewards.gold)} 베리${(q.rewards.items ?? []).map((i) => `<br>${esc(M.items.get(i.itemId)?.name ?? i.itemId)} ×${i.qty}`).join('')}</span>`])))}</details>` : ''}
+        ${quests.length ? `<details style="margin-top:12px"><summary>퀘스트 ${quests.length}개 (곁가지 의뢰 ${quests.filter((q) => q.side).length}개 — 섬 안내인이 주는 선택 퀘스트, 한 번씩)</summary>${table(['퀘스트', { t: 'Lv', c: 'r' }, '목표', '보상'], quests.map((q) => tr([`${esc(q.name)}${q.side ? ' <span class="chip">곁가지</span>' : ''}<div class="muted small">${esc(q.npc)}</div>`, R(q.minLevel), `<span class="small">${q.objectives.map(objectiveText).join('<br>')}</span>`, `<span class="small">경험치 ${fmt(q.rewards.exp)} · ${fmt(q.rewards.gold)} 베리${(q.rewards.items ?? []).map((i) => `<br>${esc(M.items.get(i.itemId)?.name ?? i.itemId)} ×${i.qty}`).join('')}${q.rewards.gear ? `<br>${questGearText(q.rewards.gear)}` : ''}</span>`])))}</details>` : ''}
       </section>`;
   }).join('');
   const raids = D.raids.map((r) => `
@@ -828,8 +835,8 @@ function pageWorld() {
       ${w.enrage ? `<p class="small" style="margin-top:8px">격노: 교전 ${w.enrage.afterSec / 60}분 뒤 보스 피해 ×${w.enrage.damageMultiplier}</p>` : ''}
       <h3>보상 (처치 때 기여 지분 ${w.minSharePct}% 이상인 사람 — 기여 = 피해 + 치유 × ${D.constants.worldBossHealWeight})</h3>
       <ul class="plain small">
-        <li>${fmt(w.rewards.gold)} 베리 · 경험치(현재 레벨 필요 경험치의 ${pct(w.rewards.expLevelFrac)}) · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')}</li>
-        ${w.rewards.legendaryChance ? `<li>${pct(w.rewards.legendaryChance)} 확률로 내 레벨 지역 세트 부위 1점을 전설 등급으로</li>` : ''}
+        <li>${fmt(w.rewards.gold)} 베리 · 경험치(${levelShare(pct(w.rewards.expLevelFrac))}) · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')}</li>
+        ${w.rewards.legendaryChance ? `<li>${pct(w.rewards.legendaryChance)} 확률로 내 레벨 티어 장비 부위 1점을 전설 등급으로</li>` : ''}
         <li>지분이 모자라면 보상이 없습니다. 전투 중 보스 바 아래에 내 지분과 순위가 보입니다.</li>
       </ul>
     </section>`).join('');
@@ -838,15 +845,15 @@ function pageWorld() {
     <section class="card" id="raid-${inf.id}">
       <h2 style="margin-top:0">${esc(inf.name)} <span class="chip">입장 Lv${inf.minLevel}</span> <span class="chip">혼자~${inf.size}인</span> <span class="chip">최대 ${inf.maxWave}웨이브</span> <span class="chip">재입장 대기 없음</span></h2>
       <p>레이드 안내인·항해사의 레이드 목록에서 출발합니다(파티 없이 혼자도 가능). ${inf.firstWaveSec}초 뒤 1웨이브가 몰려오고, 투기장의 몬스터를 모두 쓰러뜨리면 웨이브 클리어 → ${inf.breakSec}초 쉬고 다음 웨이브. ${inf.bossEvery}웨이브마다 보스(호위 ${inf.bossEscorts})가 나옵니다. <b>${inf.maxWave}웨이브를 넘기면 완주</b>로 도전이 끝나고 잠시 뒤 원래 자리로 돌아갑니다.</p>
-      <p class="small">몬스터 수치는 웨이브마다 곱으로 커집니다: HP ${fmt(inf.scaling.hp)} × ${inf.scaling.hpGrowth}^(웨이브−1), 공격력 ${inf.scaling.atk} × ${inf.scaling.atkGrowth}^(웨이브−1), 방어력 ${inf.scaling.def} + ${inf.scaling.defStep} × (웨이브−1). 보스 = HP ×${inf.scaling.bossHpMul} · 공격력 ×${inf.scaling.bossAtkMul} · 방어력 +${inf.scaling.bossDefAdd}. 처치 경험치·처치 드랍은 없습니다(보상은 웨이브 클리어 때).</p>
-      ${table([{ t: '웨이브', c: 'r' }, { t: '몬스터', c: 'r' }, { t: 'HP', c: 'r' }, { t: '공격력', c: 'r' }, { t: '방어력', c: 'r' }, '보스', { t: '클리어 베리', c: 'r' }, { t: '경험치', c: 'r' }, { t: '강화서', c: 'r' }, { t: esc(D.gems.name), c: 'r' }], inf.waves.map((w) => tr([R(w.wave), R(w.count), R(fmt(w.mob.hp)), R(fmt(w.mob.atk)), R(fmt(w.mob.def)), w.bossId ? `${mobLink(w.bossId)} <span class="muted small">HP ${fmt(w.bossStats.hp)} · 공격력 ${fmt(w.bossStats.atk)}</span>` : '', R(fmt(w.gold)), R(pct(w.expPct)), R(w.scrolls || ''), R(pct(w.gem.chance))])), { scroll: true })}
+      <p class="small">몬스터 수치는 웨이브마다 곱으로 커집니다: HP ${fmt(inf.scaling.hp)} × ${inf.scaling.hpGrowth}^(웨이브−1), 공격력 ${inf.scaling.atk} × ${inf.scaling.atkGrowth}^(웨이브−1). 보스 = HP ×${inf.scaling.bossHpMul} · 공격력 ×${inf.scaling.bossAtkMul}. 처치 경험치·처치 드랍은 없습니다(보상은 웨이브 클리어 때).</p>
+      ${table([{ t: '웨이브', c: 'r' }, { t: '몬스터', c: 'r' }, { t: 'HP', c: 'r' }, { t: '공격력', c: 'r' }, '보스', { t: '클리어 베리', c: 'r' }, { t: '경험치', c: 'r' }, { t: '강화서', c: 'r' }, { t: esc(D.gems.name), c: 'r' }], inf.waves.map((w) => tr([R(w.wave), R(w.count), R(fmt(w.mob.hp)), R(fmt(w.mob.atk)), w.bossId ? `${mobLink(w.bossId)} <span class="muted small">HP ${fmt(w.bossStats.hp)} · 공격력 ${fmt(w.bossStats.atk)}</span>` : '', R(fmt(w.gold)), R(pct(w.expPct)), R(w.scrolls || ''), R(pct(w.gem.chance))])), { scroll: true })}
       <h3>보상 (웨이브를 넘길 때마다 투기장 안 전원)</h3>
       <ul class="plain small">
-        <li>${fmt(inf.rewards.gold)} × ${inf.rewards.goldGrowth}^(웨이브−1) 베리 · 경험치(현재 레벨 필요 경험치의 ${pct(inf.rewards.expPct)} × (1 + ${inf.rewards.expGrowth} × (웨이브−1)) — <b>높은 웨이브일수록 많이</b>) · 보스 웨이브는 ${itemLink(D.scrolls.id)}(${inf.bossEvery}웨이브마다 ${inf.rewards.scrollsPerBoss}장씩 늘어남)</li>
+        <li>${fmt(inf.rewards.gold)} × ${inf.rewards.goldGrowth}^(웨이브−1) 베리 · 경험치(${levelShare(`${pct(inf.rewards.expPct)} × (1 + ${inf.rewards.expGrowth} × (웨이브−1))`)} — <b>높은 웨이브일수록 많이</b>) · 보스 웨이브는 ${itemLink(D.scrolls.id)}(${inf.bossEvery}웨이브마다 ${inf.rewards.scrollsPerBoss}장씩 늘어남)</li>
         <li>${esc(D.gems.name)}: 웨이브마다 ${pct(D.gems.drop.wave.chance)}, <b>${D.gems.drop.wave.highFromWave}웨이브부터 ${pct(D.gems.drop.wave.high)}</b>(보스 웨이브는 ×${D.gems.drop.wave.bossMul})</li>
-        <li>지역 세트 장비: 웨이브마다 ${pct(inf.gear.chance.wave)}, 보스 웨이브 ${pct(inf.gear.chance.boss)} 확률로 1점(한 명마다 따로). <b>${inf.gear.floorsPerRegion}층마다 한 지역씩</b> 올라갑니다: 1~${inf.gear.floorsPerRegion}층은 지역 1(${esc(D.regions[0].gearSet)}), ${inf.gear.floorsPerRegion + 1}~${inf.gear.floorsPerRegion * 2}층은 지역 2(${esc(D.regions[1].gearSet)}) … 다만 <b>내 레벨 지역을 넘지 않습니다</b>. 등급: ${esc(inf.gear.gradesText)}</li>
+        <li>티어 장비: 웨이브마다 ${pct(inf.gear.chance.wave)}, 보스 웨이브 ${pct(inf.gear.chance.boss)} 확률로 1점(한 명마다 따로). <b>${inf.gear.floorsPerTier}층마다 한 티어씩</b> 올라갑니다: 1~${inf.gear.floorsPerTier}층은 T1(${esc(D.tiers[0].set)}), ${inf.gear.floorsPerTier + 1}~${inf.gear.floorsPerTier * 2}층은 T2(${esc(D.tiers[1].set)}) … T${D.tiers.length}까지. 다만 <b>내 레벨 티어를 넘지 않습니다</b>. 등급: ${esc(inf.gear.gradesText)}</li>
         <li>레이드 세트 장비: <b>${inf.gear.raidRoll.fromWave}웨이브부터</b> 웨이브 클리어마다 내가 입장할 수 있는 가장 높은 레이드 세트에서 ${rarName('legendary')} ${pct(inf.gear.raidRoll.legendary)} · ${rarName('unique')} ${pct(inf.gear.raidRoll.unique)}를 따로 굴립니다.</li>
-        <li><b>서버 최초로 ${inf.firstClearWave}웨이브를 넘긴 파티 전원</b>에게 내 레벨 지역 세트 부위 1점을 유니크 등급으로(한 번뿐)</li>
+        <li><b>서버 최초로 ${inf.firstClearWave}웨이브를 넘긴 파티 전원</b>에게 내 레벨 티어 장비 부위 1점을 유니크 등급으로(한 번뿐)</li>
         ${inf.completeTitle ? `<li><b>서버 최초로 ${inf.maxWave}웨이브를 완주한 파티 전원</b>에게 칭호 <b style="color:${esc(inf.completeTitle.color)}">「${esc(inf.completeTitle.name)}」</b>(한 번뿐 · 랭킹에 최초 완주 기록이 남습니다)</li>` : ''}
         <li>라이프 토큰 ${inf.lifeTokens}개 · 투기장 안 전원이 한꺼번에 쓰러지면 도전이 끝납니다. 웨이브 보상과 기록은 웨이브마다 바로 남습니다.</li>
         <li>랭킹: 메뉴 › 랭킹 › 무한의 던전 — 같은 파티 구성마다 최고 기록(웨이브 → 걸린 시간 순)</li>
@@ -881,11 +888,11 @@ function pageWorld() {
     <section class="card" id="training">
       <h2 style="margin-top:0">${esc(tg.name)} <span class="chip">누구나 · 레벨 제한 없음</span> <span class="chip">DPS 측정</span></h2>
       <p>어느 섬의 항해사(뱃사공)에게서든 목록 맨 끝의 「훈련장」으로 건너갑니다. 허수아비는 움직이지도 반격하지도 않고, HP가 바닥나도 그 자리에서 다시 가득 찹니다. 경험치·전리품·퀘스트 진행은 없습니다.</p>
-      ${table(['허수아비', { t: '레벨', c: 'r' }, { t: 'HP', c: 'r' }, { t: '방어력', c: 'r' }], tg.dummies.map((d) => tr([`<b>${esc(d.name)}</b>`, R(d.level), R(fmt(d.hp)), R(d.def)])))}
+      ${table(['허수아비', { t: '레벨', c: 'r' }, { t: 'HP', c: 'r' }], tg.dummies.map((d) => tr([`<b>${esc(d.name)}</b>`, R(d.level), R(fmt(d.hp))])))}
       <ul class="plain small" style="margin-top:12px">
         <li>허수아비를 때리면 화면 위쪽에 <b>DPS 측정판</b>이 뜹니다: DPS · 총 피해 · 시간 · 타격 수 · 치명타 비율 · 최고 한 방 · 최고 DPS.</li>
         <li>마지막으로 때린 뒤 ${tg.resetSec}초가 지나면 한 판이 끝나고 허수아비 HP가 다시 가득 찹니다. 다시 때리면 새 판이 시작됩니다.</li>
-        <li>방어력 0짜리로 순수 피해량을, 방어력 ${tg.dummies.at(-1)?.def ?? 0}짜리로 방어가 높은 보스를 상대할 때의 피해를 잽니다(<a href="#/damage">데미지 공식</a>).</li>
+        <li>내 공격이 실제로 얼마나 아픈지 순수 피해량을 잽니다(<a href="#/damage">데미지 공식</a>).</li>
       </ul>
     </section>`;
   const dg = D.dungeons;
@@ -903,24 +910,24 @@ function pageWorld() {
         <div class="card">
           <h3>${esc(lvDg.name)}</h3>
           <ul class="plain small">
-            <li>경험치: 입장 레벨부터 <b>몇 레벨 오르는 만큼</b>을 줍니다. 구역마다 ${pct(dg.levelupWaveShare)}씩, 나머지는 최종 보스를 쓰러뜨릴 때 들어옵니다.</li>
+            <li>경험치: 입장 레벨부터 <b>몇 레벨 오르는 만큼</b>을 줍니다(Lv100 위로는 한 레벨의 %, <b>Lv200부터는 하드캡</b>으로 크게 줄어듭니다). 구역마다 ${pct(dg.levelupWaveShare)}씩, 나머지는 최종 보스를 쓰러뜨릴 때 들어옵니다.</li>
             <li>최종 보스 처치 때 ${itemLink(D.scrolls.id)} ${lvDg.scrollsPerBoss}장.</li>
             <li>몬스터 HP: 파티원 1명 늘 때마다 +${pct(lvDg.partyHpMul)}.</li>
           </ul>
-          ${table([{ t: '입장 레벨', c: 'r' }, { t: '한 번에 오르는 레벨', c: 'r' }], dg.levelup.map((l) => tr([R(`Lv${l.level}`), R(`약 ${l.levels}레벨`)])))}
+          ${table([{ t: '입장 레벨', c: 'r' }, { t: '한 번에 오르는 양', c: 'r' }], dg.levelup.map((l) => tr([R(`Lv${l.level}`), R(esc(l.text))])))}
         </div>
         <div class="card">
           <h3>${esc(gearDg.name)}</h3>
           <ul class="plain small">
-            <li>일반 구역을 정리할 때마다(한 사람) ${pct(gearDg.gearChance)} 확률로 장비 1점. 등급: ${esc(dg.gear.gradesText)}. <b>중간 보스·최종 보스는 반드시 1점</b>이고, 최종 보스는 ${rarName('legendary')} ${pct(dg.gear.bossLegendary)} · ${rarName('unique')} ${pct(dg.gear.bossUnique)}가 더해집니다(유니크는 레이드 세트만).</li>
-            <li>나오는 장비: <b>내 레벨 지역의 세트</b>와 <b>내가 입장할 수 있는 가장 높은 레이드 세트</b> 중 내 직업이 쓰는 부위.</li>
+            <li>구역에서는 장비가 나오지 않고, <b>완주(최종 보스 처치)하면 한 사람에게 ${gearDg.clearGear}점</b>을 한꺼번에 줍니다. 한 점마다 등급 ${esc(dg.gear.gradesText)}. 받은 장비는 결과 창에 보입니다.</li>
+            <li>나오는 장비: <b>내 레벨 티어 장비</b> 중 내 직업이 쓰는 7부위(레이드 세트는 나오지 않습니다).</li>
             <li>최종 보스 처치 때 ${itemLink(D.scrolls.id)} ${gearDg.scrollsPerBoss}장.</li>
             <li>몬스터 HP: 파티원 1명 늘 때마다 +${pct(gearDg.partyHpMul)}.</li>
           </ul>
         </div>
       </div>
     </section>`;
-  const index = `<nav class="isl-index" aria-label="지역 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>Lv${isl.levelRange[0]}~${isl.levelRange[1]} · 지역 ${isl.rank}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a></nav>`;
+  const index = `<nav class="isl-index" aria-label="지역 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>Lv${isl.levelRange[0]}~${isl.levelRange[1]}${isl.shopTiers.length ? ` · ${isl.shopTiers.map((t) => `T${t}`).join('·')}` : ''}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a></nav>`;
   return `${head('지역·레이드', '지역(섬)은 항해사(뱃사공)로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다.')}<h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div>`;
 }
 
@@ -928,19 +935,21 @@ function pageWorld() {
 const growthState = { rank: 1, level: 1 };
 function pageGrowth() {
   const c = D.constants;
-  const effRows = Object.keys(STAT).map((k) => tr([STAT[k], Object.entries(c.statEffect[k]).map(([f, v]) => `${{ patk: '물리 공격력', matk: '마법 공격력', maxHp: '최대 HP', maxMp: '최대 MP', def: '방어력' }[f]} +${v}`).join(', ')]));
+  const mulRows = D.classes.map((k) => tr([`<a href="#/classes/${k.id}">${esc(k.name)}</a>`, R(`×${k.gearMul.atk}`), R(`×${k.gearMul.hp}`), R(`+${k.atkPerLevel}`), R(`+${k.hpPerLevel}`), R(`+${k.mpPerLevel}`)]));
+  const ae = c.allStatEffect;
   return `
     ${head('성장·강화')}
-    <h2 style="margin-top:0">스탯 점수</h2>
-    <p>레벨이 오를 때마다 ${c.statPointsPerLevel}점을 받습니다(Lv${D.meta.maxLevel}까지 ${(D.meta.maxLevel - 1) * c.statPointsPerLevel}점). <b>레벨만으로는 능력치가 오르지 않고</b>, 이 점수로만 오릅니다. 스탯 창(C키)에서 분배하고, 「추천 배분」은 남은 점수를 직업 추천 비율대로 나눠 찍습니다. 초기화는 무료입니다.</p>
-    ${table(['스탯', '1점당 효과'], effRows)}
+    <h2 style="margin-top:0">장비 성장</h2>
+    <p>스탯 점수는 없습니다. 레벨이 오르면 <b>공격력·최대 HP·최대 MP가 직업마다 정해진 만큼씩</b> 오르고, 나머지는 <b>장비</b>가 정합니다. 더 높은 티어 장비, 더 높은 등급, 더 높은 강화가 곧 성장입니다. 직업마다 장비 수치에 곱해지는 배율이 다릅니다.</p>
+    ${table(['직업', { t: '공격 배율', c: 'r' }, { t: 'HP 배율', c: 'r' }, { t: '레벨당 공격력', c: 'r' }, { t: '레벨당 HP', c: 'r' }, { t: '레벨당 MP', c: 'r' }], mulRows)}
+    <p class="muted small" style="margin-top:8px">「모든 능력치 +1」(올스탯) 1점: 공격력 +${ae.atk}, 최대 HP +${ae.maxHp}, 최대 MP +${ae.maxMp}. 직업 배율은 곱해지지 않습니다.</p>
 
     <h2>경험치</h2>
     <div class="formula">몬스터 경험치 = (10 + 6 × 몬스터 레벨) × (보스면 15)
 내가 ${c.expPenaltyDiff[0]}레벨 이상 높으면 × 0.5, ${c.expPenaltyDiff[1]}레벨 이상 높으면 × 0.1</div>
     <ul class="plain">
-      <li>처치에 기여한 사람과 반경 ${c.partyExpRadius} 안의 파티원이 <b>각자 전액</b>을 받습니다(나누지 않음).</li>
-      <li>Lv${c.slowFrom}부터 기본 곡선에 곱하는 배율이 레벨마다 1.15배씩 늘며, 최대 ${c.slowCap}배에서 멈춥니다. Lv184부터는 기본 곡선의 성장만 이어집니다.</li>
+      <li>처치에 기여한 사람과 반경 ${c.partyExpRadius} 안의 파티원이 나눠 받습니다 — 1인당 (1 + ${c.partyExpBonus} × (인원 − 1)) ÷ 인원(2명 ${Math.round(((1 + c.partyExpBonus) / 2) * 100)}%, 4명 ${Math.round(((1 + c.partyExpBonus * 3) / 4) * 100)}%). 퀘스트 처치는 모두 인정됩니다.</li>
+      <li>다음 레벨까지 잡아야 하는 같은 레벨 몬스터 수는 레벨이 오를수록 늘고, <b>Lv${c.rewardLevelFrom}부터 크게 가팔라집니다</b>(아래 표). 퀘스트 보상은 그 퀘스트 최소 레벨 필요 경험치의 ${c.questExpLevels}배, 무한의 던전·필드 보스·레이드 같은 반복 보상은 Lv${c.rewardLevelFrom} 위로 같은 레벨 몬스터 수 기준으로 고정돼 곡선을 따라 커지지 않습니다.</li>
       <li>HP는 교전이 끝나고 ${c.hpRegen.delaySec}초 뒤부터 초당 ${c.hpRegen.pctPerSec}%씩 찹니다. MP는 전투 밖 초당 ${c.mpRegenPct}%, 전투 중 ${c.mpRegenCombatPct}%, 처치할 때 ${c.mpOnKillPct}% 찹니다.</li>
     </ul>
     <div class="filters" style="margin-top:12px"><label class="f">레벨로 이동<input type="number" id="exp-jump" min="1" max="${D.meta.maxLevel}" value="${growthState.level}"></label></div>
@@ -952,15 +961,15 @@ function pageGrowth() {
     <p>대장장이에게서 +${c.enhanceMax}까지 올립니다. <b>장비가 부서지지는 않습니다.</b> 목표가 +4 이하면 실패해도 그대로, +5 이상이면 한 단계 내려갑니다. 재료는 <b>베리와 ${itemLink(D.scrolls.id)}뿐</b>입니다.</p>
     <div class="filters"><label class="f">장비 순위(비용 기준)<select id="enh-tier">${enhRankOptions()}</select></label></div>
     <div id="enh-table">${enhanceTable()}</div>
-    <p class="muted small" style="margin-top:8px">기대값은 +0에서 시작해 그 단계에 처음 닿을 때까지의 평균입니다(실패로 내려간 뒤 다시 올리는 비용 포함). 비용은 장비 순위 × 반올림(120 × (현재 단계 + 1)^1.7) 베리입니다. 지역 세트의 순위는 지역 순서(1~${D.regions.length})이고, 레이드 세트는 그 사이의 소수 순위입니다. 강화서는 목표 +1~+4에 ${D.scrolls.perEnhance[0].scrolls}장, +5~+7에 ${D.scrolls.perEnhance[1].scrolls}장, +8~+10에 ${D.scrolls.perEnhance[2].scrolls}장입니다.</p>
+    <p class="muted small" style="margin-top:8px">기대값은 +0에서 시작해 그 단계에 처음 닿을 때까지의 평균입니다(실패로 내려간 뒤 다시 올리는 비용 포함). 비용은 장비 순위 × 반올림(120 × (현재 단계 + 1)^1.7) 베리입니다. 티어 장비의 순위는 티어 번호(1~${D.tiers.length})이고, 레이드 세트는 티어 곡선 위의 소수 순위입니다. 강화서는 목표 +1~+4에 ${D.scrolls.perEnhance[0].scrolls}장, +5~+7에 ${D.scrolls.perEnhance[1].scrolls}장, +8~+10에 ${D.scrolls.perEnhance[2].scrolls}장입니다.</p>
 
     <h2>각성</h2>
     <p>+${c.enhanceMax} 장비는 대장장이에게서 각성에 도전할 수 있습니다. 성공률은 ${D.awaken.rate}%에서 시작해 <b>실패할 때마다 그 장비의 성공률이 ${D.awaken.step}%씩 오릅니다</b>. 실패해도 강화 단계는 +${c.enhanceMax} 그대로입니다(베리·강화서만 듭니다). 성공하면 칸 테두리가 붉게 빛나는 각성 장비가 되고 수치가 +${c.enhanceMax} 강화 배율의 ×${D.awaken.mul}이 됩니다. 각성 장비는 그대로 거래·경매장 등록이 됩니다. 1회 비용은 베리와 강화서 ${D.scrolls.awaken}장입니다.</p>
-    ${table([{ t: '순위', c: 'r' }, '장비 세트', { t: '각성 베리', c: 'r' }, { t: '강화서', c: 'r' }], [...D.awaken.regions, ...D.awaken.raidSets].sort((a, b) => a.rank - b.rank).map((a) => tr([R(a.rank), esc(a.label), R(fmt(a.gold)), R(a.scrolls)])))}
+    ${table([{ t: '순위', c: 'r' }, '장비 세트', { t: '각성 베리', c: 'r' }, { t: '강화서', c: 'r' }], [...D.awaken.tiers, ...D.awaken.raidSets].sort((a, b) => a.rank - b.rank).map((a) => tr([R(a.rank), esc(a.label), R(fmt(a.gold)), R(a.scrolls)])))}
 
     <h2 id="merge">합성</h2>
-    <p>대장장이에게서 <b>같은 장비 두 개(같은 등급)</b>를 합쳐 <b>한 등급 위 장비 한 개</b>로 바꿉니다. 베리는 들지 않고, 강화 단계는 둘 중 높은 쪽이 남습니다. ${esc(D.constants.grades.mergeCaps.text)}.</p>
-    <p class="muted small">등급 한 칸은 지역 반 칸입니다: 같은 지역 세트의 ${esc(rarName('saga'))} ≈ 다음 지역의 ${esc(rarName('common'))}. 자세한 배율은 <a href="#/drops">드랍률</a>의 장비 등급을 보세요.</p>
+    <p>대장장이에게서 <b>같은 장비·같은 등급 세 개</b>를 합쳐 <b>한 등급 위 장비 한 개</b>로 바꿉니다. 베리는 들지 않고, 강화 단계는 셋 중 가장 높은 것이 남습니다. ${esc(D.constants.grades.mergeCaps.text)}.</p>
+    <p class="muted small">등급 한 칸은 티어 ¼칸입니다(한 칸 최소 ×${D.constants.grades.minMul}): T1·T2는 ${esc(rarName('legendary'))}이 다음 티어 ${esc(rarName('common'))}과 같습니다. 자세한 배율은 <a href="#/drops#grades">드랍률</a>의 장비 등급을 보세요.</p>
 
     <h2 id="scroll">${itemLink(D.scrolls.id)} 얻는 곳</h2>
     <ul class="plain">
@@ -973,7 +982,7 @@ function pageGrowth() {
     </ul>`;
 }
 function enhRankOptions() {
-  const rows = [...D.awaken.regions.map((r) => ({ ...r, group: '지역 세트' })), ...D.awaken.raidSets.map((r) => ({ ...r, group: '레이드 세트' }))].sort((a, b) => a.rank - b.rank);
+  const rows = [...D.awaken.tiers.map((r) => ({ ...r, group: '티어 장비' })), ...D.awaken.raidSets.map((r) => ({ ...r, group: '레이드 세트' }))].sort((a, b) => a.rank - b.rank);
   return rows.map((r) => `<option value="${r.rank}" ${r.rank === growthState.rank ? 'selected' : ''}>순위 ${r.rank} · ${esc(r.label)}</option>`).join('');
 }
 function enhanceTable() {
@@ -1072,7 +1081,7 @@ function textOf(root) {
   return s;
 }
 
-const GROUPS = ['문서', '직업', '전직', '스킬', '아이템', '몬스터', '지역', '레이드', '퀘스트', 'NPC'];
+const GROUPS = ['문서', '직업', '전직', '스킬', '소환수', '노래', '아이템', '몬스터', '지역', '레이드', '퀘스트', 'NPC'];
 let searchIndex = [];
 function buildSearch() {
   const ph = (name) => `<span class="ico sm ph">${icon(name)}</span>`;
@@ -1088,6 +1097,8 @@ function buildSearch() {
   for (const b of D.branches) add('전직', b.second.name, `#/classes/${b.classId}#br2-${b.id}`, `${b.name} 2차 전직`, ph('git-branch'), b.second.concept, `${classOf(b.classId).name}${b.name}2차전직`);
   const skillOwner = (s) => (s.branchId ? `·${s.second ? M.branches.get(s.branchId).second.name : M.branches.get(s.branchId).name}` : '');
   for (const s of D.skills) add('스킬', s.name, `#/skills/${s.id}`, `${classOf(s.classId).name}${skillOwner(s)} 스킬`, skillIcon(s, 'sm'), [s.desc, ...s.lines].join(' · '), `${classOf(s.classId).name}${skillOwner(s).slice(1)}스킬`);
+  for (const s of D.summons.list) add('소환수', s.name, '#/classes/necromancer#summons', `네크로맨서 소환수 · 최대 HP ${s.hpPct}% · ${s.lifeSec}초`, ph('skull'), s.callers.map((c) => c.name).join(' · '), '소환수해골네크로맨서');
+  for (const so of D.songs.list) add('노래', so.name, '#/classes/bard#songs', `바드 노래 · ${so.effect}`, so.icon ? `<img class="ico sm" src="${esc(so.icon)}" alt="">` : ph('sparkles'), so.casts.map((c) => c.skillName).join(' · '), '바드노래버프');
   for (const it of D.items) add('아이템', it.name, `#/items/${it.id}`, `${rarName(it.rarity)} ${KIND[it.kind]}${it.reqLevel ? ` · Lv${it.reqLevel}` : ''}`, itemIcon(it, 'sm'), it.desc, `${rarName(it.rarity)}${KIND[it.kind]}${it.classId ? classOf(it.classId).name : '공용'}`, `rar-${it.rarity}`);
   for (const m of D.mobs) add('몬스터', m.name, `#/mobs/${m.id}`, `${MOB_KIND[m.kind]} · Lv${m.level}`, ph(m.kind === 'field' ? 'skull' : 'crown'), m.islands.map(islandName).join(', '), `${MOB_KIND[m.kind]}몬스터`);
   for (const i of D.islands) {
