@@ -35,6 +35,10 @@ function levelShare(ratio) {
   const L = D.constants.rewardLevelFrom;
   return `현재 레벨 필요 경험치의 ${ratio} — Lv${L} 위로는 Lv${L} 기준(같은 레벨 몬스터 수)으로 고정`;
 }
+/** 성장 보너스 한 줄(레이드 클리어·필드 보스 원정): 기본 경험치와 따로 현재 레벨 필요 경험치의 share, 하루 perDay번, 기준 레벨보다 높으면 깎임 */
+function growthLine(g, base, scope) {
+  return `<li><b>성장 보너스</b>: 위 경험치와 따로 <b>현재 레벨 필요 경험치의 ${pct(g.share)}</b>를 더 받습니다(Lv${D.constants.rewardLevelFrom} 위에서도 고정되지 않음). 캐릭터마다 <b>하루 ${g.perDay}번</b>(한국 시간 자정에 다시 채워짐, ${scope}) · ${base}보다 ${D.constants.expPenaltyDiff[0]}레벨 이상 높으면 ${pct(g.minMul)}(더 깎이지 않음) · 경험치 이벤트·사료·후원자 경험치 배율은 붙지 않습니다.</li>`;
+}
 function itemIcon(it, size = 'sm') {
   const cls = `ico ${size} rb-${it.rarity}`;
   return it.icon ? `<img class="${cls}" src="${esc(it.icon)}" alt="" loading="lazy" width="40" height="40"${it.tint ? ` style="filter:${esc(it.tint)}"` : ''}>` : `<span class="${cls} ph">${icon('backpack')}</span>`;
@@ -52,6 +56,12 @@ const islandName = (id) => M.islands.get(id)?.name ?? M.raids.get(id)?.name ?? M
 const islandLink = (id) => (M.islands.has(id) ? `<a href="#/world#isl-${esc(id)}">${esc(islandName(id))}</a>` : M.raids.has(id) || id === D.infinite.id ? `<a href="#/world#raid-${esc(id)}">${esc(islandName(id))}</a>` : M.dungeons.has(id) ? `<a href="#/world#dungeons">${esc(islandName(id))}</a>` : M.wbIsland.has(id) ? `<a href="#/world#wb-${esc(M.wbIsland.get(id).id)}">${esc(islandName(id))}</a>` : esc(id));
 /** 1렙 마을(태초마을) 젬 NPC 이름: gem = 젬 상인, storage = 창고지기 */
 const npcNameOfRole = (role) => D.npcNames?.[role === 'gem' ? 'sv_gem' : 'sv_storage'] ?? (role === 'gem' ? '젬 상인' : '창고지기');
+const RUBY_NOTE = '루비는 계정 공용 재화로 상점에서 씁니다. 일반·정예 몬스터와 후원자 추가·면제 회차에서는 나오지 않습니다. 드랍 이벤트 배율이 붙지 않습니다.';
+/** 루비 드랍 한 줄: "루비 N% (a~b개)" */
+function rubyLine(source) {
+  const r = D.ruby.drops.find((d) => d.source === source);
+  return `<b>루비</b> ${pct(r.chance)} (${r.qty[0]}~${r.qty[1]}개) — 참가자마다 따로, 계정 공용 재화`;
+}
 function skillIcon(s, size = '') {
   return s?.icon ? `<img class="ico ${size}" src="${esc(s.icon)}" alt="" loading="lazy" width="40" height="40">` : `<span class="ico ${size} ph">${icon('sparkles')}</span>`;
 }
@@ -142,7 +152,7 @@ function pageHome() {
   const tries = ['합성', '강화서', '강화 성공률', '치명타', '크라켄', 'ㅎㄱㅅ'];
   const kv = [
     ['만렙', `Lv ${D.meta.maxLevel}`], ['1차 전직', `Lv ${c.advanceLevel}`], ['각성', `Lv ${c.awakenLevel}`], ['치명타 배율', `×${c.critMul}`],
-    ['강화 한계', `+${c.enhanceMax}`], ['장비 티어', `T1~T${D.tiers.length}`], ['필드 장비 드랍', pct(c.gearDrop.field)], ['사망 후 부활', `${c.respawnSec}초`],
+    ['강화 한계', `+${c.enhanceMax}`], ['장비 티어', `T1~T${D.tiers.length}`], ['필드 장비 드랍', `${pct(c.gearDrop.field)} (T1 ${pct(c.gearDrop.fieldT1)})`], ['사망 후 부활', `${c.respawnSec}초`],
   ];
   return `
     <section class="hero" style="background-image:url('${esc(D.meta.hero ?? '')}')">
@@ -367,7 +377,7 @@ function pageDrops() {
     <ol class="plain">
       <li><b>베리</b>: 처치를 인정받은 사람마다 따로 굴려 바로 들어옵니다(줍지 않아도 됨).</li>
       <li><b>전리품</b>: 몬스터 드랍표의 항목마다 <b>독립적으로</b> 한 번씩 굴립니다. 몬스터당 한 번이며, 바닥에 떨어진 뒤 ${c.dropOwnerSec}초 동안은 처치 인정자(파티 포함)만 보고 주울 수 있고(다른 사람 화면에는 보이지 않음), ${c.dropDespawnSec}초 뒤 사라집니다. ${itemLink(D.scrolls.id)}도 여기서 나옵니다(필드 몬스터 ${pct(D.scrolls.fieldDrop)}).</li>
-      <li><b>장비</b>: 몬스터 레벨의 티어 장비 11종이 드랍표에 들어 있고(하나 이상 나올 확률 필드 몬스터 ${pct(c.gearDrop.field)} · 섬 보스 ${pct(c.gearDrop.boss)}), 떨어질 때 <a href="#/drops#grades">등급</a>을 한 번 굴립니다. 정예는 레벨 보너스를 뺀 원종 레벨의 티어입니다.</li>
+      <li><b>장비</b>: 몬스터 레벨의 티어 장비 11종이 드랍표에 들어 있고(하나 이상 나올 확률 필드 몬스터 ${pct(c.gearDrop.field)}(T1은 ${pct(c.gearDrop.fieldT1)}) · 섬 보스 ${pct(c.gearDrop.boss)}), 떨어질 때 <a href="#/drops#grades">등급</a>을 한 번 굴립니다. 정예는 레벨 보너스를 뺀 원종 레벨의 티어입니다.</li>
     </ol>
 
     <h2 id="grades">장비 등급</h2>
@@ -394,7 +404,7 @@ function pageDrops() {
     ${table([{ t: '순위', c: 'r' }, '레이드', { t: '입장', c: 'r' }, '장비 세트', '보스'], raidSetRows)}
 
     <h2>몬스터별 드랍</h2>
-    <p class="muted small">장비 칸은 그 몬스터 티어 장비 11종 중 하나 이상이 떨어질 확률입니다(항목마다 따로 굴림). 필드 몬스터 ${pct(c.gearDrop.field)}, 섬 보스 ${pct(c.gearDrop.boss)}로 맞춰져 있고, 등급은 필드 표(${esc(g.fieldText)}) 또는 섬 보스 표(${esc(g.fieldBossText)})로 굴립니다. 항목별 확률은 몬스터 이름을 누르세요.</p>
+    <p class="muted small">장비 칸은 그 몬스터 티어 장비 11종 중 하나 이상이 떨어질 확률입니다(항목마다 따로 굴림). 필드 몬스터 ${pct(c.gearDrop.field)}(T1은 ${pct(c.gearDrop.fieldT1)}), 섬 보스 ${pct(c.gearDrop.boss)}로 맞춰져 있고, 등급은 필드 표(${esc(g.fieldText)}) 또는 섬 보스 표(${esc(g.fieldBossText)})로 굴립니다. 항목별 확률은 몬스터 이름을 누르세요.</p>
     ${table(['몬스터', '종류', { t: '베리', c: 'r' }, { t: '장비', c: 'r' }, { t: '티어', c: 'r' }, '등급표', '기타'], mobRows, { scroll: true })}
 
     <h2>보물상자</h2>
@@ -407,9 +417,13 @@ function pageDrops() {
       <ul class="plain small">
         <li>서버가 켜지고 ${m.firstDelaySec[0] / 60}~${m.firstDelaySec[1] / 60}분 뒤 처음 나타나고, 그 뒤 ${m.intervalSec[0] / 60}~${m.intervalSec[1] / 60}분마다 다시 나타납니다.</li>
         <li>사람이 있는 섬의 부두 근처에 ${m.staySec / 60}분 머뭅니다(서버 전체 공지).</li>
-        <li>재고: 높은 티어부터 ${m.epicStock}개 티어에서 공용 부위 1종씩 영웅 등급(값 ×${m.gradePriceMul.epic}).</li>
+        <li>재고: 등장마다 공용 부위(갑옷·목걸이·보조 4) 중 ${m.epicStock}종을 뽑아 영웅 등급으로 팝니다(값 ×${m.gradePriceMul.epic}). 티어는 사는 캐릭터 레벨 +${m.levelAhead}까지 낄 수 있는 가장 높은 티어라, 지금 또는 곧 낄 장비만 보입니다.</li>
       </ul>
     </div>
+
+    <h2 id="ruby">루비</h2>
+    <p>${RUBY_NOTE} 1루비는 ${D.ruby.krw}원 기준이고, 아래는 한 번 굴릴 때(참가자마다 따로) 값입니다.</p>
+    ${table(['출처', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }, { t: '기대값', c: 'r' }], D.ruby.drops.map((r) => tr([esc(r.label), R(pct(r.chance)), R(`${r.qty[0]}~${r.qty[1]}개`), R(`약 ${fmt(r.chance * (r.qty[0] + r.qty[1]) / 2)}루비`)])))}
 
     <h2 id="gems">${esc(D.gems.name)} · 고급 상자</h2>
     <p><b>${esc(D.gems.name)}</b>은 레이드와 ${esc(D.infinite.name)}에서만 낮은 확률로 나오는 재화입니다(캐릭터마다 따로 쌓입니다). 태초마을의 ${esc(npcNameOfRole('gem'))}에게서 쓸 수 있습니다(한 번에 ${D.gems.buyMax}개까지).</p>
@@ -671,7 +685,7 @@ function sourceBlock(it) {
   const qdrop = by('questDrop');
   if (qdrop.length) out.push(`<div class="card"><h3>퀘스트 수집품</h3><ul class="plain">${qdrop.map((s) => `<li>${esc(M.quests.get(s.quest)?.name ?? s.quest)} 진행 중 ${mobLink(s.mob)}에게서 ${pct(s.chance)} (${s.n}개 필요)</li>`).join('')}</ul></div>`);
   const market = by('market');
-  if (market.length) out.push(`<div class="card"><h3>${esc(D.constants.market.name)}</h3><ul class="plain">${market.map((s) => `<li>${esc(s.note)} · ${fmt(it.price)} 베리</li>`).join('')}</ul></div>`);
+  if (market.length) out.push(`<div class="card"><h3>${esc(D.constants.market.name)}</h3><ul class="plain">${market.map((s) => `<li>${esc(s.note)} · ${fmt(Math.round(it.price * D.constants.market.gradePriceMul.epic))} 베리</li>`).join('')}</ul></div>`);
   const gemShop = by('gemShop');
   if (gemShop.length) out.push(`<div class="card"><h3>${esc(npcNameOfRole('gem'))} (태초마을)</h3><ul class="plain">${gemShop.map((s) => `<li>${esc(D.gems.name)} ${s.gems}개</li>`).join('')}</ul></div>`);
   const premium = by('premium');
@@ -769,6 +783,7 @@ function pageMob(id) {
     <dl class="stats">${stats.map(([k, v]) => `<div class="stat"><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
     ${raid ? `<p style="margin-top:12px">${islandLink(raid.id)}의 보스입니다. 보상은 레이드 클리어 보상으로 나옵니다.</p>` : ''}
     ${wb ? `<p style="margin-top:12px">${islandLink(wb.islandId)}의 원정 필드 보스입니다. 처치 때 기여 지분(피해 + 치유) ${wb.minSharePct}% 이상인 사람만 <a href="#/world#wb-${esc(wb.id)}">원정 보상</a>을 받습니다.</p>` : ''}
+    ${m.kind === 'boss' ? `<p style="margin-top:12px">${rubyLine('island_boss')} <a href="#/drops#ruby">루비 드랍표</a></p>` : ''}
     <h2>드랍표 <span class="muted small">베리 ${fmt(m.loot.gold[0])}~${fmt(m.loot.gold[1])}</span></h2>
     ${table(['아이템', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }, { t: '', c: 'r' }], lootRows)}
     ${gearNote}
@@ -824,6 +839,8 @@ function pageWorld() {
       <ul class="plain small">
         <li>경험치 ${fmt(r.rewards.exp)} · ${fmt(r.rewards.gold)} 베리 · ${r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')}</li>
         <li>${r.rewards.gearChance >= 1 ? '<b>반드시</b>' : `${pct(r.rewards.gearChance)} 확률로`} ${esc(D.raidSets.find((s) => s.raidId === r.id)?.prefix ?? '이 보스')} 세트 1점(${r.rewards.gearPool.length}종 중 내가 쓸 수 있는 것, 첫 클리어는 자기 직업 무기). 등급: ${esc(D.constants.grades.raidText)}</li>
+        <li>${rubyLine('raid')}</li>
+        ${growthLine(r.growth, `입장 레벨(Lv${r.minLevel})`, '모든 레이드 합산, 혼자 도전해도 그대로')}
         ${r.rewards.firstClearUnique ? '<li><b>캐릭터마다 처음 깰 때 한 번</b>: 이 레이드 세트 중 내 직업 무기 + 직업 무관 부위에서 원하는 1개를 골라 <b>유니크 등급</b>으로 받습니다(귀속 아님). 가방이 차 있거나 창을 닫아도 다음에 접속할 때 다시 고를 수 있습니다. 서버 최초 칭호는 없습니다.</li>' : ''}
       </ul>
     </section>`).join('');
@@ -837,6 +854,8 @@ function pageWorld() {
       <ul class="plain small">
         <li>${fmt(w.rewards.gold)} 베리 · 경험치(${levelShare(pct(w.rewards.expLevelFrac))}) · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')}</li>
         ${w.rewards.legendaryChance ? `<li>${pct(w.rewards.legendaryChance)} 확률로 내 레벨 티어 장비 부위 1점을 전설 등급으로</li>` : ''}
+        <li>${rubyLine('field_boss')}</li>
+        ${growthLine(w.growth, `보스 레벨(Lv${w.growth.level})`, '보상을 받은 처치만 셈')}
         <li>지분이 모자라면 보상이 없습니다. 전투 중 보스 바 아래에 내 지분과 순위가 보입니다.</li>
       </ul>
     </section>`).join('');
@@ -851,6 +870,7 @@ function pageWorld() {
       <ul class="plain small">
         <li>${fmt(inf.rewards.gold)} × ${inf.rewards.goldGrowth}^(웨이브−1) 베리 · 경험치(${levelShare(`${pct(inf.rewards.expPct)} × (1 + ${inf.rewards.expGrowth} × (웨이브−1))`)} — <b>높은 웨이브일수록 많이</b>) · 보스 웨이브는 ${itemLink(D.scrolls.id)}(${inf.bossEvery}웨이브마다 ${inf.rewards.scrollsPerBoss}장씩 늘어남)</li>
         <li>${esc(D.gems.name)}: 웨이브마다 ${pct(D.gems.drop.wave.chance)}, <b>${D.gems.drop.wave.highFromWave}웨이브부터 ${pct(D.gems.drop.wave.high)}</b>(보스 웨이브는 ×${D.gems.drop.wave.bossMul})</li>
+        <li>${rubyLine('infinite')}</li>
         <li>티어 장비: 웨이브마다 ${pct(inf.gear.chance.wave)}, 보스 웨이브 ${pct(inf.gear.chance.boss)} 확률로 1점(한 명마다 따로). <b>${inf.gear.floorsPerTier}층마다 한 티어씩</b> 올라갑니다: 1~${inf.gear.floorsPerTier}층은 T1(${esc(D.tiers[0].set)}), ${inf.gear.floorsPerTier + 1}~${inf.gear.floorsPerTier * 2}층은 T2(${esc(D.tiers[1].set)}) … T${D.tiers.length}까지. 다만 <b>내 레벨 티어를 넘지 않습니다</b>. 등급: ${esc(inf.gear.gradesText)}</li>
         <li>레이드 세트 장비: <b>${inf.gear.raidRoll.fromWave}웨이브부터</b> 웨이브 클리어마다 내가 입장할 수 있는 가장 높은 레이드 세트에서 ${rarName('legendary')} ${pct(inf.gear.raidRoll.legendary)} · ${rarName('unique')} ${pct(inf.gear.raidRoll.unique)}를 따로 굴립니다.</li>
         <li><b>서버 최초로 ${inf.firstClearWave}웨이브를 넘긴 파티 전원</b>에게 내 레벨 티어 장비 부위 1점을 유니크 등급으로(한 번뿐)</li>
@@ -912,6 +932,7 @@ function pageWorld() {
           <ul class="plain small">
             <li>경험치: 입장 레벨부터 <b>몇 레벨 오르는 만큼</b>을 줍니다(Lv100 위로는 한 레벨의 %, <b>Lv200부터는 하드캡</b>으로 크게 줄어듭니다). 구역마다 ${pct(dg.levelupWaveShare)}씩, 나머지는 최종 보스를 쓰러뜨릴 때 들어옵니다.</li>
             <li>최종 보스 처치 때 ${itemLink(D.scrolls.id)} ${lvDg.scrollsPerBoss}장.</li>
+            <li>${rubyLine('daily_dungeon')}</li>
             <li>몬스터 HP: 파티원 1명 늘 때마다 +${pct(lvDg.partyHpMul)}.</li>
           </ul>
           ${table([{ t: '입장 레벨', c: 'r' }, { t: '한 번에 오르는 양', c: 'r' }], dg.levelup.map((l) => tr([R(`Lv${l.level}`), R(esc(l.text))])))}
@@ -922,6 +943,7 @@ function pageWorld() {
             <li>구역에서는 장비가 나오지 않고, <b>완주(최종 보스 처치)하면 한 사람에게 ${gearDg.clearGear}점</b>을 한꺼번에 줍니다. 한 점마다 등급 ${esc(dg.gear.gradesText)}. 받은 장비는 결과 창에 보입니다.</li>
             <li>나오는 장비: <b>내 레벨 티어 장비</b> 중 내 직업이 쓰는 7부위(레이드 세트는 나오지 않습니다).</li>
             <li>최종 보스 처치 때 ${itemLink(D.scrolls.id)} ${gearDg.scrollsPerBoss}장.</li>
+            <li>${rubyLine('daily_dungeon')}</li>
             <li>몬스터 HP: 파티원 1명 늘 때마다 +${pct(gearDg.partyHpMul)}.</li>
           </ul>
         </div>
@@ -949,7 +971,7 @@ function pageGrowth() {
 내가 ${c.expPenaltyDiff[0]}레벨 이상 높으면 × 0.5, ${c.expPenaltyDiff[1]}레벨 이상 높으면 × 0.1</div>
     <ul class="plain">
       <li>처치에 기여한 사람과 반경 ${c.partyExpRadius} 안의 파티원이 나눠 받습니다 — 1인당 (1 + ${c.partyExpBonus} × (인원 − 1)) ÷ 인원(2명 ${Math.round(((1 + c.partyExpBonus) / 2) * 100)}%, 4명 ${Math.round(((1 + c.partyExpBonus * 3) / 4) * 100)}%). 퀘스트 처치는 모두 인정됩니다.</li>
-      <li>다음 레벨까지 잡아야 하는 같은 레벨 몬스터 수는 레벨이 오를수록 늘고, <b>Lv${c.rewardLevelFrom}부터 크게 가팔라집니다</b>(아래 표). 퀘스트 보상은 그 퀘스트 최소 레벨 필요 경험치의 ${c.questExpLevels}배, 무한의 던전·필드 보스·레이드 같은 반복 보상은 Lv${c.rewardLevelFrom} 위로 같은 레벨 몬스터 수 기준으로 고정돼 곡선을 따라 커지지 않습니다.</li>
+      <li>다음 레벨까지 잡아야 하는 같은 레벨 몬스터 수는 레벨이 오를수록 늘고, <b>Lv${c.rewardLevelFrom}부터 크게 가팔라집니다</b>(아래 표). 퀘스트 보상은 그 퀘스트 최소 레벨 필요 경험치의 ${c.questExpLevels}배, 무한의 던전·필드 보스·레이드 같은 반복 보상은 Lv${c.rewardLevelFrom} 위로 같은 레벨 몬스터 수 기준으로 고정돼 곡선을 따라 커지지 않습니다. 대신 레이드 클리어·필드 보스 원정은 하루 몇 번까지 <b>현재 레벨 필요 경험치의 일정 비율</b>을 성장 보너스로 더 줍니다(지역·레이드 페이지의 각 보상 칸).</li>
       <li>HP는 교전이 끝나고 ${c.hpRegen.delaySec}초 뒤부터 초당 ${c.hpRegen.pctPerSec}%씩 찹니다. MP는 전투 밖 초당 ${c.mpRegenPct}%, 전투 중 ${c.mpRegenCombatPct}%, 처치할 때 ${c.mpOnKillPct}% 찹니다.</li>
     </ul>
     <div class="filters" style="margin-top:12px"><label class="f">레벨로 이동<input type="number" id="exp-jump" min="1" max="${D.meta.maxLevel}" value="${growthState.level}"></label></div>
