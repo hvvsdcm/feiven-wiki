@@ -188,6 +188,7 @@ function pageDamage() {
         <li><b>받는 피해 감소 버프</b>(도발 등 guard)는 받는 피해에 (1 − %)를 곱합니다.</li>
         <li><b>다음 공격 강화</b>: dmgNext 버프는 공격력에 배율을 곱하고, critNext는 치명타를 확정합니다. 한 번 쓰면 사라집니다.</li>
         <li>중독 피해와 지속 장판(연막·먹물 등의 틱)은 치명타가 없고, 중독은 시전자 공격력으로 정해지는 고정 피해입니다(걸 때 시전자 공격력 × 초당 계수).</li>
+        <li><b>중독 중첩</b>: 서로 다른 스킬(또는 다른 시전자)의 중독은 따로 쌓여 함께 들어갑니다(대상 하나에 최대 16개). 같은 스킬로 다시 걸면 남은 시간만 늘어나고 틱 박자는 그대로입니다. 화염술사의 화상은 0.1초마다, 나머지는 1초마다 들어갑니다.</li>
       </ul>
     </div>
 
@@ -223,6 +224,7 @@ function pageDamage() {
       <li>몬스터는 치명타가 없습니다. 근접 공격은 휘두르기 시작 뒤 조금 있다 판정되어 대시로 피할 수 있습니다.</li>
       <li>정예 몬스터는 같은 섬 기준 몬스터보다 HP ×${c.elite.hpMul}, 공격력 ×${c.elite.atkMul}, 레벨 +${c.elite.levelBonus}입니다.</li>
       <li>레이드 보스는 제한 시간 안에 못 잡으면 격노해 피해가 커집니다(지역·레이드 참고).</li>
+      <li><b>고레벨 사냥터</b>(Lv${c.hunt.fromLevel}~ 일반·정예 몬스터)는 레벨이 오를수록 HP·공격력이 커져 Lv${c.hunt.hp[1][0]}부터 HP ×${c.hunt.hp[1][1]}, 공격력 ×${c.hunt.atk[1][1]}입니다. 대신 경험치를 더 주고(<a href="#/growth">성장·강화</a>), <b>특수 공격</b>을 씁니다 — 근접 몬스터는 ${c.hunt.skill.melee.cdSec}초마다 '${esc(c.hunt.skill.melee.name)}'(제자리 반경 ${c.hunt.skill.melee.r}, ${c.hunt.skill.melee.warnSec}초 예고, 계수 ${Math.round(c.hunt.skill.melee.coef * 100)}%), 원거리 몬스터는 ${c.hunt.skill.proj.cdSec}초마다 '${esc(c.hunt.skill.proj.name)}'(대상 발밑 반경 ${c.hunt.skill.proj.r}, ${c.hunt.skill.proj.warnSec}초 예고, 계수 ${Math.round(c.hunt.skill.proj.coef * 100)}%). 바닥 표시를 보고 피하거나, 예고 중에 잡으면 취소됩니다. 정예는 재사용 대기 ×${c.hunt.skill.eliteCdMul}, 반경 +${c.hunt.skill.eliteR}.</li>
     </ul>`;
 }
 
@@ -770,7 +772,7 @@ function pageMob(id) {
   if (!m) return notFound();
   const c = D.constants;
   const atk = m.attack;
-  const stats = [['레벨', m.level], ['HP', fmt(m.hp)], ['공격력', fmt(m.atk)], ['공격 계수', `${Math.round(atk.coef * 100)}%`], ['공격 간격', `${atk.cdSec}초`], ['공격 방식', atk.kind === 'melee' ? `근접 ${atk.range}` : `원거리 ${atk.range}`], ['이동 속도', m.speed], ['경험치', fmt(m.exp)], ['리스폰', m.respawnSec ? `${m.respawnSec >= 60 ? `${m.respawnSec / 60}분` : `${m.respawnSec}초`}` : '—']];
+  const stats = [['레벨', m.level], ['HP', fmt(m.hp)], ['공격력', fmt(m.atk)], ['공격 계수', `${Math.round(atk.coef * 100)}%`], ['공격 간격', `${atk.cdSec}초`], ['공격 방식', atk.kind === 'melee' ? `근접 ${atk.range}` : `원거리 ${atk.range}`], ...(m.skill ? [['특수 공격', `${esc(m.skill.name)} · ${m.skill.at === 'self' ? '제자리' : '대상 발밑'} 반경 ${Math.round(m.skill.r * 10) / 10} · ${m.skill.warnSec}초 예고 · 계수 ${Math.round(m.skill.coef * 100)}% · ${Math.round(m.skill.cdSec * 10) / 10}초마다`]] : []), ['이동 속도', m.speed], ['경험치', fmt(m.exp)], ['리스폰', m.respawnSec ? `${m.respawnSec >= 60 ? `${m.respawnSec / 60}분` : `${m.respawnSec}초`}` : '—']];
   const lootRows = [...m.loot.entries].sort((a, b) => b.chance - a.chance).map((e) => tr([itemLink(e.itemId), R(pct(e.chance)), R(e.qty ? `${e.qty[0]}~${e.qty[1]}` : 1), R(`<span class="muted small">${oneIn(e.chance)}</span>`)]));
   const gearIds = m.loot.entries.filter((e) => EQUIP.includes(M.items.get(e.itemId)?.kind));
   const gearP = 1 - gearIds.reduce((p, e) => p * (1 - e.chance), 1);
@@ -974,13 +976,20 @@ function pageGrowth() {
       <li>다음 레벨까지 잡아야 하는 같은 레벨 몬스터 수는 레벨이 오를수록 늘고, <b>Lv${c.rewardLevelFrom}부터 크게 가팔라집니다</b>(아래 표). 퀘스트 보상은 그 퀘스트 최소 레벨 필요 경험치의 ${c.questExpLevels}배, 무한의 던전·필드 보스·레이드 같은 반복 보상은 Lv${c.rewardLevelFrom} 위로 같은 레벨 몬스터 수 기준으로 고정돼 곡선을 따라 커지지 않습니다. 대신 레이드 클리어·필드 보스 원정은 하루 몇 번까지 <b>현재 레벨 필요 경험치의 일정 비율</b>을 성장 보너스로 더 줍니다(지역·레이드 페이지의 각 보상 칸).</li>
       <li>HP는 교전이 끝나고 ${c.hpRegen.delaySec}초 뒤부터 초당 ${c.hpRegen.pctPerSec}%씩 찹니다. MP는 전투 밖 초당 ${c.mpRegenPct}%, 전투 중 ${c.mpRegenCombatPct}%, 처치할 때 ${c.mpOnKillPct}% 찹니다.</li>
     </ul>
+    <h3>고레벨 사냥터 (Lv${c.hunt.fromLevel}~)</h3>
+    <ul class="plain">
+      <li><b>경험치 배율</b>: 몬스터가 세진 만큼 처치 경험치를 더 줍니다 — Lv${c.hunt.exp[0][0]} ×${c.hunt.exp[0][1]} → Lv${c.hunt.exp[1][0]} ×${c.hunt.exp[1][1]} → Lv${c.hunt.exp[2][0]} ×${c.hunt.exp[2][1]}(사이는 직선). 아래 표의 몬스터 수에 들어 있습니다. 레이드·던전·퀘스트 보상에는 곱하지 않습니다.</li>
+      <li><b>연속 처치</b>: ${c.hunt.combo.windowSec}초 안에 다음 고레벨 사냥터 몬스터를 잡으면 이어집니다. ${c.hunt.combo.step}마리마다 처치 경험치 +${Math.round(c.hunt.combo.stepBonus * 100)}%(최대 +${Math.round(c.hunt.combo.maxBonus * 100)}%). 쓰러지면 끊깁니다.</li>
+      <li><b>사냥터 폭주</b>: 같은 채널에서 함께 ${c.hunt.frenzy.kills}마리를 잡으면 ${c.hunt.frenzy.sec}초 동안 일반 몬스터가 ×${c.hunt.frenzy.countMul}로 몰려오고 거의 바로 다시 나오며, 처치 경험치 +${Math.round(c.hunt.frenzy.expBonus * 100)}%입니다. 체력 막대 바로 위 칩에서 연속 처치 수와 「열기」 게이지를 봅니다.</li>
+      <li>연속 처치·폭주 보너스는 서버 이벤트·사료·축복과 더합니다(합연산).</li>
+    </ul>
     <div class="filters" style="margin-top:12px"><label class="f">레벨로 이동<input type="number" id="exp-jump" min="1" max="${D.meta.maxLevel}" value="${growthState.level}"></label></div>
     <div class="table-wrap scroll-y" id="exp-wrap"><table><thead><tr><th class="r">레벨</th><th class="r">다음 레벨까지</th><th class="r">누적 경험치</th><th class="r">같은 레벨 몬스터</th></tr></thead><tbody>
       ${D.expTable.map((e) => tr([R(e.level), R(e.toNext ? fmt(e.toNext) : '만렙'), R(fmt(e.total)), R(e.mobs ? `${fmt(e.mobs)}마리` : '—')], e.level === growthState.level ? 'hl' : '').replace('<tr', `<tr id="lv-${e.level}"`)).join('')}
     </tbody></table></div>
 
     <h2>강화</h2>
-    <p>대장장이에게서 +${c.enhanceMax}까지 올립니다. <b>장비가 부서지지는 않습니다.</b> 목표가 +4 이하면 실패해도 그대로, +5 이상이면 한 단계 내려갑니다. 재료는 <b>베리와 ${itemLink(D.scrolls.id)}뿐</b>입니다.</p>
+    <p>대장장이에게서 +${c.enhanceMax}까지 올립니다. <b>장비가 부서지지는 않습니다.</b> 목표가 +4 이하면 실패해도 그대로, +5~+${c.enhanceMax - 1}이면 한 단계 내려갑니다. <b>마지막 +${c.enhanceMax} 도전은 실패해도 그대로</b>입니다. 재료는 <b>베리와 ${itemLink(D.scrolls.id)}뿐</b>입니다.</p>
     <div class="filters"><label class="f">장비 순위(비용 기준)<select id="enh-tier">${enhRankOptions()}</select></label></div>
     <div id="enh-table">${enhanceTable()}</div>
     <p class="muted small" style="margin-top:8px">기대값은 +0에서 시작해 그 단계에 처음 닿을 때까지의 평균입니다(실패로 내려간 뒤 다시 올리는 비용 포함). 비용은 장비 순위 × 반올림(120 × (현재 단계 + 1)^1.7) 베리입니다. 티어 장비의 순위는 티어 번호(1~${D.tiers.length})이고, 레이드 세트는 티어 곡선 위의 소수 순위입니다. 강화서는 목표 +1~+4에 ${D.scrolls.perEnhance[0].scrolls}장, +5~+7에 ${D.scrolls.perEnhance[1].scrolls}장, +8~+10에 ${D.scrolls.perEnhance[2].scrolls}장입니다.</p>
