@@ -395,7 +395,7 @@ function pageDrops() {
       tr(['레이드 클리어', `${esc(g.raidText)} — 그 보스 전용 세트 1점 확정`]),
     ])}
     <p class="muted small" style="margin-top:8px">같은 장비·같은 등급 세 개를 <a href="#/growth#merge">합성</a>하면 한 등급 위가 됩니다. 등급 개편 전의 전설·영웅·유니크 전용 장비는 가진 것은 그대로 쓰지만 더 이상 나오지 않습니다.</p>
-    ${note(`처치 인정: 막타를 친 사람과 한 대라도 때린 사람, 그리고 그 파티원 중 반경 ${c.partyExpRadius} 안에 있는 사람 모두입니다. 가상 유저(봇) 파티 덕에만 인정받은 경우 베리·경험치가 ${pct(c.botCarryShare)}로 줄어듭니다.`)}
+    ${note(`처치 인정: 막타를 친 사람과 한 대라도 때린 사람, 그리고 그 파티원 중 같은 맵(같은 채널)에 있는 사람 모두입니다. 가상 유저(봇) 파티 덕에만 인정받은 경우 베리·경험치가 ${pct(c.botCarryShare)}로 줄어듭니다.`)}
 
     <h2 id="tiers">장비 티어 (T1~T${D.tiers.length})</h2>
     <p class="muted small">티어는 레벨 구간입니다. 티어 장비는 <b>그 티어 시작 레벨</b>부터 낄 수 있고, 한 티어에 장비 11종(직업 무기 5 + 공용 6부위)이 있습니다. 섬 상점은 그 섬 레벨대에 걸친 티어를 모두 팝니다.</p>
@@ -547,6 +547,7 @@ function summonSection() {
         <li>주인이 쓰러지거나 다른 섬으로 옮기거나 접속을 끊으면 소환수가 모두 사라집니다. 유지 시간이 끝나거나 HP가 다해도 사라집니다.</li>
         <li>소환수가 준 피해와 처치, 경험치·드랍·퀘스트·레이드 지분은 모두 <b>주인에게</b> 갑니다.</li>
         <li>주인에게서 ${S.leash} 넘게 떨어지면 주인 곁으로 순간이동하고, 주인 반경 ${S.aggroR} 안의 적만 노립니다.</li>
+        <li>소환수 피해는 일반 몬스터에게 ×${S.fieldMul}, 보스에게 ×${S.bossMul}입니다(주인 곁을 지키는 전투용, 서 있기만 해서 사냥터를 덮지 못하게).</li>
         <li>일반 몬스터는 도발을 당했을 때만 소환수를 노립니다. 보스는 도발이 통하지 않지만 광역 공격과 투사체에는 소환수도 맞습니다.</li>
         <li>소환수는 버프·디버프를 받지 않습니다.</li>
       </ul>
@@ -972,7 +973,7 @@ function pageGrowth() {
     <div class="formula">몬스터 경험치 = (10 + 6 × 몬스터 레벨) × (보스면 15)
 내가 ${c.expPenaltyDiff[0]}레벨 이상 높으면 × 0.5, ${c.expPenaltyDiff[1]}레벨 이상 높으면 × 0.1</div>
     <ul class="plain">
-      <li>처치에 기여한 사람과 반경 ${c.partyExpRadius} 안의 파티원이 나눠 받습니다 — 1인당 (1 + ${c.partyExpBonus} × (인원 − 1)) ÷ 인원(2명 ${Math.round(((1 + c.partyExpBonus) / 2) * 100)}%, 4명 ${Math.round(((1 + c.partyExpBonus * 3) / 4) * 100)}%). 퀘스트 처치는 모두 인정됩니다.</li>
+      <li>처치에 기여한 사람과 같은 맵(같은 채널)에 있는 파티원이 거리와 상관없이 나눠 받습니다 — 1인당 (1 + ${c.partyExpBonus} × (인원 − 1)) ÷ 인원(2명 ${Math.round(((1 + c.partyExpBonus) / 2) * 100)}%, 4명 ${Math.round(((1 + c.partyExpBonus * 3) / 4) * 100)}%). 퀘스트 처치는 모두 인정됩니다.</li>
       <li>다음 레벨까지 잡아야 하는 같은 레벨 몬스터 수는 레벨이 오를수록 늘고, <b>Lv${c.rewardLevelFrom}부터 크게 가팔라집니다</b>(아래 표). 퀘스트 보상은 그 퀘스트 최소 레벨 필요 경험치의 ${c.questExpLevels}배, 무한의 던전·필드 보스·레이드 같은 반복 보상은 Lv${c.rewardLevelFrom} 위로 같은 레벨 몬스터 수 기준으로 고정돼 곡선을 따라 커지지 않습니다. 대신 레이드 클리어·필드 보스 원정은 하루 몇 번까지 <b>현재 레벨 필요 경험치의 일정 비율</b>을 성장 보너스로 더 줍니다(지역·레이드 페이지의 각 보상 칸).</li>
       <li>HP는 교전이 끝나고 ${c.hpRegen.delaySec}초 뒤부터 초당 ${c.hpRegen.pctPerSec}%씩 찹니다. MP는 전투 밖 초당 ${c.mpRegenPct}%, 전투 중 ${c.mpRegenCombatPct}%, 처치할 때 ${c.mpOnKillPct}% 찹니다.</li>
     </ul>
