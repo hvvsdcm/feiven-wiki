@@ -37,7 +37,7 @@ function levelShare(ratio) {
 }
 /** 성장 보너스 한 줄(레이드 클리어·필드 보스 원정): 기본 경험치와 따로 현재 레벨 필요 경험치의 share, 하루 perDay번, 기준 레벨보다 높으면 깎임 */
 function growthLine(g, base, scope) {
-  return `<li><b>성장 보너스</b>: 위 경험치와 따로 <b>현재 레벨 필요 경험치의 ${pct(g.share)}</b>를 더 받습니다(Lv${D.constants.rewardLevelFrom} 위에서도 고정되지 않음). 캐릭터마다 <b>하루 ${g.perDay}번</b>(한국 시간 자정에 다시 채워짐, ${scope}) · ${base}보다 ${D.constants.expPenaltyDiff[0]}레벨 이상 높으면 ${pct(g.minMul)}(더 깎이지 않음) · 경험치 이벤트·사료·후원자 경험치 배율은 붙지 않습니다.</li>`;
+  return `<li><b>성장 보너스</b>: 위 경험치와 따로 <b>현재 레벨 필요 경험치의 ${pct(g.share)}</b>를 더 받습니다(Lv${D.constants.rewardLevelFrom} 위에서도 고정되지 않음). 캐릭터마다 <b>하루 ${g.perDay}번</b>(한국 시간 자정에 다시 채워짐, ${scope}) · ${base}보다 ${D.constants.expPenaltyDiff[0]}레벨 이상 높으면 ${pct(g.minMul)}(더 깎이지 않음) · 경험치 이벤트·사료·월정액 경험치 배율은 붙지 않습니다.</li>`;
 }
 function itemIcon(it, size = 'sm') {
   const cls = `ico ${size} rb-${it.rarity}`;
@@ -56,7 +56,7 @@ const islandName = (id) => M.islands.get(id)?.name ?? M.raids.get(id)?.name ?? M
 const islandLink = (id) => (M.islands.has(id) ? `<a href="#/world#isl-${esc(id)}">${esc(islandName(id))}</a>` : M.raids.has(id) || id === D.infinite.id ? `<a href="#/world#raid-${esc(id)}">${esc(islandName(id))}</a>` : M.dungeons.has(id) ? `<a href="#/world#dungeons">${esc(islandName(id))}</a>` : M.wbIsland.has(id) ? `<a href="#/world#wb-${esc(M.wbIsland.get(id).id)}">${esc(islandName(id))}</a>` : esc(id));
 /** 모항(노을마을) 젬 NPC 이름: gem = 젬 상인, storage = 창고지기 */
 const npcNameOfRole = (role) => D.npcNames?.[role === 'gem' ? 'vg_gem' : 'vg_storage'] ?? (role === 'gem' ? '젬 상인' : '창고지기');
-const RUBY_NOTE = '루비는 계정 공용 재화로 상점에서 씁니다. 일반·정예 몬스터와 후원자 추가·면제 회차에서는 나오지 않습니다. 드랍 이벤트 배율이 붙지 않습니다.';
+const RUBY_NOTE = '루비는 계정 공용 재화로 상점에서 씁니다. 일반·정예 몬스터와 월정액 추가·면제 회차에서는 나오지 않습니다. 드랍 이벤트 배율이 붙지 않습니다.';
 /** 루비 드랍 한 줄: "루비 N% (a~b개)" */
 function rubyLine(source) {
   const r = D.ruby.drops.find((d) => d.source === source);
@@ -100,8 +100,8 @@ function gearStats(it, enh, rarity = it.rarity) {
   const mul = (it.mul?.[rarity] ?? D.constants.rarityMul[rarity]) * (enh > max ? (1 + per * max) * D.awaken.mul : 1 + per * enh);
   return { atk: Math.round(it.atk * mul), hp: Math.round(it.hp * mul) };
 }
-/** 레벨·장비·전직으로 능력치(GameServer.recomputeStats와 같은 순서: 직업 기본 + 레벨 성장(HP·공격력·MP) → 장비 합 + 올스탯 → 전직 패시브(1차 + 2차 합산) → 직업 계수 classMul(공격력·HP 전체)) */
-function playerStats(cls, level, gear, branch, second = false) {
+/** 레벨·장비·전직으로 능력치(GameServer.recomputeStats와 같은 순서: 직업 기본 + 레벨 성장(HP·공격력·MP) → 장비 합 + 올스탯 → 전직 패시브(1차 + 2차 + 3차 합산) → 직업 계수 classMul(공격력·HP 전체)) */
+function playerStats(cls, level, gear, branch, second = false, third = false) {
   const ae = D.constants.allStatEffect;
   const grown = Math.max(0, level - 1);
   const baseAtk = Math.round(cls.baseAtk + cls.atkPerLevel * grown);
@@ -120,6 +120,7 @@ function playerStats(cls, level, gear, branch, second = false) {
   s.maxHp += gearHp;
   const p = { ...(branch?.passive ?? {}) };
   if (second && branch) for (const [k, v] of Object.entries(branch.second.passive)) p[k] = (p[k] ?? 0) + v;
+  if (third && branch?.third) for (const [k, v] of Object.entries(branch.third.passive)) p[k] = (p[k] ?? 0) + v;
   if (p.patkPct) s.patk *= 1 + p.patkPct / 100;
   if (p.matkPct) s.matk *= 1 + p.matkPct / 100;
   if (p.maxHpPct) s.maxHp = Math.round(s.maxHp * (1 + p.maxHpPct / 100));
@@ -129,9 +130,10 @@ function playerStats(cls, level, gear, branch, second = false) {
   const matk = Math.round((s.matk + gearAtk) * m.atk);
   return { patk, matk, atk: cls.dmgType === 'magic' ? matk : patk, maxHp: Math.round(s.maxHp * m.hp), maxMp: Math.max(0, Math.round(s.maxMp)), crit: cls.critPct + (p.critPct ?? 0), gearAtk: Math.round(gearAtk) };
 }
-/** 슬롯 1~4 스킬(shared/data/branches.ts skillsFor). 2차 전직이면 네 칸 모두 2차 스킬 */
-function skillsFor(cls, branch, awakened, second = false) {
+/** 슬롯 1~4 스킬(shared/data/branches.ts skillsFor). 2차 전직이면 네 칸 모두 2차 스킬, 3차 전직이면 네 칸 모두 3차 스킬. 슬롯 5 궁극기는 branch.third.ult */
+function skillsFor(cls, branch, awakened, second = false, third = false) {
   if (!branch) return cls.skills;
+  if (second && third && branch.third) return branch.third.skills;
   if (second) return branch.second.skills;
   return [branch.skill1 ?? cls.skills[0], branch.skills[0], branch.skills[1], awakened ? branch.awaken : branch.skills[2]];
 }
@@ -254,10 +256,11 @@ function renderCalc() {
   const branch = canAdvance ? M.branches.get(calc.branch) : undefined;
   const gear = EQUIP.map((k) => calc.gear[k]).filter((g) => g && g.id).map((g) => ({ item: M.items.get(g.id), enh: g.enh })).filter((g) => g.item);
   const second = !!branch && calc.level >= D.constants.secondLevel;
-  const st = playerStats(cls, calc.level, gear, branch, second);
+  const third = second && calc.level >= D.constants.thirdLevel;
+  const st = playerStats(cls, calc.level, gear, branch, second, third);
   const mob = M.mobs.get(calc.mob);
   const awakened = !!branch && calc.level >= D.constants.awakenLevel;
-  const slots = skillsFor(cls, branch, awakened, second).map((id) => M.skills.get(id));
+  const slots = skillsFor(cls, branch, awakened, second, third).map((id) => M.skills.get(id));
   const crit = Math.min(100, st.crit) / 100;
   const rowsFor = (label, iconHtml, coefs, locked) => coefs.map((cf, i) => {
     const mn = damage(st.atk, cf.coef, 0);
@@ -470,7 +473,7 @@ function passiveText(p) {
 }
 function pageClasses() {
   return `
-    ${head('직업·전직', `직업 ${D.classes.length - 1}개와 히든 직업 1개, 전직 갈래 ${D.branches.length}개, 2차 전직 ${D.branches.length}개`)}
+    ${head('직업·전직', `직업 ${D.classes.length - 1}개와 히든 직업 1개, 전직 갈래 ${D.branches.length}개, 2차 전직 ${D.branches.length}개, 3차 전직 ${D.branches.filter((b) => b.third).length}개`)}
     <div class="grid g3">${D.classes.map((k) => `
       <a class="card class-card" href="#/classes/${k.id}" style="--c:${k.color}">
         ${k.icon ? `<img class="ico lg" src="${esc(k.icon)}" alt="" style="width:64px;height:64px">` : ''}
@@ -483,10 +486,11 @@ function pageClasses() {
       <span class="step"><b>견습</b> Lv1~${D.constants.advanceLevel - 1} · 직업 기본 스킬 4개</span>${icon('chevron-right')}
       <span class="step"><b>1차 전직</b> Lv${D.constants.advanceLevel} · 섬의 촌장에게 갈래 선택(되돌릴 수 없음)</span>${icon('chevron-right')}
       <span class="step"><b>각성</b> Lv${D.constants.awakenLevel} · 선택 없이 4번 스킬 강화</span>${icon('chevron-right')}
-      <span class="step"><b>2차 전직</b> Lv${D.constants.secondLevel} · 촌장에게 의식(갈래마다 정해진 상위 직업)</span>
+      <span class="step"><b>2차 전직</b> Lv${D.constants.secondLevel} · 촌장에게 의식(갈래마다 정해진 상위 직업)</span>${icon('chevron-right')}
+      <span class="step"><b>3차 전직</b> Lv${D.constants.thirdLevel} · 촌장에게 의식, 1~5번 칸 3차 스킬 · 3차 기본 공격 · 직업 기믹</span>
     </div>
-    <p class="muted small" style="margin-top:10px">전직하면 2·3·4번 스킬이 갈래 전용 스킬로 바뀌고(공허술사·합주가·전투 시인처럼 1번 스킬까지 바뀌는 갈래도 있습니다) 패시브 능력치가 붙습니다. 2차 전직하면 1~4번 스킬이 모두 훨씬 강한 2차 스킬로 바뀌고 2차 패시브가 1차 패시브에 더해집니다.</p>
-    ${table(['직업', '갈래', '콘셉트', '패시브', '2차 전직', '2차 패시브'], D.branches.map((b) => tr([esc(classOf(b.classId).name), `<a href="#/classes/${b.classId}#br-${b.id}" style="color:${esc(b.color)}">${esc(b.name)}</a>`, `<span class="small">${esc(b.concept)}</span>`, passiveText(b.passive), `<a href="#/classes/${b.classId}#br2-${b.id}" style="color:${esc(b.second.color)}">${esc(b.second.name)}</a>`, passiveText(b.second.passive)])))}`;
+    <p class="muted small" style="margin-top:10px">전직하면 2·3·4번 스킬이 갈래 전용 스킬로 바뀌고(공허술사·합주가·전투 시인처럼 1번 스킬까지 바뀌는 갈래도 있습니다) 패시브 능력치가 붙습니다. 2차 전직하면 1~4번 스킬이 모두 훨씬 강한 2차 스킬로 바뀌고 2차 패시브가 1차 패시브에 더해집니다. 3차 전직하면 1~4번 스킬이 모두 3차 스킬로 바뀌고 5번 칸에 궁극기가 생기며, 기본 공격이 갈래 전용 3차 기본 공격으로 바뀌고 걸음·주기·자동 사격으로 터지는 직업 기믹이 늘 켜집니다. 3차 패시브도 더해집니다. 궁극기 가운데 변신은 해골술사의 태고의 골신 하나뿐입니다(켜 둔 동안 거인이 되어 기본 공격이 훨씬 넓어지고 MP가 빠르게 닳습니다).</p>
+    ${table(['직업', '갈래', '콘셉트', '패시브', '2차 전직', '2차 패시브', '3차 전직', '3차 패시브'], D.branches.map((b) => tr([esc(classOf(b.classId).name), `<a href="#/classes/${b.classId}#br-${b.id}" style="color:${esc(b.color)}">${esc(b.name)}</a>`, `<span class="small">${esc(b.concept)}</span>`, passiveText(b.passive), `<a href="#/classes/${b.classId}#br2-${b.id}" style="color:${esc(b.second.color)}">${esc(b.second.name)}</a>`, passiveText(b.second.passive), b.third ? `<a href="#/classes/${b.classId}#br3-${b.id}" style="color:${esc(b.third.color)}">${esc(b.third.name)}</a>` : '—', b.third ? passiveText(b.third.passive) : '—'])))}`;
 }
 function skillRow(s, compareTo) {
   if (!s) return '';
@@ -495,6 +499,7 @@ function skillRow(s, compareTo) {
   if (s.toggle) chips.push(`<span class="chip accent">켜기/끄기</span>`, `<span class="chip">${icon('droplet')}지속 마나 ${s.toggle.mpPctPerSec}%/초</span>`);
   if (s.awaken) chips.push('<span class="chip accent">각성</span>');
   if (s.second) chips.push('<span class="chip accent">2차</span>');
+  if (s.third) chips.push(`<span class="chip accent">${s.slot === 5 ? (s.toggle ? '3차 궁극 변신' : '3차 궁극기') : '3차'}</span>`);
   const base = compareTo && compareTo.id !== s.id ? `<div class="muted small">기본: ${esc(compareTo.name)}</div>` : '';
   return `<div class="skill-row" id="sk-${esc(s.id)}">${skillIcon(s)}<div><b>${esc(s.name)}</b> <span class="slot" title="슬롯">${s.slot}</span>${base}<div class="meta">${chips.join('')}</div><div class="small">${esc(s.desc)}</div><ul>${s.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></div></div>`;
 }
@@ -528,7 +533,7 @@ function pageClass(id) {
           <p class="muted small">${esc(b.concept)}</p>
           ${[...(b.skill1 ? [b.skill1] : []), ...b.skills, b.awaken].map((sid) => { const s = M.skills.get(sid); return skillRow(s, M.skills.get(k.skills[s.slot - 1])); }).join('')}
         </div>
-        ${secondCard(k, b)}`).join('')}</div>
+        ${secondCard(k, b)}${thirdCard(b)}`).join('')}</div>
     </div>`;
 }
 /** 히든 직업 대장장이: 레벨 대신 숙련도, 제련 옵션, 증강. 되는 방법은 싣지 않는다 */
@@ -564,17 +569,20 @@ function pageBlacksmith(k) {
     ${table(['옵션', ...['하', '중', '상'].map((t) => ({ t: `값 ${t}`, c: 'r' })), '붙는 장비'], optRows)}
     <p class="muted small" style="margin-top:8px">제련 의뢰: 1:1 거래 거리 안에서 의뢰인이 장비 하나를 골라 신청하면, 대장장이가 회당 수고비와 최대 횟수를 먼저 제시하고 의뢰인이 받아들여야 시작됩니다. 신청 창과 제시 카드에서 그 대장장이가 붙일 수 있는 옵션과 값의 최소~최대를 볼 수 있습니다. 제련비·강화서·재료는 대장장이가 내고(한 번 할 만큼은 있어야 제시할 수 있습니다), 의뢰인은 실제로 제련한 횟수만큼 수고비만 냅니다(수고비에는 거래 수수료가 붙습니다). 장비는 의뢰인 가방에 잠긴 채로 남습니다. 제련한 장비는 거래소에 올릴 수 있고 옵션이 툴팁·살펴보기·매물에 보입니다.</p>
     <h2 id="craft">무기 제작</h2>
-    <p class="muted small">노을마을 대장장이 NPC의 「무기 제작」에서 레이드 무기(어느 직업·어느 등급이든, 가방에 있는 것) 하나를 녹이고 그 레이드의 보스 재료와 함께 새 무기를 벼립니다. 만들 무기의 직업은 대장장이가 고르고, 이름 앞에 대장장이 이름이 붙습니다(예: 「철수의 영겁 검」). 등급은 일반~유니크 중 무작위이며 숙련도가 높을수록 좋은 등급이 잘 나옵니다. 유니크는 어떤 숙련도에서도 ${C.uniqueCap}%를 넘지 않습니다. 바탕 무기의 강화·제련은 사라지고, 귀속·계정 귀속은 그대로 이어집니다. 만든 무기는 다시 강화·제련할 수 있습니다.</p>
+    <p class="muted small">노을마을 대장장이 NPC의 「무기 제작」에서 ${esc(C.baseMin)} 이상 레이드 무기(어느 직업이든, 가방에 있는 것) 하나를 녹이고 그 레이드의 보스 재료와 함께 새 무기를 벼립니다. 만들 무기의 직업은 대장장이가 고르고, 이름은 「대장장이 이름의 무기 종류」가 됩니다(예: 「철수의 대검」). 등급은 바탕 등급 아래로 나오지 않습니다 — ${esc(C.baseMin)} 바탕은 ${esc(C.baseMin)} 또는 유니크, 유니크 바탕은 늘 유니크입니다. ${esc(C.baseMin)} 바탕의 유니크 확률은 숙련도가 높을수록 오르고 ${C.uniqueCap}%를 넘지 않습니다. 바탕 무기의 강화·제련은 사라지고, 귀속·계정 귀속은 그대로 이어집니다. 만든 무기는 다시 강화·제련할 수 있습니다.</p>
     <p class="muted small">보스 재료는 각 레이드를 클리어할 때 한 사람마다 ${pct(C.drop)} 확률로 1개 떨어지고 귀속되지 않습니다.</p>
     ${table(['조합법(레이드)', '보스 재료', '지역 재료', { t: '강화서', c: 'r' }, { t: '베리', c: 'r' }, { t: '숙련도', c: 'r' }], recipeRows)}
     <h3>등급별 공격력(+0, 기사 무기)</h3>
     <p class="muted small">제작 무기는 같은 레이드 무기보다 한 단계 강하고, 유니크는 그보다 더 크게 오릅니다. 가장 높은 조합법의 유니크가 게임에서 가장 강한 무기입니다.</p>
     ${table(['조합법', ...C.grades.map((g) => ({ t: g.name, c: 'r' }))], atkRows, { scroll: true })}
-    <h3>랭크별 등급 확률</h3>
+    <h3>랭크별 등급 확률(${esc(C.baseMin)} 바탕)</h3>
     ${table(['랭크', { t: '숙련도', c: 'r' }, ...C.grades.map((g) => ({ t: g.name, c: 'r' }))], oddsRows)}
+    <h2 id="buff">장비 손질</h2>
+    <p class="muted small">「장비 손질」은 플레이어 대장장이에게 맡기는 일시 효과입니다. 대장장이를 눌러 플레이어 메뉴에서 「장비 손질」을 신청하면 대장장이가 수고비를 제시하고, 받아들이면 바로 손질됩니다. 손질 비용인 베리(받는 사람 레벨 티어 × ${fmt(B.buff.goldPerTier)})와 그 티어 지역 재료 ${B.buff.matQty}개는 대장장이가 내고, 받는 사람은 수고비만 냅니다(거래 수수료를 떼고 대장장이에게). 같은 손질을 다시 받으면 시간이 새로 채워지고(겹치지 않음), 두 가지는 함께 걸 수 있습니다. 죽거나 결투해도 사라지지 않고, 접속을 끊어도 시간은 흐릅니다.</p>
+    ${table(['손질', '효과', { t: '지속', c: 'r' }], B.buff.list.map((b) => tr([`<b>${esc(b.name)}</b>`, b.kind === 'atk' ? `공격력 +${b.pct}%` : `경험치 +${b.pct}%`, R(`${b.min}분`)])))}
     <h2 id="augments">증강</h2>
     <p class="muted small">벼리기와 걸작은 무한 웨이브의 증강 카드 표를 씁니다. 카드 ${B.aug.choices}장 중 하나를 고르고, ${B.aug.pickSec}초 안에 고르지 않으면 가장 높은 등급이 자동으로 골라집니다. 증강은 레이드·던전을 나갈 때까지, 필드에서는 ${Math.round(B.aug.fieldSec / 60)}분 동안 남습니다. 한 사람이 같은 증강을 두 번 받을 수 없고, 무한 웨이브 증강 칸과는 따로입니다. 한 파티에는 대장장이 한 명의 증강만 적용됩니다. 망치질은 ${B.vuln.sec}초 동안 받는 피해를 ${B.vuln.pct}% 늘립니다.</p>
-    <p class="muted small">대장장이는 거래소에서 살 수는 있지만 올릴 수는 없습니다. 대장장이가 계정 창고에 넣은 물건은 계정 귀속이 되어 같은 계정의 캐릭터 누구나 쓸 수 있지만, 1:1 거래와 거래소 등록은 막힙니다. 베리는 자유롭게 오갑니다.</p>`;
+    <p class="muted small">대장장이는 거래소에서 살 수는 있지만 올릴 수는 없습니다. 베리는 자유롭게 오갑니다.</p>`;
 }
 /** 네크로맨서: 소환수 표와 공통 규칙 */
 function summonSection() {
@@ -630,6 +638,19 @@ function secondCard(k, b) {
     ${b.second.skills.map((sid, i) => skillRow(M.skills.get(sid), M.skills.get(before[i]))).join('')}
   </div>`;
 }
+/** 3차 전직 카드: 이름·콘셉트·추가 패시브·스킬 4개(2차 스킬과 비교)·슬롯 5 궁극기·3차 기본 공격·직업 기믹 */
+function thirdCard(b) {
+  if (!b.third) return '';
+  const t = b.third;
+  return `<div class="card branch" id="br3-${b.id}" style="--c:${esc(t.color)}">
+    <h3><span class="muted small">Lv${D.constants.thirdLevel} 3차</span> <span style="color:${esc(t.color)}">${esc(t.name)}</span> ${passiveText(t.passive)}</h3>
+    <p class="muted small">${esc(t.concept)}</p>
+    ${t.skills.map((sid, i) => skillRow(M.skills.get(sid), M.skills.get(b.second.skills[i]))).join('')}
+    ${skillRow(M.skills.get(t.ult))}
+    <div class="skill-row"><span class="ico ph">${icon('swords')}</span><div><b>${esc(t.basicName)}</b><div class="meta"><span class="chip accent">3차 기본 공격</span></div><div class="small">${esc(t.basicDesc)}</div></div></div>
+    <div class="skill-row"><span class="ico ph">${icon('sparkles')}</span><div><b>${esc(t.gimmickName)}</b><div class="meta"><span class="chip accent">직업 기믹 · 늘 켜짐</span></div><div class="small">${esc(t.gimmickDesc)}</div></div></div>
+  </div>`;
+}
 
 // ── 페이지: 스킬 ──
 const skillState = { cls: 'knight' };
@@ -643,7 +664,7 @@ function pageSkills(focusId) {
     <div class="filters"><div class="seg" role="group" aria-label="직업">${D.classes.map((c) => `<button type="button" data-cls="${c.id}" aria-pressed="${c.id === k.id}">${esc(c.name)}</button>`).join('')}</div></div>
     <div class="grid g2">
       <div class="card"><h3>견습 (${esc(k.name)})</h3>${k.skills.map((sid) => skillRow(M.skills.get(sid))).join('')}</div>
-      ${brs.map((b) => `<div class="card branch" style="--c:${esc(b.color)}"><h3><a href="#/classes/${k.id}#br-${b.id}" style="color:${esc(b.color)}">${esc(b.name)}</a> ${passiveText(b.passive)}</h3>${[...(b.skill1 ? [b.skill1] : []), ...b.skills, b.awaken].map((sid) => { const s = M.skills.get(sid); return skillRow(s, M.skills.get(k.skills[s.slot - 1])); }).join('')}</div>${secondCard(k, b)}`).join('')}
+      ${brs.map((b) => `<div class="card branch" style="--c:${esc(b.color)}"><h3><a href="#/classes/${k.id}#br-${b.id}" style="color:${esc(b.color)}">${esc(b.name)}</a> ${passiveText(b.passive)}</h3>${[...(b.skill1 ? [b.skill1] : []), ...b.skills, b.awaken].map((sid) => { const s = M.skills.get(sid); return skillRow(s, M.skills.get(k.skills[s.slot - 1])); }).join('')}</div>${secondCard(k, b)}${thirdCard(b)}`).join('')}
     </div>`;
   return html;
 }
@@ -1221,7 +1242,8 @@ function buildSearch() {
   for (const o of D.blacksmith.options) add('제련 옵션', o.name, `#/classes/${D.blacksmith.id}#refine`, `제련 옵션 · ${o.bands.map((b) => `${b.min}~${b.max}${o.unit}`).join(' / ')}`, ph('sparkles'), o.slots.map((s) => KIND[s]).join(' · '), '제련옵션대장장이');
   for (const b of D.branches) add('전직', b.name, `#/classes/${b.classId}#br-${b.id}`, `${classOf(b.classId).name} 전직`, ph('git-branch'), b.concept, `${classOf(b.classId).name}전직`);
   for (const b of D.branches) add('전직', b.second.name, `#/classes/${b.classId}#br2-${b.id}`, `${b.name} 2차 전직`, ph('git-branch'), b.second.concept, `${classOf(b.classId).name}${b.name}2차전직`);
-  const skillOwner = (s) => (s.branchId ? `·${s.second ? M.branches.get(s.branchId).second.name : M.branches.get(s.branchId).name}` : '');
+  for (const b of D.branches) if (b.third) add('전직', b.third.name, `#/classes/${b.classId}#br3-${b.id}`, `${b.second.name} 3차 전직`, ph('git-branch'), b.third.concept, `${classOf(b.classId).name}${b.name}3차전직`);
+  const skillOwner = (s) => (s.branchId ? `·${s.third ? M.branches.get(s.branchId).third.name : s.second ? M.branches.get(s.branchId).second.name : M.branches.get(s.branchId).name}` : '');
   for (const s of D.skills) add('스킬', s.name, `#/skills/${s.id}`, `${classOf(s.classId).name}${skillOwner(s)} 스킬`, skillIcon(s, 'sm'), [s.desc, ...s.lines].join(' · '), `${classOf(s.classId).name}${skillOwner(s).slice(1)}스킬`);
   for (const s of D.summons.list) add('소환수', s.name, '#/classes/necromancer#summons', `네크로맨서 소환수 · 최대 HP ${s.hpPct}% · ${s.lifeSec}초`, ph('skull'), s.callers.map((c) => c.name).join(' · '), '소환수해골네크로맨서');
   for (const so of D.songs.list) add('노래', so.name, '#/classes/bard#songs', `바드 노래 · ${so.effect}`, so.icon ? `<img class="ico sm" src="${esc(so.icon)}" alt="">` : ph('sparkles'), so.casts.map((c) => c.skillName).join(' · '), '바드노래버프');
