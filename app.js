@@ -536,7 +536,7 @@ function pageBlacksmith(k) {
   const B = D.blacksmith;
   const top = B.ranks[B.ranks.length - 1];
   const bodyRows = k.growth.map((g) => tr([R(`Lv${g.level}`), R(`T${g.tier}`), R(fmt(g.atk)), R(fmt(g.maxHp)), R(fmt(g.maxMp))]));
-  const rankRows = B.ranks.map((r) => tr([`<b>${esc(r.name)}</b>`, R(fmt(r.score)), R(`${r.lines}줄`), r.band, R(`${r.augs}개`), R(`${r.odds.silver}% · ${r.odds.gold}% · ${r.odds.prism}%`)]));
+  const rankRows = B.ranks.map((r) => tr([`<b>${esc(r.name)}</b>`, R(fmt(r.score)), esc(r.spec), R(`${r.lines}줄`), r.band, R(`${r.cost}%`), R(`×${r.reqMul}`), R(`${r.augs}개`), R(`${r.odds.silver}% · ${r.odds.gold}% · ${r.odds.prism}%`)]));
   const optRows = B.options.map((o) => tr([`<b>${esc(o.name)}</b>`, ...o.bands.map((b) => R(`${b.min}~${b.max}${o.unit}`)), `<span class="small">${o.slots.map((s) => KIND[s]).join(' · ')}</span>`]));
   const C = B.craft;
   const itemLink = (id) => `<a href="#/items/${id}">${esc(M.items.get(id)?.name ?? id)}</a>`;
@@ -556,12 +556,13 @@ function pageBlacksmith(k) {
       </div>
     </div>
     <h2 id="mastery">숙련도</h2>
-    <p class="muted small">제련할 때마다 그 장비 티어 숫자만큼 오릅니다(다른 사람의 장비는 ×1.5). 레이드를 클리어하면 이 대장장이의 증강을 지닌 파티원 수만큼 더 오릅니다. 랭크 이름은 이름표 앞에 붙습니다.</p>
-    ${table(['랭크', { t: '숙련도', c: 'r' }, { t: '제련 줄 수', c: 'r' }, '옵션 값', { t: '1인 증강', c: 'r' }, { t: '카드 은 · 금 · 프리즘', c: 'r' }], rankRows)}
+    <p class="muted small">제련할 때마다 그 장비 티어 숫자만큼 오르고, 다른 사람의 장비(의뢰)는 랭크별 의뢰 배율을 곱합니다(낮은 랭크일수록 큽니다). 전문 구간보다 낮은 티어 장비는 한 랭크 아래 ×${B.overCap[1]}, 두 랭크 이상 아래 ×${B.overCap[2]}만 오릅니다. 레이드를 클리어하면 이 대장장이의 증강을 지닌 파티원 수만큼 더 오릅니다. 랭크 이름은 이름표 앞에 붙습니다.</p>
+    <p class="muted small">전문 구간: 장비 티어마다 제련이 닿는 랭크 한도가 있어, 한도보다 높은 랭크가 제련해도 결과는 한도 랭크와 같습니다. 낮은 랭크일수록 제련 비용(베리·강화서·지역 재료)이 싸므로 낮은 티어 장비는 그 구간 대장장이에게 맡기는 편이 이득입니다.</p>
+    ${table(['랭크', { t: '숙련도', c: 'r' }, '전문 구간', { t: '제련 줄 수', c: 'r' }, '옵션 값', { t: '비용', c: 'r' }, { t: '의뢰 숙련도', c: 'r' }, { t: '1인 증강', c: 'r' }, { t: '카드 은 · 금 · 프리즘', c: 'r' }], rankRows)}
     <h2 id="refine">제련 옵션</h2>
-    <p class="muted small">장비 7칸 어디든 무작위 옵션을 1줄~랭크 최대 줄 수만큼 붙이고 각인을 남깁니다. 실패는 없고 강화·각성과는 따로입니다. 한 장비에 같은 옵션은 겹치지 않습니다. 이미 옵션이 있는 장비는 새 결과와 비교해 유지·교체를 고릅니다. 비용은 장비 순위 × ${fmt(B.cost.goldPerRank)} 베리, 강화서 ${B.cost.scrolls}장, 그 티어 지역 재료 ${B.cost.matQty}개입니다. ${esc(top.name)}는 ${B.masterworkPct}% 확률로 줄 수·값이 모두 최대인 걸작 제련이 되고 서버 전체에 알려집니다. 공격 속도는 유물과 합쳐 ${B.fxCap.aspdPct}%, 재사용 대기 감소는 ${B.fxCap.cdrPct}%까지입니다.</p>
+    <p class="muted small">장비 7칸 어디든 무작위 옵션을 1줄~랭크 최대 줄 수만큼 붙이고 각인을 남깁니다. 실패는 없고 강화·각성과는 따로입니다. 한 장비에 같은 옵션은 겹치지 않습니다. 이미 옵션이 있는 장비는 새 결과와 비교해 유지·교체를 고릅니다. 비용은 장비 순위 × ${fmt(B.cost.goldPerRank)} 베리, 강화서 ${B.cost.scrolls}장, 그 티어 지역 재료 ${B.cost.matQty}개에 위 표의 랭크별 비용 비율을 곱합니다(강화서·재료는 올림). ${esc(top.name)}는 ${esc(top.spec)} 장비에서 ${B.masterworkPct}% 확률로 줄 수·값이 모두 최대인 걸작 제련이 되고 서버 전체에 알려집니다. 공격 속도는 유물과 합쳐 ${B.fxCap.aspdPct}%, 재사용 대기 감소는 ${B.fxCap.cdrPct}%까지입니다.</p>
     ${table(['옵션', ...['하', '중', '상'].map((t) => ({ t: `값 ${t}`, c: 'r' })), '붙는 장비'], optRows)}
-    <p class="muted small" style="margin-top:8px">제련 의뢰: 1:1 거래 거리 안에서 의뢰인이 장비 하나와 회당 수고비, 최대 횟수를 정합니다. 장비는 의뢰인 가방에 잠긴 채로 남고, 비용과 수고비는 실제로 쓴 횟수만 냅니다(수고비에는 거래 수수료가 붙습니다). 제련한 장비는 거래소에 올릴 수 있고 옵션이 툴팁·살펴보기·매물에 보입니다.</p>
+    <p class="muted small" style="margin-top:8px">제련 의뢰: 1:1 거래 거리 안에서 의뢰인이 장비 하나를 골라 신청하면, 대장장이가 회당 수고비와 최대 횟수를 먼저 제시하고 의뢰인이 받아들여야 시작됩니다. 신청 창과 제시 카드에서 그 대장장이가 붙일 수 있는 옵션과 값의 최소~최대를 볼 수 있습니다. 제련비·강화서·재료는 대장장이가 내고(한 번 할 만큼은 있어야 제시할 수 있습니다), 의뢰인은 실제로 제련한 횟수만큼 수고비만 냅니다(수고비에는 거래 수수료가 붙습니다). 장비는 의뢰인 가방에 잠긴 채로 남습니다. 제련한 장비는 거래소에 올릴 수 있고 옵션이 툴팁·살펴보기·매물에 보입니다.</p>
     <h2 id="craft">무기 제작</h2>
     <p class="muted small">노을마을 대장장이 NPC의 「무기 제작」에서 레이드 무기(어느 직업·어느 등급이든, 가방에 있는 것) 하나를 녹이고 그 레이드의 보스 재료와 함께 새 무기를 벼립니다. 만들 무기의 직업은 대장장이가 고르고, 이름 앞에 대장장이 이름이 붙습니다(예: 「철수의 영겁 검」). 등급은 일반~유니크 중 무작위이며 숙련도가 높을수록 좋은 등급이 잘 나옵니다. 유니크는 어떤 숙련도에서도 ${C.uniqueCap}%를 넘지 않습니다. 바탕 무기의 강화·제련은 사라지고, 귀속·계정 귀속은 그대로 이어집니다. 만든 무기는 다시 강화·제련할 수 있습니다.</p>
     <p class="muted small">보스 재료는 각 레이드를 클리어할 때 한 사람마다 ${pct(C.drop)} 확률로 1개 떨어지고 귀속되지 않습니다.</p>
@@ -933,6 +934,7 @@ function pageWorld() {
         <li><b>서버 최초로 ${inf.firstClearWave}웨이브를 넘긴 파티 전원</b>에게 내 레벨 티어 장비 부위 1점을 유니크 등급으로(한 번뿐)</li>
         ${inf.completeTitle ? `<li><b>서버 최초로 ${inf.maxWave}웨이브를 완주한 파티 전원</b>에게 칭호 <b style="color:${esc(inf.completeTitle.color)}">「${esc(inf.completeTitle.name)}」</b>(한 번뿐 · 랭킹에 최초 완주 기록이 남습니다)</li>` : ''}
         <li>라이프 토큰 ${inf.lifeTokens}개 · 투기장 안 전원이 한꺼번에 쓰러지면 도전이 끝납니다. 웨이브 보상과 기록은 웨이브마다 바로 남습니다.</li>
+        <li>싸우다 접속이 끊겨도 ${Math.round(inf.rejoinSec / 60)}분 안에 다시 들어오면 그 던전으로 돌아갑니다(남은 토큰·증강·보상 합계 그대로, 레이드도 같습니다).</li>
         <li>랭킹: 메뉴 › 랭킹 › 무한의 던전 — 같은 파티 구성마다 최고 기록(웨이브 → 걸린 시간 순)</li>
       </ul>
     </section>`;
@@ -1215,7 +1217,7 @@ function buildSearch() {
     const hidden = c.id === D.blacksmith.id;
     add(hidden ? '대장장이' : '직업', c.name, `#/classes/${c.id}`, hidden ? `히든 직업 · ${c.role}` : `직업 · ${c.role}`, c.icon ? `<img class="ico sm" src="${esc(c.icon)}" alt="">` : ph('shield'), '', hidden ? '대장장이히든직업제련증강' : '직업');
   }
-  for (const r of D.blacksmith.ranks) add('숙련도', `${r.name} 대장장이`, `#/classes/${D.blacksmith.id}#mastery`, `숙련도 ${fmt(r.score)} · 제련 ${r.lines}줄 · 1인 증강 ${r.augs}개`, ph('hammer'), `옵션 값 ${r.band}`, '숙련도랭크대장장이');
+  for (const r of D.blacksmith.ranks) add('숙련도', `${r.name} 대장장이`, `#/classes/${D.blacksmith.id}#mastery`, `숙련도 ${fmt(r.score)} · 전문 ${r.spec} · 제련 ${r.lines}줄 · 비용 ${r.cost}%`, ph('hammer'), `옵션 값 ${r.band} · 1인 증강 ${r.augs}개`, '숙련도랭크대장장이전문구간');
   for (const o of D.blacksmith.options) add('제련 옵션', o.name, `#/classes/${D.blacksmith.id}#refine`, `제련 옵션 · ${o.bands.map((b) => `${b.min}~${b.max}${o.unit}`).join(' / ')}`, ph('sparkles'), o.slots.map((s) => KIND[s]).join(' · '), '제련옵션대장장이');
   for (const b of D.branches) add('전직', b.name, `#/classes/${b.classId}#br-${b.id}`, `${classOf(b.classId).name} 전직`, ph('git-branch'), b.concept, `${classOf(b.classId).name}전직`);
   for (const b of D.branches) add('전직', b.second.name, `#/classes/${b.classId}#br2-${b.id}`, `${b.name} 2차 전직`, ph('git-branch'), b.second.concept, `${classOf(b.classId).name}${b.name}2차전직`);
