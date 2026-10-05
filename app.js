@@ -440,7 +440,7 @@ function pageDrops() {
         </ul>
         <h3 style="margin-top:12px">젬 상점</h3>
         ${table(['물건', { t: '젬', c: 'r' }, '효과'], D.gems.shop.map((e) => tr([itemLink(e.itemId), R(`<span style="white-space:nowrap">${e.gems}</span>`), `<span class="small">${esc(M.items.get(e.itemId)?.desc ?? '')}</span>`])))}
-        <p class="muted small" style="margin-top:8px">가방 확장권 1장 = 가방 +${D.gems.bag.step}칸(최대 +${D.gems.bag.max}칸, 캐릭터마다). 계정 창고는 누구나 기본 ${D.gems.storage.base}칸을 쓰고, 창고 구매권 1장마다 +${D.gems.storage.step}칸(구매분 최대 ${D.gems.storage.max}칸) 늘어납니다. 창고는 노을마을 ${esc(npcNameOfRole("storage"))}에게서 열며 같은 계정의 모든 캐릭터(부캐릭터 포함)가 아이템과 베리를 함께 씁니다. 귀속 아이템은 넣을 수 없습니다.</p>
+        <p class="muted small" style="margin-top:8px">가방 확장권 1장 = 가방 +${D.gems.bag.step}칸(제한 없이 계속, 캐릭터마다). 계정 창고는 누구나 기본 ${D.gems.storage.base}칸을 쓰고, 창고 구매권 1장마다 +${D.gems.storage.step}칸(구매분 최대 ${D.gems.storage.max}칸) 늘어납니다. 창고는 노을마을 ${esc(npcNameOfRole("storage"))}에게서 열며 같은 계정의 모든 캐릭터(부캐릭터 포함)가 아이템과 베리를 함께 씁니다. 귀속 아이템은 넣을 수 없습니다.</p>
       </div>
       <div class="card">
         <h3>${itemLink('premium_box')}</h3>
