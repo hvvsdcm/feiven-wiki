@@ -18,7 +18,7 @@ const icon = (name, cls = 'i') => `<svg class="${cls}" aria-hidden="true"><use h
 
 const KIND = { weapon: '무기', helmet: '투구', armor: '갑옷', gloves: '장갑', boots: '신발', accessory: '목걸이', ring: '반지', potion: '회복 물약', mp_potion: '마나 물약', scroll: '두루마리', material: '재료', box: '상자', ticket: '이용권', boost: '부스트' };
 const EQUIP = ['weapon', 'helmet', 'armor', 'gloves', 'boots', 'accessory', 'ring'];
-const ROLE = { chief: '촌장(전직)', quest: '퀘스트', shop: '상인', smith: '대장장이(강화)', sailor: '뱃사공(이동)', raid: '레이드 안내', flavor: '주민' };
+const ROLE = { chief: '촌장(전직)', quest: '퀘스트', shop: '상인', smith: '대장장이(강화)', sailor: '뱃사공(이동)', raid: '선술집(레이드·던전·원정)', gem: '젬 상인', storage: '창고', flavor: '주민' };
 const MOB_KIND = { field: '일반', elite: '정예', boss: '필드 보스', raid: '레이드 보스', raidAdd: '레이드 소환수', worldBoss: '원정 필드 보스', worldBossAdd: '원정 소환수' };
 const PASSIVE = { patkPct: ['물리 공격력', '%'], matkPct: ['마법 공격력', '%'], maxHpPct: ['최대 HP', '%'], maxMpPct: ['최대 MP', '%'], critPct: ['치명타 확률', '%p'] };
 const DMG = { phys: '물리', magic: '마법' };
@@ -54,8 +54,8 @@ function mobLink(id) {
 }
 const islandName = (id) => M.islands.get(id)?.name ?? M.raids.get(id)?.name ?? M.wbIsland.get(id)?.name ?? M.dungeons.get(id)?.name ?? (id === D.infinite.id ? D.infinite.name : id);
 const islandLink = (id) => (M.islands.has(id) ? `<a href="#/world#isl-${esc(id)}">${esc(islandName(id))}</a>` : M.raids.has(id) || id === D.infinite.id ? `<a href="#/world#raid-${esc(id)}">${esc(islandName(id))}</a>` : M.dungeons.has(id) ? `<a href="#/world#dungeons">${esc(islandName(id))}</a>` : M.wbIsland.has(id) ? `<a href="#/world#wb-${esc(M.wbIsland.get(id).id)}">${esc(islandName(id))}</a>` : esc(id));
-/** 1렙 마을(태초마을) 젬 NPC 이름: gem = 젬 상인, storage = 창고지기 */
-const npcNameOfRole = (role) => D.npcNames?.[role === 'gem' ? 'sv_gem' : 'sv_storage'] ?? (role === 'gem' ? '젬 상인' : '창고지기');
+/** 모항(노을마을) 젬 NPC 이름: gem = 젬 상인, storage = 창고지기 */
+const npcNameOfRole = (role) => D.npcNames?.[role === 'gem' ? 'vg_gem' : 'vg_storage'] ?? (role === 'gem' ? '젬 상인' : '창고지기');
 const RUBY_NOTE = '루비는 계정 공용 재화로 상점에서 씁니다. 일반·정예 몬스터와 후원자 추가·면제 회차에서는 나오지 않습니다. 드랍 이벤트 배율이 붙지 않습니다.';
 /** 루비 드랍 한 줄: "루비 N% (a~b개)" */
 function rubyLine(source) {
@@ -428,7 +428,7 @@ function pageDrops() {
     ${table(['출처', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }, { t: '기대값', c: 'r' }], D.ruby.drops.map((r) => tr([esc(r.label), R(pct(r.chance)), R(`${r.qty[0]}~${r.qty[1]}개`), R(`약 ${fmt(r.chance * (r.qty[0] + r.qty[1]) / 2)}루비`)])))}
 
     <h2 id="gems">${esc(D.gems.name)} · 고급 상자</h2>
-    <p><b>${esc(D.gems.name)}</b>은 레이드 · ${esc(D.infinite.name)} · 필드 정예 몬스터에서만 낮은 확률로 나오는 재화입니다(캐릭터마다 따로 쌓입니다). 태초마을의 ${esc(npcNameOfRole('gem'))}에게서 쓸 수 있습니다(한 번에 ${D.gems.buyMax}개까지). Lv ${D.relics.level}부터는 <a href="#/growth#relics">유물</a> 뽑기에도 씁니다.</p>
+    <p><b>${esc(D.gems.name)}</b>은 레이드 · ${esc(D.infinite.name)} · 필드 정예 몬스터에서만 낮은 확률로 나오는 재화입니다(캐릭터마다 따로 쌓입니다). 노을마을의 ${esc(npcNameOfRole('gem'))}에게서 쓸 수 있습니다(한 번에 ${D.gems.buyMax}개까지). Lv ${D.relics.level}부터는 <a href="#/growth#relics">유물</a> 뽑기에도 씁니다.</p>
     <div class="grid g2">
       <div class="card">
         <h3>얻는 곳</h3>
@@ -440,7 +440,7 @@ function pageDrops() {
         </ul>
         <h3 style="margin-top:12px">젬 상점</h3>
         ${table(['물건', { t: '젬', c: 'r' }, '효과'], D.gems.shop.map((e) => tr([itemLink(e.itemId), R(`<span style="white-space:nowrap">${e.gems}</span>`), `<span class="small">${esc(M.items.get(e.itemId)?.desc ?? '')}</span>`])))}
-        <p class="muted small" style="margin-top:8px">가방 확장권 1장 = 가방 +${D.gems.bag.step}칸(최대 +${D.gems.bag.max}칸, 캐릭터마다). 계정 창고는 누구나 기본 ${D.gems.storage.base}칸을 쓰고, 창고 구매권 1장마다 +${D.gems.storage.step}칸(구매분 최대 ${D.gems.storage.max}칸) 늘어납니다. 창고는 태초마을 ${esc(npcNameOfRole("storage"))}에게서 열며 같은 계정의 모든 캐릭터(부캐릭터 포함)가 아이템과 베리를 함께 씁니다. 귀속 아이템은 넣을 수 없습니다.</p>
+        <p class="muted small" style="margin-top:8px">가방 확장권 1장 = 가방 +${D.gems.bag.step}칸(최대 +${D.gems.bag.max}칸, 캐릭터마다). 계정 창고는 누구나 기본 ${D.gems.storage.base}칸을 쓰고, 창고 구매권 1장마다 +${D.gems.storage.step}칸(구매분 최대 ${D.gems.storage.max}칸) 늘어납니다. 창고는 노을마을 ${esc(npcNameOfRole("storage"))}에게서 열며 같은 계정의 모든 캐릭터(부캐릭터 포함)가 아이템과 베리를 함께 씁니다. 귀속 아이템은 넣을 수 없습니다.</p>
       </div>
       <div class="card">
         <h3>${itemLink('premium_box')}</h3>
@@ -470,12 +470,12 @@ function passiveText(p) {
 }
 function pageClasses() {
   return `
-    ${head('직업·전직', `직업 ${D.classes.length}개, 전직 갈래 ${D.branches.length}개, 2차 전직 ${D.branches.length}개`)}
+    ${head('직업·전직', `직업 ${D.classes.length - 1}개와 히든 직업 1개, 전직 갈래 ${D.branches.length}개, 2차 전직 ${D.branches.length}개`)}
     <div class="grid g3">${D.classes.map((k) => `
       <a class="card class-card" href="#/classes/${k.id}" style="--c:${k.color}">
         ${k.icon ? `<img class="ico lg" src="${esc(k.icon)}" alt="" style="width:64px;height:64px">` : ''}
         <div><b style="font-size:18px;color:var(--text)">${esc(k.name)}</b><div class="muted small">${esc(k.role)}</div>
-        <div class="chips" style="margin-top:6px"><span class="chip">${DMG[k.dmgType]}</span><span class="chip">갈래 ${D.branches.filter((b) => b.classId === k.id).length}개</span></div></div>
+        <div class="chips" style="margin-top:6px"><span class="chip">${DMG[k.dmgType]}</span>${k.id === D.blacksmith.id ? '<span class="chip accent">히든 직업</span>' : `<span class="chip">갈래 ${D.branches.filter((b) => b.classId === k.id).length}개</span>`}</div></div>
       </a>`).join('')}
     </div>
     <h2>전직 흐름</h2>
@@ -501,6 +501,7 @@ function skillRow(s, compareTo) {
 function pageClass(id) {
   const k = classOf(id);
   if (!k) return notFound();
+  if (id === D.blacksmith.id) return pageBlacksmith(k);
   const brs = D.branches.filter((b) => b.classId === id);
   const basicLine = k.basic.kind === 'melee' ? `근접 ${k.basic.arc}° · 사거리 ${k.basic.range}` : `투사체 사거리 ${k.basic.range}`;
   const growthRows = k.growth.map((g) => tr([R(`Lv${g.level}`), R(`T${g.tier}`), R(fmt(g.atk)), R(fmt(g.maxHp)), R(fmt(g.maxMp))]));
@@ -529,6 +530,36 @@ function pageClass(id) {
         </div>
         ${secondCard(k, b)}`).join('')}</div>
     </div>`;
+}
+/** 히든 직업 대장장이: 레벨 대신 숙련도, 제련 옵션, 증강. 되는 방법은 싣지 않는다 */
+function pageBlacksmith(k) {
+  const B = D.blacksmith;
+  const top = B.ranks[B.ranks.length - 1];
+  const bodyRows = k.growth.map((g) => tr([R(`Lv${g.level}`), R(`T${g.tier}`), R(fmt(g.atk)), R(fmt(g.maxHp)), R(fmt(g.maxMp))]));
+  const rankRows = B.ranks.map((r) => tr([`<b>${esc(r.name)}</b>`, R(fmt(r.score)), R(`${r.lines}줄`), r.band, R(`${r.augs}개`), R(`${r.odds.silver}% · ${r.odds.gold}% · ${r.odds.prism}%`)]));
+  const optRows = B.options.map((o) => tr([`<b>${esc(o.name)}</b>`, ...o.bands.map((b) => R(`${b.min}~${b.max}${o.unit}`)), `<span class="small">${o.slots.map((s) => KIND[s]).join(' · ')}</span>`]));
+  return `
+    ${crumb('#/classes', '직업 목록')}
+    <div class="detail-head">${k.icon ? `<img class="ico lg" src="${esc(k.icon)}" alt="">` : ''}<div><h1 style="color:${esc(k.color)}">${esc(k.name)}</h1>
+      <div class="chips"><span class="chip accent">히든 직업</span><span class="chip">${esc(k.role)}</span><span class="chip">${DMG[k.dmgType]} 피해</span><span class="chip">레벨 없음 · 숙련도 랭크</span></div></div></div>
+    <p>망치로 동료의 장비를 제련하고 전투 중 증강 카드를 벼려 주는 지원 직업입니다. 서버에 한 사람씩 조용히 나타나는 히든 직업이며, 한 계정에 한 명만 될 수 있습니다.</p>
+    <div class="grid g2">
+      <div class="card"><h3>몸(레벨 없음)</h3><p class="muted small">레벨과 경험치가 없습니다. 레이드·던전은 입장 레벨, 필드는 그 섬의 기준 레벨에 맞춘 몸이 됩니다(그 티어 일반 장비 7칸 기준). 입장 레벨 제한을 받지 않고, 드랍과 레이드 보상은 그대로 받습니다. 결투는 하지 않고, 직접 주는 피해는 낮습니다.</p>${table([{ t: '기준 레벨', c: 'r' }, { t: '장비 티어', c: 'r' }, { t: '공격력', c: 'r' }, { t: '최대 HP', c: 'r' }, { t: '최대 MP', c: 'r' }], bodyRows)}</div>
+      <div class="card"><h3>스킬</h3>
+        ${k.skills.map((sid) => skillRow(M.skills.get(sid))).join('')}
+        <p class="muted small" style="margin-top:8px">장비는 대장장이의 망치 하나뿐이고, 다른 장비는 낄 수 없습니다.</p>
+      </div>
+    </div>
+    <h2 id="mastery">숙련도</h2>
+    <p class="muted small">제련할 때마다 그 장비 티어 숫자만큼 오릅니다(다른 사람의 장비는 ×1.5). 레이드를 클리어하면 이 대장장이의 증강을 지닌 파티원 수만큼 더 오릅니다. 랭크 이름은 이름표 앞에 붙습니다.</p>
+    ${table(['랭크', { t: '숙련도', c: 'r' }, { t: '제련 줄 수', c: 'r' }, '옵션 값', { t: '1인 증강', c: 'r' }, { t: '카드 은 · 금 · 프리즘', c: 'r' }], rankRows)}
+    <h2 id="refine">제련 옵션</h2>
+    <p class="muted small">장비 7칸 어디든 무작위 옵션을 1줄~랭크 최대 줄 수만큼 붙이고 각인을 남깁니다. 실패는 없고 강화·각성과는 따로입니다. 한 장비에 같은 옵션은 겹치지 않습니다. 이미 옵션이 있는 장비는 새 결과와 비교해 유지·교체를 고릅니다. 비용은 장비 순위 × ${fmt(B.cost.goldPerRank)} 베리, 강화서 ${B.cost.scrolls}장, 그 티어 지역 재료 ${B.cost.matQty}개입니다. ${esc(top.name)}는 ${B.masterworkPct}% 확률로 줄 수·값이 모두 최대인 걸작 제련이 되고 서버 전체에 알려집니다. 공격 속도는 유물과 합쳐 ${B.fxCap.aspdPct}%, 재사용 대기 감소는 ${B.fxCap.cdrPct}%까지입니다.</p>
+    ${table(['옵션', ...['하', '중', '상'].map((t) => ({ t: `값 ${t}`, c: 'r' })), '붙는 장비'], optRows)}
+    <p class="muted small" style="margin-top:8px">제련 의뢰: 1:1 거래 거리 안에서 의뢰인이 장비 하나와 회당 수고비, 최대 횟수를 정합니다. 장비는 의뢰인 가방에 잠긴 채로 남고, 비용과 수고비는 실제로 쓴 횟수만 냅니다(수고비에는 거래 수수료가 붙습니다). 제련한 장비는 거래소에 올릴 수 있고 옵션이 툴팁·살펴보기·매물에 보입니다.</p>
+    <h2 id="augments">증강</h2>
+    <p class="muted small">벼리기와 걸작은 무한 웨이브의 증강 카드 표를 씁니다. 카드 ${B.aug.choices}장 중 하나를 고르고, ${B.aug.pickSec}초 안에 고르지 않으면 가장 높은 등급이 자동으로 골라집니다. 증강은 레이드·던전을 나갈 때까지, 필드에서는 ${Math.round(B.aug.fieldSec / 60)}분 동안 남습니다. 한 사람이 같은 증강을 두 번 받을 수 없고, 무한 웨이브 증강 칸과는 따로입니다. 한 파티에는 대장장이 한 명의 증강만 적용됩니다. 망치질은 ${B.vuln.sec}초 동안 받는 피해를 ${B.vuln.pct}% 늘립니다.</p>
+    <p class="muted small">대장장이는 거래소에서 살 수는 있지만 올릴 수는 없습니다. 대장장이가 계정 창고에 넣은 물건은 계정 귀속이 되어 같은 계정의 캐릭터 누구나 쓸 수 있지만, 1:1 거래와 거래소 등록은 막힙니다. 베리는 자유롭게 오갑니다.</p>`;
 }
 /** 네크로맨서: 소환수 표와 공통 규칙 */
 function summonSection() {
@@ -692,7 +723,7 @@ function sourceBlock(it) {
   const market = by('market');
   if (market.length) out.push(`<div class="card"><h3>${esc(D.constants.market.name)}</h3><ul class="plain">${market.map((s) => `<li>${esc(s.note)} · ${fmt(Math.round(it.price * D.constants.market.gradePriceMul.epic))} 베리</li>`).join('')}</ul></div>`);
   const gemShop = by('gemShop');
-  if (gemShop.length) out.push(`<div class="card"><h3>${esc(npcNameOfRole('gem'))} (태초마을)</h3><ul class="plain">${gemShop.map((s) => `<li>${esc(D.gems.name)} ${s.gems}개</li>`).join('')}</ul></div>`);
+  if (gemShop.length) out.push(`<div class="card"><h3>${esc(npcNameOfRole('gem'))} (노을마을)</h3><ul class="plain">${gemShop.map((s) => `<li>${esc(D.gems.name)} ${s.gems}개</li>`).join('')}</ul></div>`);
   const premium = by('premium');
   if (premium.length) out.push(`<div class="card"><h3>고급 상자</h3><ul class="plain">${premium.map((s) => `<li>${pct(s.chance)} — ${esc(s.note)}</li>`).join('')}</ul></div>`);
   if (by('legacy').length) out.push(`<div class="card"><h3>더 이상 얻을 수 없음</h3><p>등급 개편 전 장비입니다. 이미 가진 사람을 위해 남아 있을 뿐, 드랍·상점·상자 어디에서도 나오지 않습니다. 지금은 티어 장비·레이드 세트의 같은 부위가 일반~유니크 등급으로 굴려져 나옵니다(<a href="#/drops">드랍률</a>).</p></div>`);
@@ -816,16 +847,16 @@ function pageWorld() {
     const quests = isl.quests.map((q) => M.quests.get(q));
     return `
       <section class="card" id="isl-${isl.id}">
-        <h2 style="margin-top:0">${esc(isl.name)} <span class="chip">Lv${isl.levelRange[0]}~${isl.levelRange[1]}</span> <span class="chip">입장 Lv${isl.minLevel}</span> <span class="chip">상점 ${isl.shopTiers.map((t) => `T${t}`).join('·')}</span></h2>
+        <h2 style="margin-top:0">${esc(isl.name)} ${isl.hub ? '<span class="chip accent">모항 · 시작 마을</span> <span class="chip">사냥터 없음</span>' : `<span class="chip">Lv${isl.levelRange[0]}~${isl.levelRange[1]}</span> <span class="chip">입장 Lv${isl.minLevel}</span>`} <span class="chip">상점 ${isl.shopTiers.map((t) => `T${t}`).join('·')}</span></h2>
         <div class="grid g2">
           <div>
-            <h3>몬스터</h3>
+            ${isl.hub ? `<p class="small">새 캐릭터가 처음 서는 마을입니다. 대장간·잡화점·창고·젬 상점이 모여 있고, 레이드·일일 던전·필드 보스 원정은 모두 <b>선술집 주인</b>에게서 출발합니다. 귀환 두루마리를 쓰면 이 마을 부두로 돌아옵니다. 광장 모닥불가에 둘러앉을 수 있고, 음유시인은 류트 연주를 할 수 있습니다.</p>` : `<h3>몬스터</h3>
             <ul class="plain">${normal.map((m) => `<li>${mobLink(m.id)}</li>`).join('')}
               ${elite ? `<li><span class="chip">정예</span> ${mobLink(elite.id)} · ${D.constants.elite.respawnSec / 60}분마다</li>` : ''}
-              ${isl.bossId ? `<li><span class="chip accent">필드 보스</span> ${mobLink(isl.bossId)} · ${D.constants.bossRespawnSec}초마다</li>` : ''}</ul>
+              ${isl.bossId ? `<li><span class="chip accent">필드 보스</span> ${mobLink(isl.bossId)} · ${D.constants.bossRespawnSec}초마다</li>` : ''}</ul>`}
             <h3 style="margin-top:12px">NPC</h3>
             <p class="small">${isl.npcs.map((n) => `${esc(n.name)} <span class="muted">(${ROLE[n.role] ?? n.role})</span>`).join(' · ')}</p>
-            <p class="small muted">보물상자 ${isl.chests}개 · 상자 보상은 <a href="#/drops">드랍률</a> 참고</p>
+            ${isl.hub ? '' : `<p class="small muted">보물상자 ${isl.chests}개 · 상자 보상은 <a href="#/drops">드랍률</a> 참고</p>`}
           </div>
           <div>
             <h3>상점</h3>
@@ -855,7 +886,7 @@ function pageWorld() {
   const worldBosses = D.worldBosses.map((w) => `
     <section class="card" id="wb-${w.id}">
       <h2 style="margin-top:0">${esc(w.name)} <span class="chip">누구나 참여</span> <span class="chip">처치 뒤 ${w.respawnSec / 60}분마다</span></h2>
-      <p>보스: ${mobLink(w.bossId)} · HP ${fmt(M.mobs.get(w.bossId)?.hp ?? 0)} · 어느 섬의 항해사(뱃사공)에게서든 「원정」으로 건너갑니다. 파티 · 인원 제한이 없습니다.</p>
+      <p>보스: ${mobLink(w.bossId)} · HP ${fmt(M.mobs.get(w.bossId)?.hp ?? 0)} · 노을마을 선술집 주인에게서 「원정」으로 건너갑니다. 파티 · 인원 제한이 없습니다.</p>
       ${table(['페이즈', { t: '보스 HP', c: 'r' }, '패턴'], w.phases.map((p) => tr([`${p.phase}`, R(`${p.fromHpPct}% 이하`), esc(p.label)])))}
       ${w.enrage ? `<p class="small" style="margin-top:8px">격노: 교전 ${w.enrage.afterSec / 60}분 뒤 보스 피해 ×${w.enrage.damageMultiplier}</p>` : ''}
       <h3>보상 (처치 때 기여 지분 ${w.minSharePct}% 이상인 사람 — 기여 = 피해 + 치유 × ${D.constants.worldBossHealWeight})</h3>
@@ -871,7 +902,7 @@ function pageWorld() {
   const infCard = `
     <section class="card" id="raid-${inf.id}">
       <h2 style="margin-top:0">${esc(inf.name)} <span class="chip">입장 Lv${inf.minLevel}</span> <span class="chip">혼자~${inf.size}인</span> <span class="chip">최대 ${inf.maxWave}웨이브</span> <span class="chip">재입장 대기 없음</span></h2>
-      <p>레이드 안내인·항해사의 레이드 목록에서 출발합니다(파티 없이 혼자도 가능). ${inf.firstWaveSec}초 뒤 1웨이브가 몰려오고, 투기장의 몬스터를 모두 쓰러뜨리면 웨이브 클리어 → ${inf.breakSec}초 쉬고 다음 웨이브. ${inf.bossEvery}웨이브마다 보스(호위 ${inf.bossEscorts})가 나옵니다. <b>${inf.maxWave}웨이브를 넘기면 완주</b>로 도전이 끝나고 잠시 뒤 원래 자리로 돌아갑니다.</p>
+      <p>노을마을 선술집 주인의 레이드 목록에서 출발합니다(파티 없이 혼자도 가능). ${inf.firstWaveSec}초 뒤 1웨이브가 몰려오고, 투기장의 몬스터를 모두 쓰러뜨리면 웨이브 클리어 → ${inf.breakSec}초 쉬고 다음 웨이브. ${inf.bossEvery}웨이브마다 보스(호위 ${inf.bossEscorts})가 나옵니다. <b>${inf.maxWave}웨이브를 넘기면 완주</b>로 도전이 끝나고 잠시 뒤 원래 자리로 돌아갑니다.</p>
       <p class="small">몬스터 수치는 웨이브마다 곱으로 커집니다: HP ${fmt(inf.scaling.hp)} × ${inf.scaling.hpGrowth}^(웨이브−1), 공격력 ${inf.scaling.atk} × ${inf.scaling.atkGrowth}^(웨이브−1). 보스 = HP ×${inf.scaling.bossHpMul} · 공격력 ×${inf.scaling.bossAtkMul}. 처치 경험치·처치 드랍은 없습니다(보상은 웨이브 클리어 때).</p>
       ${inf.bossTimeSec ? `<p class="small"><b>보스 웨이브 제한 시간 ${Math.round(inf.bossTimeSec / 60)}분</b>: 보스가 나온 순간부터 화면 위 웨이브 표시에 남은 시간이 흐릅니다. 그 안에 웨이브를 정리하지 못하면 남은 몬스터가 사라지고 도전이 끝납니다(그 보스 웨이브는 기록·보상에 들지 않고, 앞 웨이브까지의 보상·기록은 그대로).${inf.finalBoss ? ` 마지막 ${inf.maxWave}웨이브 보스는 천공의 왕좌의 ${mobLink(inf.finalBoss)}(같은 패턴, 수치는 웨이브 공식)입니다.` : ''}</p>` : ''}
       ${table([{ t: '웨이브', c: 'r' }, { t: '몬스터', c: 'r' }, { t: 'HP', c: 'r' }, { t: '공격력', c: 'r' }, '보스', { t: '클리어 베리', c: 'r' }, { t: '경험치', c: 'r' }, { t: '강화서', c: 'r' }, { t: esc(D.gems.name), c: 'r' }], inf.waves.map((w) => tr([R(w.wave), R(w.count), R(fmt(w.mob.hp)), R(fmt(w.mob.atk)), w.bossId ? `${mobLink(w.bossId)} <span class="muted small">HP ${fmt(w.bossStats.hp)} · 공격력 ${fmt(w.bossStats.atk)}</span>` : '', R(fmt(w.gold)), R(pct(w.expPct)), R(w.scrolls || ''), R(pct(w.gem.chance))])), { scroll: true })}
@@ -928,7 +959,7 @@ function pageWorld() {
   const trainingCard = `
     <section class="card" id="training">
       <h2 style="margin-top:0">${esc(tg.name)} <span class="chip">누구나 · 레벨 제한 없음</span> <span class="chip">DPS 측정</span></h2>
-      <p>어느 섬의 항해사(뱃사공)에게서든 목록 맨 끝의 「훈련장」으로 건너갑니다. 허수아비는 움직이지도 반격하지도 않고, HP가 바닥나도 그 자리에서 다시 가득 찹니다. 경험치·전리품·퀘스트 진행은 없습니다.</p>
+      <p>어느 섬의 뱃사공에게서든 목록 맨 끝의 「훈련장」으로 건너갑니다. 허수아비는 움직이지도 반격하지도 않고, HP가 바닥나도 그 자리에서 다시 가득 찹니다. 경험치·전리품·퀘스트 진행은 없습니다.</p>
       ${table(['허수아비', { t: '레벨', c: 'r' }, { t: 'HP', c: 'r' }], tg.dummies.map((d) => tr([`<b>${esc(d.name)}</b>`, R(d.level), R(fmt(d.hp))])))}
       <ul class="plain small" style="margin-top:12px">
         <li>허수아비를 때리면 화면 위쪽에 <b>DPS 측정판</b>이 뜹니다: DPS · 총 피해 · 시간 · 타격 수 · 치명타 비율 · 최고 한 방 · 최고 DPS.</li>
@@ -944,7 +975,7 @@ function pageWorld() {
   const dungeonCards = `
     <section class="card" id="dungeons">
       <h2 style="margin-top:0">일일 던전 <span class="chip">하루(KST) 던전마다 ${lvDg.dailyLimit}번</span> <span class="chip">혼자~${lvDg.size}인</span> <span class="chip">${lvDg.maxWave}구역</span></h2>
-      <p>레이드 안내인·항해사의 레이드 목록에서 출발합니다. 입장할 때마다 1회로 세고, 파티로 가면 <b>파티원 모두</b> 남은 횟수가 있어야 출발합니다. 랭킹·서버 최초 보상은 없습니다.</p>
+      <p>노을마을 선술집 주인의 레이드 목록에서 출발합니다. 입장할 때마다 1회로 세고, 파티로 가면 <b>파티원 모두</b> 남은 횟수가 있어야 출발합니다. 랭킹·서버 최초 보상은 없습니다.</p>
       <p><b>방을 뚫고 나아가는 던전</b>입니다. 입구에서 회랑을 따라 방 ${lvDg.maxWave}곳을 차례로 지나며, <b>파티가 방에 들어서야</b> 그 방 몬스터가 나타납니다(방을 정리해야 다음 방이 열립니다). ${midNo}구역에는 <b>중간 보스</b>(한 단계 아래 지역의 섬 보스 · 최종 보스 수치 대비 HP ${pct(lvDg.midBoss?.hp ?? 0)} · 공격력 ${pct(lvDg.midBoss?.atk ?? 0)} · 호위 ${lvDg.midBoss?.escorts ?? 0}), 마지막 ${lvDg.maxWave}구역에는 <b>최종 보스</b>(그 레벨 지역의 섬 보스 · 호위 ${lvDg.bossEscorts})가 기다립니다. 진행 창의 화살표가 다음 방 쪽을 가리킵니다.</p>
       <p class="small">몬스터는 구역 번호가 아니라 <b>입장한 파티의 평균 레벨과 인원</b>에 맞춰집니다(그 레벨 지역의 몬스터를 기준으로 인원이 늘 때마다 HP가 불어납니다). 순서: ${roomFlow(lvDg)}</p>
       <div class="grid g2">
@@ -970,8 +1001,8 @@ function pageWorld() {
         </div>
       </div>
     </section>`;
-  const index = `<nav class="isl-index" aria-label="지역 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>Lv${isl.levelRange[0]}~${isl.levelRange[1]}${isl.shopTiers.length ? ` · ${isl.shopTiers.map((t) => `T${t}`).join('·')}` : ''}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a></nav>`;
-  return `${head('지역·레이드', '지역(섬)은 항해사(뱃사공)로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다.')}<h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>길드 랭킹</h2><div class="stack">${guildRankCard}</div>`;
+  const index = `<nav class="isl-index" aria-label="지역 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>${isl.hub ? "모항" : `Lv${isl.levelRange[0]}~${isl.levelRange[1]}`}${isl.shopTiers.length ? ` · ${isl.shopTiers.map((t) => `T${t}`).join('·')}` : ''}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a></nav>`;
+  return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 모항입니다.')}<h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>길드 랭킹</h2><div class="stack">${guildRankCard}</div>`;
 }
 
 // ── 페이지: 성장·강화 ──
@@ -1040,7 +1071,7 @@ function pageGrowth() {
     </div>
     <h3>종류별 능력치 (등급마다)</h3>
     ${table(['유물', '능력치', ...D.relics.grades.map((g) => ({ t: `<span class="rar-${g.id}">${esc(rarName(g.id))}</span>`, c: 'r' }))], D.relics.types.map((t) => tr([esc(t.name), esc(t.stat), ...t.values.map((v) => R(`+${v}${t.unit}`))])))}
-    <p class="muted small" style="margin-top:8px">공격력은 물리·마법 공격력에 모두 곱합니다. 공격 속도는 기본 공격 재사용 대기를 줄입니다. 다중 사격은 투사체 직업이면 기본 공격 투사체가 한 발 더 나가고, 근접 직업이면 기본 공격을 한 번 더 휘두릅니다.</p>
+    <p class="muted small" style="margin-top:8px">공격력은 물리·마법 공격력에 모두 곱합니다. 공격 속도는 기본 공격 재사용 대기를 줄입니다. 다중 사격은 투사체 직업이면 기본 공격 투사체가 한 발 더 나가고, 근접 직업이면 기본 공격을 한 번 더 휘두릅니다. 장착 유물을 모두 더해도 공격 속도는 +${D.relics.fxCap.aspdPct}%, 스킬 재사용 대기 감소(가속 포함)는 −${D.relics.fxCap.cdrPct}%까지만 칩니다.</p>
 
     <h2 id="scroll">${itemLink(D.scrolls.id)} 얻는 곳</h2>
     <ul class="plain">
@@ -1152,7 +1183,7 @@ function textOf(root) {
   return s;
 }
 
-const GROUPS = ['문서', '직업', '전직', '스킬', '소환수', '노래', '아이템', '몬스터', '지역', '레이드', '퀘스트', 'NPC'];
+const GROUPS = ['문서', '직업', '대장장이', '숙련도', '제련 옵션', '전직', '스킬', '소환수', '노래', '아이템', '몬스터', '지역', '레이드', '퀘스트', 'NPC'];
 let searchIndex = [];
 function buildSearch() {
   const ph = (name) => `<span class="ico sm ph">${icon(name)}</span>`;
@@ -1163,7 +1194,12 @@ function buildSearch() {
     for (const s of sectionize(body)) add('문서', s.title || TITLES[page], s.id ? `#/${page}#${s.id}` : `#/${page}`, TITLES[page], ph('scroll-text'), s.text, TITLES[page]);
   }
   add('문서', TITLES.feedback, '#/feedback', '익명 의견 남기기', ph('message-square'), '버그 제보 건의 밸런스 의견 위키 오류', '피드백 게시판 건의 버그 제보 문의');
-  for (const c of D.classes) add('직업', c.name, `#/classes/${c.id}`, `직업 · ${c.role}`, c.icon ? `<img class="ico sm" src="${esc(c.icon)}" alt="">` : ph('shield'), '', '직업');
+  for (const c of D.classes) {
+    const hidden = c.id === D.blacksmith.id;
+    add(hidden ? '대장장이' : '직업', c.name, `#/classes/${c.id}`, hidden ? `히든 직업 · ${c.role}` : `직업 · ${c.role}`, c.icon ? `<img class="ico sm" src="${esc(c.icon)}" alt="">` : ph('shield'), '', hidden ? '대장장이히든직업제련증강' : '직업');
+  }
+  for (const r of D.blacksmith.ranks) add('숙련도', `${r.name} 대장장이`, `#/classes/${D.blacksmith.id}#mastery`, `숙련도 ${fmt(r.score)} · 제련 ${r.lines}줄 · 1인 증강 ${r.augs}개`, ph('hammer'), `옵션 값 ${r.band}`, '숙련도랭크대장장이');
+  for (const o of D.blacksmith.options) add('제련 옵션', o.name, `#/classes/${D.blacksmith.id}#refine`, `제련 옵션 · ${o.bands.map((b) => `${b.min}~${b.max}${o.unit}`).join(' / ')}`, ph('sparkles'), o.slots.map((s) => KIND[s]).join(' · '), '제련옵션대장장이');
   for (const b of D.branches) add('전직', b.name, `#/classes/${b.classId}#br-${b.id}`, `${classOf(b.classId).name} 전직`, ph('git-branch'), b.concept, `${classOf(b.classId).name}전직`);
   for (const b of D.branches) add('전직', b.second.name, `#/classes/${b.classId}#br2-${b.id}`, `${b.name} 2차 전직`, ph('git-branch'), b.second.concept, `${classOf(b.classId).name}${b.name}2차전직`);
   const skillOwner = (s) => (s.branchId ? `·${s.second ? M.branches.get(s.branchId).second.name : M.branches.get(s.branchId).name}` : '');
@@ -1173,7 +1209,7 @@ function buildSearch() {
   for (const it of D.items) add('아이템', it.name, `#/items/${it.id}`, `${rarName(it.rarity)} ${KIND[it.kind]}${it.reqLevel ? ` · Lv${it.reqLevel}` : ''}`, itemIcon(it, 'sm'), it.desc, `${rarName(it.rarity)}${KIND[it.kind]}${it.classId ? classOf(it.classId).name : '공용'}`, `rar-${it.rarity}`);
   for (const m of D.mobs) add('몬스터', m.name, `#/mobs/${m.id}`, `${MOB_KIND[m.kind]} · Lv${m.level}`, ph(m.kind === 'field' ? 'skull' : 'crown'), m.islands.map(islandName).join(', '), `${MOB_KIND[m.kind]}몬스터`);
   for (const i of D.islands) {
-    add('지역', i.name, `#/world#isl-${i.id}`, `섬 · Lv${i.levelRange[0]}~${i.levelRange[1]}`, ph('map'), '', '섬지역');
+    add('지역', i.name, `#/world#isl-${i.id}`, i.hub ? "모항 · 시작 마을" : `섬 · Lv${i.levelRange[0]}~${i.levelRange[1]}`, ph('map'), '', '섬지역');
     for (const n of i.npcs) add('NPC', n.name, `#/world#isl-${i.id}`, `${i.name} · ${ROLE[n.role] ?? n.role}`, ph('info'), '', `npc${ROLE[n.role] ?? ''}`);
     for (const qid of i.quests) {
       const q = M.quests.get(qid);
