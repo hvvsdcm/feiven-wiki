@@ -538,6 +538,11 @@ function pageBlacksmith(k) {
   const bodyRows = k.growth.map((g) => tr([R(`Lv${g.level}`), R(`T${g.tier}`), R(fmt(g.atk)), R(fmt(g.maxHp)), R(fmt(g.maxMp))]));
   const rankRows = B.ranks.map((r) => tr([`<b>${esc(r.name)}</b>`, R(fmt(r.score)), R(`${r.lines}줄`), r.band, R(`${r.augs}개`), R(`${r.odds.silver}% · ${r.odds.gold}% · ${r.odds.prism}%`)]));
   const optRows = B.options.map((o) => tr([`<b>${esc(o.name)}</b>`, ...o.bands.map((b) => R(`${b.min}~${b.max}${o.unit}`)), `<span class="small">${o.slots.map((s) => KIND[s]).join(' · ')}</span>`]));
+  const C = B.craft;
+  const itemLink = (id) => `<a href="#/items/${id}">${esc(M.items.get(id)?.name ?? id)}</a>`;
+  const recipeRows = C.recipes.map((r) => tr([`${islandLink(r.raidId)}<div class="muted small">Lv${r.reqLevel} · ${itemLink(r.outId)}</div>`, `${itemLink(r.boss)} ×${r.bossQty}`, `${itemLink(r.mat)} ×${r.matQty}`, R(r.scrolls), R(fmt(r.gold)), R(r.score)]));
+  const atkRows = C.recipes.map((r) => tr([`<b>${esc(r.raidName)}</b>`, ...r.atk.map((a, i) => R(`${fmt(a)}<div class="muted small">레이드 ${fmt(r.baseAtk[i])}</div>`))]));
+  const oddsRows = C.odds.map((o) => tr([`<b>${esc(o.name)}</b>`, R(fmt(o.score)), ...C.grades.map((g) => R(`${o.odds[g.id] >= 1 ? +o.odds[g.id].toFixed(1) : +o.odds[g.id].toFixed(2)}%`))]));
   return `
     ${crumb('#/classes', '직업 목록')}
     <div class="detail-head">${k.icon ? `<img class="ico lg" src="${esc(k.icon)}" alt="">` : ''}<div><h1 style="color:${esc(k.color)}">${esc(k.name)}</h1>
@@ -557,6 +562,15 @@ function pageBlacksmith(k) {
     <p class="muted small">장비 7칸 어디든 무작위 옵션을 1줄~랭크 최대 줄 수만큼 붙이고 각인을 남깁니다. 실패는 없고 강화·각성과는 따로입니다. 한 장비에 같은 옵션은 겹치지 않습니다. 이미 옵션이 있는 장비는 새 결과와 비교해 유지·교체를 고릅니다. 비용은 장비 순위 × ${fmt(B.cost.goldPerRank)} 베리, 강화서 ${B.cost.scrolls}장, 그 티어 지역 재료 ${B.cost.matQty}개입니다. ${esc(top.name)}는 ${B.masterworkPct}% 확률로 줄 수·값이 모두 최대인 걸작 제련이 되고 서버 전체에 알려집니다. 공격 속도는 유물과 합쳐 ${B.fxCap.aspdPct}%, 재사용 대기 감소는 ${B.fxCap.cdrPct}%까지입니다.</p>
     ${table(['옵션', ...['하', '중', '상'].map((t) => ({ t: `값 ${t}`, c: 'r' })), '붙는 장비'], optRows)}
     <p class="muted small" style="margin-top:8px">제련 의뢰: 1:1 거래 거리 안에서 의뢰인이 장비 하나와 회당 수고비, 최대 횟수를 정합니다. 장비는 의뢰인 가방에 잠긴 채로 남고, 비용과 수고비는 실제로 쓴 횟수만 냅니다(수고비에는 거래 수수료가 붙습니다). 제련한 장비는 거래소에 올릴 수 있고 옵션이 툴팁·살펴보기·매물에 보입니다.</p>
+    <h2 id="craft">무기 제작</h2>
+    <p class="muted small">노을마을 대장장이 NPC의 「무기 제작」에서 레이드 무기(어느 직업·어느 등급이든, 가방에 있는 것) 하나를 녹이고 그 레이드의 보스 재료와 함께 새 무기를 벼립니다. 만들 무기의 직업은 대장장이가 고르고, 이름 앞에 대장장이 이름이 붙습니다(예: 「철수의 영겁 검」). 등급은 일반~유니크 중 무작위이며 숙련도가 높을수록 좋은 등급이 잘 나옵니다. 유니크는 어떤 숙련도에서도 ${C.uniqueCap}%를 넘지 않습니다. 바탕 무기의 강화·제련은 사라지고, 귀속·계정 귀속은 그대로 이어집니다. 만든 무기는 다시 강화·제련할 수 있습니다.</p>
+    <p class="muted small">보스 재료는 각 레이드를 클리어할 때 한 사람마다 ${pct(C.drop)} 확률로 1개 떨어지고 귀속되지 않습니다.</p>
+    ${table(['조합법(레이드)', '보스 재료', '지역 재료', { t: '강화서', c: 'r' }, { t: '베리', c: 'r' }, { t: '숙련도', c: 'r' }], recipeRows)}
+    <h3>등급별 공격력(+0, 기사 무기)</h3>
+    <p class="muted small">제작 무기는 같은 레이드 무기보다 한 단계 강하고, 유니크는 그보다 더 크게 오릅니다. 가장 높은 조합법의 유니크가 게임에서 가장 강한 무기입니다.</p>
+    ${table(['조합법', ...C.grades.map((g) => ({ t: g.name, c: 'r' }))], atkRows, { scroll: true })}
+    <h3>랭크별 등급 확률</h3>
+    ${table(['랭크', { t: '숙련도', c: 'r' }, ...C.grades.map((g) => ({ t: g.name, c: 'r' }))], oddsRows)}
     <h2 id="augments">증강</h2>
     <p class="muted small">벼리기와 걸작은 무한 웨이브의 증강 카드 표를 씁니다. 카드 ${B.aug.choices}장 중 하나를 고르고, ${B.aug.pickSec}초 안에 고르지 않으면 가장 높은 등급이 자동으로 골라집니다. 증강은 레이드·던전을 나갈 때까지, 필드에서는 ${Math.round(B.aug.fieldSec / 60)}분 동안 남습니다. 한 사람이 같은 증강을 두 번 받을 수 없고, 무한 웨이브 증강 칸과는 따로입니다. 한 파티에는 대장장이 한 명의 증강만 적용됩니다. 망치질은 ${B.vuln.sec}초 동안 받는 피해를 ${B.vuln.pct}% 늘립니다.</p>
     <p class="muted small">대장장이는 거래소에서 살 수는 있지만 올릴 수는 없습니다. 대장장이가 계정 창고에 넣은 물건은 계정 귀속이 되어 같은 계정의 캐릭터 누구나 쓸 수 있지만, 1:1 거래와 거래소 등록은 막힙니다. 베리는 자유롭게 오갑니다.</p>`;
@@ -650,7 +664,7 @@ function bindSkills(focusId) {
 const ITEM_GROUPS = { all: ['전체', null], weapon: ['무기', ['weapon']], armor: ['방어구', ['armor', 'helmet', 'gloves', 'boots']], acc: ['장신구', ['accessory', 'ring']], use: ['소모품', ['potion', 'mp_potion', 'scroll', 'boost', 'box', 'ticket']], mat: ['재료', ['material']] };
 const itemState = { group: 'all', rarity: 'all', cls: 'all', q: '', sort: 'default', src: 'all' };
 /** 얻는 곳 한 줄 요약(도감 목록 칸). 레이드 출처는 무한의 던전·레이드를 가른다 */
-const SRC_LABEL = { shop: '상점', mob: '몬스터', rare: '등급 드랍', chest: '보물상자', worldBoss: '필드 보스', quest: '퀘스트', questDrop: '퀘스트 수집', premium: '고급 상자', gemShop: '젬 상점', legacy: '옛 장비', grant: '운영자 지급', cash: '현금 상점', guildRank: '길드 랭킹' };
+const SRC_LABEL = { shop: '상점', mob: '몬스터', rare: '등급 드랍', chest: '보물상자', worldBoss: '필드 보스', quest: '퀘스트', questDrop: '퀘스트 수집', premium: '고급 상자', gemShop: '젬 상점', legacy: '옛 장비', grant: '운영자 지급', cash: '현금 상점', guildRank: '길드 랭킹', craft: '대장장이 제작' };
 function srcLabel(s) {
   if (s.type === 'raid') return s.raid === D.infinite.id ? '무한의 던전' : M.dungeons.has(s.raid) ? '일일 던전' : '레이드';
   if (s.type === 'market') return D.constants.market.name;
@@ -733,6 +747,8 @@ function sourceBlock(it) {
   if (cash.length) out.push(`<div class="card"><h3>현금 상점</h3><ul class="plain">${cash.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul><p class="muted small" style="margin:8px 0 0">드랍·상점·상자에서는 나오지 않습니다.</p></div>`);
   const guildRank = by('guildRank');
   if (guildRank.length) out.push(`<div class="card"><h3><a href="#/world#guild-rank">길드 랭킹 일일 보상</a></h3><ul class="plain">${guildRank.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul></div>`);
+  const craft = by('craft');
+  if (craft.length) out.push(`<div class="card"><h3><a href="#/classes/${D.blacksmith.id}#craft">대장장이 무기 제작</a></h3><ul class="plain">${craft.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul><p class="muted small" style="margin:8px 0 0">이름 앞에 만든 대장장이의 이름이 붙습니다(예: 「철수의 ${esc(it.name)}」).</p></div>`);
   if (!out.length) out.push('<div class="empty-state">지금은 게임 안에서 얻는 곳이 없습니다.</div>');
   return out.join('');
 }
