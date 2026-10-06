@@ -439,6 +439,7 @@ function pageDrops() {
           <li>레이드 클리어 1회: ${pct(D.gems.drop.raid.chance)} 확률로 ${D.gems.drop.raid.qty[0]}~${D.gems.drop.raid.qty[1]}개(참가자마다 따로)</li>
           <li>${esc(D.infinite.name)} 웨이브 클리어: ${pct(D.gems.drop.wave.chance)} 확률로 ${D.gems.drop.wave.qty[0]}개, <b>${D.gems.drop.wave.highFromWave}웨이브부터 ${pct(D.gems.drop.wave.high)}</b> 확률로 ${D.gems.drop.wave.highQty[0]}~${D.gems.drop.wave.highQty[1]}개. 보스 웨이브는 확률 ×${D.gems.drop.wave.bossMul}</li>
           <li>필드 정예 몬스터 처치: ${pct(D.gems.drop.elite.chance)} 확률로 ${D.gems.drop.elite.qty[0]}개(처치 인정자마다 따로, 레이드 · 던전 안 제외)</li>
+          <li>선술집 의뢰 보상: 개인 의뢰 ${D.tavern.tiers.map((t) => `${esc(t.name)} ${t.gems}개`).join(' · ')}, 공용 의뢰는 그 절반(올림) — <a href="#/world#tavern">선술집 의뢰</a></li>
           <li>게스트 계정 연동(이름·비밀번호 또는 Google): <b>계정당 한 번</b> ${D.gems.link.gems}개 — 연동 뒤 처음 입장한 캐릭터가 받습니다. 게스트 캐릭터가 Lv.${D.gems.link.promptLevel}에 오르면 연동을 권하는 창이 뜹니다</li>
         </ul>
         <h3 style="margin-top:12px">젬 상점</h3>
@@ -914,7 +915,7 @@ function pageWorld() {
       ${r.enrage ? `<p class="small" style="margin-top:8px">격노: 시작 ${r.enrage.afterSec / 60}분 뒤 보스 피해 ×${r.enrage.damageMultiplier}</p>` : ''}
       <h3>보상 (참가자 전원)</h3>
       <ul class="plain small">
-        <li>경험치 ${fmt(r.rewards.exp)} · ${fmt(r.rewards.gold)} 베리 · ${r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')}</li>
+        <li>경험치 ${fmt(r.rewards.exp)} · ${fmt(r.rewards.gold)} 베리 · ${r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')}${r.rewards.byLevel ? ` (입장 레벨 Lv${r.minLevel} 기준 — <b>받는 사람 레벨에 맞춰 늘어남</b>: 베리 ×(내 레벨 ÷ ${r.minLevel}), 아이템 ×(1 + 내 레벨 ÷ ${r.minLevel}) ÷ 2, 경험치는 내 레벨의 한 레벨 몫 비율만큼)` : ''}</li>
         <li>${r.rewards.gearChance >= 1 ? '<b>반드시</b>' : `${pct(r.rewards.gearChance)} 확률로`} ${esc(D.raidSets.find((s) => s.raidId === r.id)?.prefix ?? '이 보스')} 세트 1점(${r.rewards.gearPool.length}종 중 내가 쓸 수 있는 것, 첫 클리어는 자기 직업 무기). 등급: ${esc(D.constants.grades.raidText)}</li>
         <li>${rubyLine('raid')}</li>
         ${growthLine(r.growth, `입장 레벨(Lv${r.minLevel})`, '모든 레이드 합산, 혼자 도전해도 그대로')}
@@ -984,16 +985,88 @@ function pageWorld() {
       </ul>
     </section>`;
   const gr = D.guildRank;
+  const sc = gr.score;
+  const gsh = D.guildShop;
+  const lv = (r) => `${r.base} + 레벨 × ${r.perLevel}`;
   const guildRankCard = `
     <section class="card" id="guild-rank">
-      <h2 style="margin-top:0">길드 랭킹 일일 보상 <span class="chip">매일 0시(한국 시간)</span> <span class="chip">우편 지급</span></h2>
-      <p>메뉴(ESC) › 랭킹 › 길드 랭킹은 <b>길드원 레벨 합 → 인원 → 이름</b> 순입니다(길드 최대 ${gr.maxMembers}명). 매일 0시의 순위로 아래 보상을 <b>길드원 모두</b>에게 우편으로 보냅니다.</p>
-      ${table(['순위', { t: '베리', c: 'r' }, '아이템'], gr.rewards.map((r) => tr([`<b>${r.from === r.to ? `${r.from}위` : `${r.from}~${r.to}위`}</b>`, R(fmt(r.gold)), r.items.map((i) => `${itemLink(i.itemId)} ×${i.qty}`).join(' ')])))}
+      <h2 style="margin-top:0">길드 점수·랭킹 일일 보상 <span class="chip">매일 0시(한국 시간)</span> <span class="chip">우편 + 길드 금고</span></h2>
+      <p>길드원이 아래 활동을 하면 <b>오늘 길드 점수</b>가 쌓입니다. 메뉴(ESC) › 랭킹 › 길드 랭킹은 <b>오늘 길드 점수 → 길드원 레벨 합 → 인원 → 이름</b> 순입니다. 매일 0시에 그날 점수 순위로 아래 보상을 <b>길드원 모두</b>에게 우편으로, ${esc(gr.coinName)}는 <b>길드 금고</b>로 보낸 뒤 점수는 0부터 다시 셉니다. 점수가 0인 길드는 받지 않습니다.</p>
+      ${table(['순위', { t: '베리', c: 'r' }, '아이템(우편)', { t: esc(gr.coinName), c: 'r' }], gr.rewards.map((r) => tr([`<b>${r.from === r.to ? `${r.from}위` : `${r.from}~${r.to}위`}</b>`, R(fmt(r.gold)), r.items.map((i) => `${itemLink(i.itemId)} ×${i.qty}`).join(' '), R(fmt(r.coins))])))}
+      <h3>길드 점수 얻는 법 <span class="chip">레벨은 소수점 버림</span></h3>
+      ${table(['활동', '점수'], [
+        ['일반 몬스터 처치', `${lv(sc.hunt)} (몬스터 레벨)`],
+        ['정예 몬스터 처치', `${lv(sc.elite)} (몬스터 레벨)`],
+        ['섬 보스 처치', `${lv(sc.islandBoss)} (몬스터 레벨)`],
+        ['필드 보스(보상을 받은 사람마다)', fmt(sc.fieldBoss)],
+        ['일일 던전 완주', `${lv(sc.dungeon)} (내 레벨)`],
+        ['무한의 던전 보스 웨이브', fmt(sc.infiniteBoss)],
+        ['파티 레이드 클리어', `${lv(sc.raid)} (레이드 입장 레벨)`],
+        ['길드 레이드 클리어', fmt(sc.guildRaid)],
+      ].map(([a, b]) => tr([a, b])))}
       <ul class="plain small" style="margin-top:12px">
+        <li>한 사람이 하루(한국 시간)에 쌓는 점수는 <b>${fmt(sc.dailyCap)}점</b>까지, 그중 사냥(일반·정예·섬 보스) 몫은 <b>${fmt(sc.huntDailyCap)}점</b>까지입니다.</li>
+        <li>내 레벨보다 ${sc.greyGap}레벨 넘게 낮은 몬스터, 봇 파티원이 대신 잡은 처치, 훈련장·결투장은 점수가 없습니다.</li>
+        <li>점수 <b>${sc.scorePerCoin}점마다 ${esc(gr.coinName)} 1개</b>가 길드 금고에 들어옵니다. 주화는 0시에 초기화되지 않습니다(길드가 해체되면 사라집니다).</li>
+        <li>길드를 탈퇴하거나 추방되면 <b>${gr.rejoinHours}시간</b> 동안 어느 길드에도 들어갈 수 없습니다(새 길드를 만드는 것은 됩니다).</li>
         <li>같은 계정의 캐릭터가 한 길드에 여럿이어도 우편은 계정마다 한 통입니다. 접속하지 않은 길드원도 받습니다.</li>
         <li>서버가 0시에 꺼져 있었다면 다시 켜진 뒤 바로 지급합니다(하루 한 번).</li>
         <li>개인 랭킹은 전체와 직업별 탭으로 볼 수 있습니다.</li>
       </ul>
+    </section>
+    <section class="card" id="guild-shop">
+      <h2 style="margin-top:0">길드 상점 <span class="chip">${esc(gr.coinName)}</span> <span class="chip">길드장·부길드장만 구매</span></h2>
+      <p>메뉴(ESC) › 길드 › <b>상점</b> 탭. 길드 금고의 ${esc(gr.coinName)}로 길드 전체에 적용되는 강화와 축복을 삽니다. 길드원은 누구나 볼 수 있습니다.</p>
+      <h3>영구 강화 <span class="chip">단계마다 값이 오릅니다</span></h3>
+      ${table(['강화', '효과', { t: '단계', c: 'r' }, `단계별 값(${esc(gr.coinName)})`], gsh.upgrades.map((u) => tr([`<b>${esc(u.name)}</b>`, esc(u.effect), R(u.costs.length), u.costs.map(fmt).join(' → ')])))}
+      <p class="small">길드 정원은 기본 ${gr.maxMembers}명에서 정원 확장 한 단계마다 늘어납니다.</p>
+      <h3>길드 축복 <span class="chip">${gsh.buffHours}시간</span> <span class="chip">최대 ${gsh.buffMaxHours}시간까지 쌓임</span></h3>
+      ${table(['축복', { t: '효과', c: 'r' }, { t: '값', c: 'r' }], gsh.buffs.map((b) => tr([`<b>${esc(b.name)}</b>`, R(`+${b.pct}%`), R(fmt(b.cost))])))}
+      <ul class="plain small" style="margin-top:12px">
+        <li>경험치 축복은 다른 경험치 배율(이벤트·사료)에 더해지고, 베리 축복은 처치 베리에, 전리품 축복은 아이템이 떨어질 확률에 곱해집니다.</li>
+        <li>이미 켜진 축복을 또 사면 남은 시간에 ${gsh.buffHours}시간이 더해집니다(남은 시간이 ${gsh.buffMaxHours}시간을 넘으면 살 수 없습니다). 접속하지 않아도 시간은 흐릅니다.</li>
+      </ul>
+    </section>`;
+  const gs = D.guildStorage;
+  const guildStorageCard = `
+    <section class="card" id="guild-storage">
+      <h2 style="margin-top:0">길드 창고 <span class="chip">길드 공용</span> <span class="chip">기본 ${gs.base}칸 · 최대 ${gs.base + gs.maxLevel * gs.perLevel}칸</span></h2>
+      <p>메뉴(ESC) › 길드 › <b>창고</b> 탭에서 어디서나 엽니다. 길드원 모두가 함께 쓰는 아이템 창고입니다. 기본 ${gs.base}칸이고, 길드 상점의 <b>창고 확장</b>을 한 단계 살 때마다 +${gs.perLevel}칸(최대 ${gs.maxLevel}단계) 늘어납니다.</p>
+      <ul class="plain small">
+        <li><b>넣기</b>: 길드원 누구나. 귀속·잠근 아이템, 거래에 올린 아이템, 제련 결과를 고르지 않은 장비는 넣을 수 없습니다(개인 거래와 같은 규칙). 겹치는 아이템은 수량을 정해 일부만 넣을 수 있습니다.</li>
+        <li><b>꺼내기</b>: 길드장·부길드장은 언제나 꺼냅니다. 일반 길드원은 길드장이 「길드원 꺼내기」를 허용했을 때만, 하루(한국 시간) ${gs.memberTakeDay}번까지 꺼냅니다.</li>
+        <li>최근 ${gs.logMax}건의 입출고 기록(누가 · 무엇을 · 몇 개 · 언제)을 창고 탭에서 볼 수 있습니다.</li>
+        <li>길드가 해체되면 창고에 남은 아이템은 마지막 길드원에게 우편으로 돌아갑니다(우편 한 통에 ${gs.returnPerMail}칸씩).</li>
+      </ul>
+    </section>`;
+  const tv = D.tavern;
+  const tvTier = (id) => tv.tiers.find((t) => t.id === id);
+  const tvChip = (id) => `<span class="chip" style="color:${tvTier(id).color}">${esc(tvTier(id).name)}</span>`;
+  const tvReward = (r) => `${r.exp ? `경험치 ${fmt(r.exp)}<div class="muted small">` : '<div>'}${fmt(r.gold)} 베리</div>`;
+  const tvItems = (t) => t.items.map((i) => `${esc(M.items.get(i.itemId)?.name ?? i.itemId)} ×${i.qty}`).join(' · ');
+  const tavernCard = `
+    <section class="card" id="tavern">
+      <h2 style="margin-top:0">선술집 의뢰 <span class="chip">노을마을 선술집 안 · ${esc(tv.hall)}</span> <span class="chip">${tv.rotateHours}시간마다 교체</span></h2>
+      <p>노을마을 선술집 정문에서 F를 눌러 안으로 들어가, <b>${esc(tv.broker)}</b>에게 말을 걸면 의뢰 게시판이 열립니다. 의뢰는 한국 시간 0시부터 <b>${tv.rotateHours}시간마다</b>(0·4·8·12·16·20시) 새로 들어옵니다. 보상은 모두 <b>받는 캐릭터의 레벨</b> 기준이고, 경험치에는 경험치 이벤트·사료 배율이 더 붙습니다(만렙은 경험치 없음).</p>
+      <h3>개인 의뢰 <span class="chip">캐릭터마다 ${tv.personalCount}개</span> <span class="chip">동시에 ${tv.maxActive}개까지</span></h3>
+      <ul class="plain small">
+        <li>캐릭터마다 다른 의뢰 ${tv.personalCount}개가 게시판에 붙습니다. 목표는 <b>내 레벨에 맞는 사냥터</b>의 몬스터·정예·섬 보스 처치이고, 지옥 의뢰는 레이드 클리어를 요구하기도 합니다.</li>
+        <li>한 의뢰는 교체 시간마다 한 번만 받을 수 있습니다. 받은 의뢰는 교체 뒤에도 남아 있어 천천히 깨도 되고, 포기하면 그 칸은 이번 시간대에 다시 받을 수 없습니다.</li>
+        <li>목표를 채운 뒤 선술집에서 「완료」를 눌러야 보상이 들어옵니다.</li>
+      </ul>
+      ${table(['난이도', { t: '등장 비율', c: 'r' }, { t: '경험치(레벨 몫)', c: 'r' }, { t: esc(D.gems.name), c: 'r' }, '아이템'], tv.tiers.map((t) => tr([tvChip(t.id), R(pct(t.share)), R(pct(t.expFrac)), R(t.gems), tvItems(t)])))}
+      <p class="muted small" style="margin-top:8px">물약은 내 레벨 사냥터 등급의 회복·마나 물약으로 나옵니다(위 표는 Lv1 기준 이름).</p>
+      <h3>레벨별 보상 예시 (경험치 · 베리)</h3>
+      ${table(['레벨 (사냥터)', ...tv.tiers.map((t) => ({ t: tvChip(t.id), c: 'r' }))], tv.levels.map((l) => tr([`<b>Lv${l.level}</b><div class="muted small">${esc(l.island)}</div>`, ...l.rewards.map((r) => R(tvReward(r)))])))}
+      <h3>공용 의뢰 <span class="chip">서버 전체 ${tv.publicCount}개</span> <span class="chip">보상 ${pct(tv.publicMul)}</span></h3>
+      <ul class="plain small">
+        <li>서버의 모든 캐릭터가 함께 채우는 의뢰입니다. 받을 필요 없이 그 활동을 하면 바로 쌓입니다.</li>
+        <li>목표를 채우면 <b>목표의 ${pct(tv.minShareFrac)} 이상(최소 1)</b>을 직접 채운 캐릭터마다 같은 난이도 개인 의뢰 보상의 ${pct(tv.publicMul)}(경험치·베리·${esc(D.gems.name)}, ${esc(D.gems.name)}은 올림 — 아이템은 그대로)를 받습니다.</li>
+        <li>보상은 다음 교체 뒤에도 ${tv.rotateHours}시간 동안 받을 수 있습니다.</li>
+        <li>처치 목표는 내 레벨보다 ${tv.publicLevelGap}레벨 넘게 낮은 몬스터를 세지 않습니다.</li>
+      </ul>
+      ${table(['의뢰', '목표', ...['normal', 'hard', 'very_hard', 'hell'].map((id) => ({ t: tvChip(id), c: 'r' }))], tv.publicKinds.map((k) => tr([`<b>${esc(k.name)}</b>`, esc(k.label), ...['normal', 'hard', 'very_hard', 'hell'].map((id) => R(fmt(k.target[id])))])))}
+      <p class="muted small" style="margin-top:8px">공용 의뢰는 한 번에 보통·어려움과 매우 어려움 또는 지옥 하나씩, 서로 다른 종류로 붙습니다.</p>
     </section>`;
   const tg = D.training;
   const trainingCard = `
@@ -1042,7 +1115,7 @@ function pageWorld() {
       </div>
     </section>`;
   const index = `<nav class="isl-index" aria-label="지역 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>${isl.hub ? "모항" : `Lv${isl.levelRange[0]}~${isl.levelRange[1]}`}${isl.shopTiers.length ? ` · ${isl.shopTiers.map((t) => `T${t}`).join('·')}` : ''}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a></nav>`;
-  return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 모항입니다.')}<h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>길드 랭킹</h2><div class="stack">${guildRankCard}</div>`;
+  return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 모항입니다.')}<h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>선술집 의뢰</h2><div class="stack">${tavernCard}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>길드</h2><div class="stack">${guildRankCard}${guildStorageCard}</div>`;
 }
 
 // ── 페이지: 성장·강화 ──
@@ -1097,6 +1170,7 @@ function pageGrowth() {
     <h2 id="relics">유물</h2>
     <p><b>Lv ${D.relics.level}</b>부터 ESC 메뉴의 <b>유물</b> 창에서 ${esc(D.gems.name)}으로 유물을 뽑습니다(1회 ${D.relics.drawCost}개 · ${D.relics.drawMulti}회 ${D.relics.drawCost * D.relics.drawMulti}개). 최대 <b>${D.relics.slots}개</b>를 장착하면 아래 능력치가 오릅니다. 유물은 가방 밖 보관함(최대 ${D.relics.cap}개)에 있고 거래·판매할 수 없습니다.</p>
     <p>필드 정예 몬스터를 잡으면 Lv ${D.relics.level} 이상인 처치 인정자마다 <b>${pct(D.relics.eliteDrop.chance)}</b> 확률로 유물 1개가 보관함에 바로 들어옵니다(${D.relics.eliteDrop.grades.map((g) => `${esc(rarName(g.id))} ${pct(g.rate)}`).join(' · ')}). 보관함이 가득 차 있으면 나오지 않습니다.</p>
+    <p><b>천장</b>: 캐릭터마다 ${D.relics.pity.map((t) => `마지막 ${esc(rarName(t.id))} 이상 뒤로 뽑은 횟수`).join('와 ')}를 셉니다(${esc(D.gems.name)}·유물 소환권, 1회·${D.relics.drawMulti}회 뽑기 모두 회차마다 1). ${D.relics.pity.map((t) => `<b>${t.at}번째</b> 뽑기는 <span class="rar-${t.id}">${esc(rarName(t.id))}</span> 이상 확정`).join(', ')}이고(둘이 겹치면 높은 쪽), 확정 회차의 등급은 그 이상 등급끼리 원래 확률 비율대로 정해집니다(${D.relics.pity.map((t) => `${esc(rarName(t.id))} 확정: ${t.grades.map((g) => `${esc(rarName(g.id))} ${pct(g.rate)}`).join(' · ')}`).join(' / ')}). ${esc(rarName('epic'))} 이상이 나오면 ${esc(rarName('epic'))} 횟수를, ${esc(rarName('legendary'))} 이상이 나오면 두 횟수를 모두 처음부터 셉니다. 합성·정예 몬스터 드랍은 세지 않습니다. 진행은 유물 창 소환 띠에 보입니다. 천장이 생기기 전(2026-10-07)에 뽑은 횟수도 소급합니다: 그 뒤 처음 접속할 때 밀린 만큼 전설·영웅 유물을 한 번 넣어 드립니다(뽑은 횟수는 보관함 유물 수로 추정).</p>
     <div class="grid g2">
       <div class="card">
         <h3>등급 · 뽑기 · 합성 확률</h3>
@@ -1263,6 +1337,7 @@ function buildSearch() {
   add('레이드', D.augment.name, `#/world#raid-${D.augment.id}`, `웨이브 던전 베타 · ${D.augment.every}웨이브마다 증강 카드`, ph('crown'), D.augment.list.map((a) => `${a.name} ${a.desc}`).join(' · '), '레이드 증강 베타 카드');
   for (const w of D.worldBosses) add('레이드', w.name, `#/world#wb-${w.id}`, `필드 보스 원정 · ${M.mobs.get(w.bossId)?.name ?? ''}`, ph('crown'), w.phases.map((p) => p.label).join(' · '), '필드보스 월드보스 원정');
   add('콘텐츠', D.duel.name, '#/world#duel', `PvP · ${D.duel.modes.map((m) => m.name).join(' · ')} · 입장 Lv${D.duel.minLevel}`, ph('swords'), `점수 매칭 ±${D.duel.matchRange} 결투 신청 친선`, '결투장 PvP 대전 결투 점수 레이팅');
+  add('콘텐츠', '선술집 의뢰', '#/world#tavern', `노을마을 선술집 · ${D.tavern.rotateHours}시간마다 교체 · 개인 ${D.tavern.personalCount} · 공용 ${D.tavern.publicCount}`, ph('scroll-text'), D.tavern.publicKinds.map((k) => k.name).join(' · '), '선술집 의뢰 일퀘 일일 퀘스트 게시판 공용 개인 마고');
   searchIndex = entries;
 }
 /** 점수 높은 순 [{e, name, snip}] — 이름 > 분류어 > 본문 */
