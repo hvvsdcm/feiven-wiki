@@ -450,8 +450,8 @@ function pageDrops() {
         <p class="small muted">젬으로만 사는 상자. 여는 사람의 직업·레벨 티어에 맞춰 아래 중 하나가 나오고(장비는 내 레벨 티어 장비 부위), 여는 순간 등급에 따라 빛이 달라지는 연출이 나옵니다.</p>
         ${table(['결과', { t: '확률', c: 'r' }], [
           tr([`<span class="rar-unique">유니크 등급</span> 레이드 세트 장비(들어갈 수 있는 가장 높은 레이드, 아직 없으면 첫 레이드)`, R(pct(D.gems.premium.unique))]),
-          tr([`<span class="rar-legendary">전설 등급</span> 장비`, R(pct(D.gems.premium.legendary))]),
-          tr([`<span class="rar-epic">영웅 등급</span> 장비`, R(pct(D.gems.premium.epic))]),
+          tr([`<span class="rar-legendary">전설 등급</span> 장비(들어갈 수 있는 레이드가 있으면 ${pct(D.gems.premium.raidShare)}는 가장 높은 레이드 세트, 나머지는 레벨 티어 장비)`, R(pct(D.gems.premium.legendary))]),
+          tr([`<span class="rar-epic">영웅 등급</span> 장비(전설과 같은 방식)`, R(pct(D.gems.premium.epic))]),
           tr([`베리 ${fmt(D.gems.premium.gold[0])}~${fmt(D.gems.premium.gold[1])} + 강화서 ${D.gems.premium.scrolls[0]}~${D.gems.premium.scrolls[1]}장`, R(pct(1 - D.gems.premium.unique - D.gems.premium.legendary - D.gems.premium.epic))]),
         ])}
         <p style="margin-top:10px"><b>천장</b>: 유니크 없이 ${D.gems.pity - 1}번 열면 <b>${D.gems.pity}번째는 유니크 확정</b>입니다. 유니크가 나오면(확률이든 천장이든) 카운트가 처음부터 다시 셉니다. 남은 횟수는 젬 상점과 개봉 화면에 보입니다(캐릭터마다).</p>
@@ -578,7 +578,7 @@ function pageBlacksmith(k) {
     <h3>랭크별 등급 확률(${esc(C.baseMin)} 바탕)</h3>
     ${table(['랭크', { t: '숙련도', c: 'r' }, ...C.grades.map((g) => ({ t: g.name, c: 'r' }))], oddsRows)}
     <h2 id="buff">장비 손질</h2>
-    <p class="muted small">「장비 손질」은 플레이어 대장장이에게 맡기는 일시 효과입니다. 대장장이를 눌러 플레이어 메뉴에서 「장비 손질」을 신청하면 대장장이가 수고비를 제시하고, 받아들이면 바로 손질됩니다. 손질 비용인 베리(받는 사람 레벨 티어 × ${fmt(B.buff.goldPerTier)})와 그 티어 지역 재료 ${B.buff.matQty}개는 대장장이가 내고, 받는 사람은 수고비만 냅니다(거래 수수료를 떼고 대장장이에게). 같은 손질을 다시 받으면 시간이 새로 채워지고(겹치지 않음), 두 가지는 함께 걸 수 있습니다. 죽거나 결투해도 사라지지 않고, 접속을 끊어도 시간은 흐릅니다.</p>
+    <p class="muted small">「장비 손질」은 플레이어 대장장이에게 맡기는 일시 효과입니다. 대장장이를 눌러 플레이어 메뉴에서 「장비 손질」을 신청하면 대장장이가 수고비를 제시하고, 받아들이면 바로 손질됩니다. 손질 비용인 베리(받는 사람 레벨 티어 × ${fmt(B.buff.goldPerTier)})와 그 티어 지역 재료 ${B.buff.matQty}개는 대장장이가 내고, 받는 사람은 수고비만 냅니다(거래 수수료를 떼고 대장장이에게). 대장장이는 손질 한 번에 받는 사람 레벨 티어 장비의 의뢰 제련 한 번 숙련도의 ×${B.buff.scoreMul}을 얻습니다(전문 구간보다 낮은 티어면 제련처럼 깎입니다). 같은 손질을 다시 받으면 시간이 새로 채워지고(겹치지 않음), 두 가지는 함께 걸 수 있습니다. 죽거나 결투해도 사라지지 않고, 접속을 끊어도 시간은 흐릅니다.</p>
     ${table(['손질', '효과', { t: '지속', c: 'r' }], B.buff.list.map((b) => tr([`<b>${esc(b.name)}</b>`, b.kind === 'atk' ? `공격력 +${b.pct}%` : `경험치 +${b.pct}%`, R(`${b.min}분`)])))}
     <h2 id="augments">증강</h2>
     <p class="muted small">벼리기와 걸작은 무한 웨이브의 증강 카드 표를 씁니다. 카드 ${B.aug.choices}장 중 하나를 고르고, ${B.aug.pickSec}초 안에 고르지 않으면 가장 높은 등급이 자동으로 골라집니다. 증강은 레이드·던전을 나갈 때까지, 필드에서는 ${Math.round(B.aug.fieldSec / 60)}분 동안 남습니다. 한 사람이 같은 증강을 두 번 받을 수 없고, 무한 웨이브 증강 칸과는 따로입니다. 한 파티에는 대장장이 한 명의 증강만 적용됩니다. 망치질은 ${B.vuln.sec}초 동안 받는 피해를 ${B.vuln.pct}% 늘립니다.</p>
