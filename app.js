@@ -1054,14 +1054,14 @@ function pageWorld() {
         <li>한 의뢰는 교체 시간마다 한 번만 받을 수 있습니다. 받은 의뢰는 교체 뒤에도 남아 있어 천천히 깨도 되고, 포기하면 그 칸은 이번 시간대에 다시 받을 수 없습니다.</li>
         <li>목표를 채운 뒤 선술집에서 「완료」를 눌러야 보상이 들어옵니다.</li>
       </ul>
-      ${table(['난이도', { t: '등장 비율', c: 'r' }, { t: '경험치(레벨 몫)', c: 'r' }, { t: esc(D.gems.name), c: 'r' }, '아이템'], tv.tiers.map((t) => tr([tvChip(t.id), R(pct(t.share)), R(pct(t.expFrac)), R(t.gems), tvItems(t)])))}
-      <p class="muted small" style="margin-top:8px">물약은 내 레벨 사냥터 등급의 회복·마나 물약으로 나옵니다(위 표는 Lv1 기준 이름).</p>
+      ${table(['난이도', { t: '등장 비율', c: 'r' }, { t: '경험치(보통 대비)', c: 'r' }, { t: esc(D.gems.name), c: 'r' }, '아이템'], tv.tiers.map((t) => tr([tvChip(t.id), R(pct(t.share)), R(`×${t.expMul}`), R(t.gems), tvItems(t)])))}
+      <p class="muted small" style="margin-top:8px">보통 의뢰 한 장은 그 레벨 처음(0%)부터 아래 표의 레벨 수만큼 오르는 경험치를 줍니다(Lv150~170 2레벨 → Lv200 1레벨 → Lv280 0.2레벨). 물약은 내 레벨 사냥터 등급의 회복·마나 물약으로 나옵니다(위 표는 Lv1 기준 이름).</p>
       <h3>레벨별 보상 예시 (경험치 · 베리)</h3>
-      ${table(['레벨 (사냥터)', ...tv.tiers.map((t) => ({ t: tvChip(t.id), c: 'r' }))], tv.levels.map((l) => tr([`<b>Lv${l.level}</b><div class="muted small">${esc(l.island)}</div>`, ...l.rewards.map((r) => R(tvReward(r)))])))}
+      ${table(['레벨 (사냥터)', { t: '보통 = 레벨', c: 'r' }, ...tv.tiers.map((t) => ({ t: tvChip(t.id), c: 'r' }))], tv.levels.map((l) => tr([`<b>Lv${l.level}</b><div class="muted small">${esc(l.island)}</div>`, R(`${Math.round(l.normalLevels * 100) / 100}레벨`), ...l.rewards.map((r) => R(tvReward(r)))])))}
       <h3>공용 의뢰 <span class="chip">서버 전체 ${tv.publicCount}개</span> <span class="chip">보상 ${pct(tv.publicMul)}</span></h3>
       <ul class="plain small">
         <li>서버의 모든 캐릭터가 함께 채우는 의뢰입니다. 받을 필요 없이 그 활동을 하면 바로 쌓입니다.</li>
-        <li>목표를 채우면 <b>목표의 ${pct(tv.minShareFrac)} 이상(최소 1)</b>을 직접 채운 캐릭터마다 같은 난이도 개인 의뢰 보상의 ${pct(tv.publicMul)}(경험치·베리·${esc(D.gems.name)}, ${esc(D.gems.name)}은 올림 — 아이템은 그대로)를 받습니다.</li>
+        <li>목표를 채우면 <b>목표의 ${pct(tv.minShareFrac)} 이상(최소 1)</b>을 직접 채운 캐릭터마다 보상을 받습니다: 베리·${esc(D.gems.name)}은 같은 난이도 개인 의뢰의 ${pct(tv.publicMul)}(${esc(D.gems.name)}은 올림), 경험치는 레벨 몫의 ${pct(tv.publicExpFrac)} × 난이도 배율, 아이템은 개인 의뢰와 같습니다.</li>
         <li>보상은 다음 교체 뒤에도 ${tv.rotateHours}시간 동안 받을 수 있습니다.</li>
         <li>처치 목표는 내 레벨보다 ${tv.publicLevelGap}레벨 넘게 낮은 몬스터를 세지 않습니다.</li>
       </ul>
