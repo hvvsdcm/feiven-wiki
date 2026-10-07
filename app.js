@@ -375,7 +375,7 @@ function pageDrops() {
     const set = D.raidSets.find((s) => s.raidId === r.id);
     return tr([islandLink(r.id), R(`Lv${r.minLevel}`), `${set ? `${esc(set.prefix)} 세트` : '보스 세트'} 1점 ${r.rewards.gearChance >= 1 ? '확정' : pct(r.rewards.gearChance)}${r.rewards.firstClearUnique ? ' · 캐릭터 첫 클리어 때 원하는 부위 1개를 유니크로' : ''}`, r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')]);
   });
-  const wbRows = D.worldBosses.map((w) => tr([islandLink(w.islandId), R(`${w.minSharePct}% 이상`), w.rewards.legendaryChance ? `전설 등급 ${pct(w.rewards.legendaryChance)}(내 레벨 티어 장비 부위)` : '—', `${fmt(w.rewards.gold)} 베리 · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')} · 경험치(${levelShare(pct(w.rewards.expLevelFrac))})`]));
+  const wbRows = D.worldBosses.map((w) => tr([islandLink(w.islandId), R(`${w.minSharePct}% 이상`), w.rewards.legendaryChance ? `전설 등급 ${pct(w.rewards.legendaryChance)}(내 레벨 티어 장비 부위)` : '—', `${fmt(w.rewards.gold)} 베리 · ${esc(D.gems.name)} ${w.rewards.gems[0]}~${w.rewards.gems[1]}개 · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')} · 경험치(${levelShare(pct(w.rewards.expLevelFrac))})`]));
   return `
     ${head('드랍률', '게임 서버의 전리품 규칙 그대로입니다.')}
     <h2 style="margin-top:0">몬스터 한 마리를 잡으면</h2>
@@ -431,7 +431,7 @@ function pageDrops() {
     ${table(['출처', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }, { t: '기대값', c: 'r' }], D.ruby.drops.map((r) => tr([esc(r.label), R(pct(r.chance)), R(`${r.qty[0]}~${r.qty[1]}개`), R(`약 ${fmt(r.chance * (r.qty[0] + r.qty[1]) / 2)}루비`)])))}
 
     <h2 id="gems">${esc(D.gems.name)} · 고급 상자</h2>
-    <p><b>${esc(D.gems.name)}</b>은 레이드 · ${esc(D.infinite.name)} · 필드 정예 몬스터에서만 낮은 확률로 나오는 재화입니다(캐릭터마다 따로 쌓입니다). 노을마을의 ${esc(npcNameOfRole('gem'))}에게서 쓸 수 있습니다(한 번에 ${D.gems.buyMax}개까지). Lv ${D.relics.level}부터는 <a href="#/growth#relics">유물</a> 뽑기에도 씁니다.</p>
+    <p><b>${esc(D.gems.name)}</b>은 레이드 · ${esc(D.infinite.name)} · 필드 정예 몬스터에서 낮은 확률로, 필드 보스 원정에서는 확정으로 나오는 재화입니다(캐릭터마다 따로 쌓입니다). 노을마을의 ${esc(npcNameOfRole('gem'))}에게서 쓸 수 있습니다(한 번에 ${D.gems.buyMax}개까지). Lv ${D.relics.level}부터는 <a href="#/growth#relics">유물</a> 뽑기에도 씁니다.</p>
     <div class="grid g2">
       <div class="card">
         <h3>얻는 곳</h3>
@@ -439,6 +439,7 @@ function pageDrops() {
           <li>레이드 클리어 1회: ${pct(D.gems.drop.raid.chance)} 확률로 ${D.gems.drop.raid.qty[0]}~${D.gems.drop.raid.qty[1]}개(참가자마다 따로)</li>
           <li>${esc(D.infinite.name)} 웨이브 클리어: ${pct(D.gems.drop.wave.chance)} 확률로 ${D.gems.drop.wave.qty[0]}개, <b>${D.gems.drop.wave.highFromWave}웨이브부터 ${pct(D.gems.drop.wave.high)}</b> 확률로 ${D.gems.drop.wave.highQty[0]}~${D.gems.drop.wave.highQty[1]}개. 보스 웨이브는 확률 ×${D.gems.drop.wave.bossMul}</li>
           <li>필드 정예 몬스터 처치: ${pct(D.gems.drop.elite.chance)} 확률로 ${D.gems.drop.elite.qty[0]}개(처치 인정자마다 따로, 레이드 · 던전 안 제외)</li>
+          ${D.worldBosses.map((w) => `<li><a href="#/world#wb-${esc(w.id)}">${esc(w.name)}</a> 처치: 기여 지분 ${w.minSharePct}% 이상이면 <b>반드시</b> ${w.rewards.gems[0]}~${w.rewards.gems[1]}개</li>`).join('')}
           <li>선술집 의뢰 보상: 개인 의뢰 ${D.tavern.tiers.map((t) => `${esc(t.name)} ${t.gems}개`).join(' · ')}, 공용 의뢰는 그 절반(올림) — <a href="#/world#tavern">선술집 의뢰</a></li>
           <li>게스트 계정 연동(이름·비밀번호 또는 Google): <b>계정당 한 번</b> ${D.gems.link.gems}개 — 연동 뒤 처음 입장한 캐릭터가 받습니다. 게스트 캐릭터가 Lv.${D.gems.link.promptLevel}에 오르면 연동을 권하는 창이 뜹니다</li>
         </ul>
@@ -926,15 +927,16 @@ function pageWorld() {
     <section class="card" id="wb-${w.id}">
       <h2 style="margin-top:0">${esc(w.name)} <span class="chip">누구나 참여</span> <span class="chip">처치 뒤 ${w.respawnSec / 60}분마다</span></h2>
       <p>보스: ${mobLink(w.bossId)} · HP ${fmt(M.mobs.get(w.bossId)?.hp ?? 0)} · 노을마을 선술집 주인에게서 「원정」으로 건너갑니다. 파티 · 인원 제한이 없습니다.</p>
+      <p><b>1인 피해 한도</b>: 한 사람이 깎을 수 있는 보스 HP는 최대 HP의 ${w.maxDamagePct}%까지입니다. 넘은 피해는 들어가지 않으므로 최소 ${Math.ceil(100 / w.maxDamagePct)}명이 모여야 잡을 수 있습니다. 한도에 닿은 뒤에도 무력화 타수는 채울 수 있고, 치유 기여는 한도가 없습니다.</p>
       ${table(['페이즈', { t: '보스 HP', c: 'r' }, '패턴'], w.phases.map((p) => tr([`${p.phase}`, R(`${p.fromHpPct}% 이하`), esc(p.label)])))}
       ${w.enrage ? `<p class="small" style="margin-top:8px">격노: 교전 ${w.enrage.afterSec / 60}분 뒤 보스 피해 ×${w.enrage.damageMultiplier}</p>` : ''}
       <h3>보상 (처치 때 기여 지분 ${w.minSharePct}% 이상인 사람 — 기여 = 피해 + 치유 × ${D.constants.worldBossHealWeight})</h3>
       <ul class="plain small">
         <li>${fmt(w.rewards.gold)} 베리 · 경험치(${levelShare(pct(w.rewards.expLevelFrac))}) · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')}</li>
         ${w.rewards.legendaryChance ? `<li>${pct(w.rewards.legendaryChance)} 확률로 내 레벨 티어 장비 부위 1점을 전설 등급으로</li>` : ''}
-        <li>${rubyLine('field_boss')}</li>
+        <li>젬 ${w.rewards.gems[0]}~${w.rewards.gems[1]}개(보상을 받는 사람 모두)</li>
         ${growthLine(w.growth, `보스 레벨(Lv${w.growth.level})`, '보상을 받은 처치만 셈')}
-        <li>지분이 모자라면 보상이 없습니다. 전투 중 보스 바 아래에 내 지분과 순위가 보입니다.</li>
+        <li>지분이 모자라면 보상이 없습니다. 전투 중 보스 바 아래에 내 지분·순위와 내 피해(한도 대비)가 보입니다.</li>
       </ul>
     </section>`).join('');
   const inf = D.infinite;
