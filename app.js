@@ -1047,7 +1047,7 @@ function pageWorld() {
   const tavernCard = `
     <section class="card" id="tavern">
       <h2 style="margin-top:0">선술집 의뢰 <span class="chip">노을마을 선술집 안 · ${esc(tv.hall)}</span> <span class="chip">${tv.rotateHours}시간마다 교체</span></h2>
-      <p>노을마을 선술집 정문에서 F를 눌러 안으로 들어가, <b>${esc(tv.broker)}</b>에게 말을 걸면 의뢰 게시판이 열립니다. 의뢰는 한국 시간 0시부터 <b>${tv.rotateHours}시간마다</b>(0·4·8·12·16·20시) 새로 들어옵니다. 보상은 모두 <b>받는 캐릭터의 레벨</b> 기준이고, 경험치에는 경험치 이벤트·사료 배율이 더 붙습니다(만렙은 경험치 없음).</p>
+      <p>노을마을 선술집 정문에서 F를 눌러 안으로 들어가, <b>${esc(tv.broker)}</b>에게 말을 걸면 의뢰 게시판이 열립니다. 의뢰는 한국 시간 0시부터 <b>${tv.rotateHours}시간마다</b>(0·4·8·12·16·20시) 새로 들어옵니다. 보상은 모두 <b>받는 캐릭터의 레벨</b> 기준이고, 경험치에는 경험치 이벤트·사료 같은 경험치 배율이 붙지 않습니다(만렙은 경험치 없음).</p>
       <h3>개인 의뢰 <span class="chip">캐릭터마다 ${tv.personalCount}개</span> <span class="chip">동시에 ${tv.maxActive}개까지</span></h3>
       <ul class="plain small">
         <li>캐릭터마다 다른 의뢰 ${tv.personalCount}개가 게시판에 붙습니다. 목표는 <b>내 레벨에 맞는 사냥터</b>의 몬스터·정예·섬 보스 처치이고, 지옥 의뢰는 레이드 클리어를 요구하기도 합니다.</li>
