@@ -1055,19 +1055,31 @@ function pageWorld() {
       ${table(['증강', '등급', '효과'], aug.list.map((a) => tr([esc(a.name), esc(aug.tierNames[a.tier]), esc(a.desc)])))}
     </section>`;
   const du = D.duel;
+  const ruleOf = (id) => du.rules.find((r) => r.id === id);
+  const full = ruleOf('full');
+  const eq = ruleOf('equal');
+  const mulCell = (v) => R(v === 1 ? '<span class="muted">×1</span>' : `<b>×${v}</b>`);
   const duelCard = `
     <section class="card" id="duel">
-      <h2 style="margin-top:0">${esc(du.name)} <span class="chip">PvP</span> <span class="chip">입장 Lv${du.minLevel}</span> ${du.modes.map((m) => `<span class="chip">${esc(m.name)}</span>`).join(' ')}</h2>
-      <p>메뉴(ESC) › 결투장에서 모드별로 <b>매칭</b>을 시작하거나, 다른 플레이어에게 <b>결투 신청</b>을 보냅니다(우클릭 메뉴 · 접속자 목록 · 채팅 <code>/결투 이름</code>, 3 대 3은 <code>/결투3 이름</code>).</p>
+      <h2 style="margin-top:0">${esc(du.name)} <span class="chip">PvP</span> ${du.rules.map((r) => `<span class="chip">${esc(r.name)} Lv${r.minLevel}+</span>`).join(' ')} ${du.modes.map((m) => `<span class="chip">${esc(m.name)}</span>`).join(' ')}</h2>
+      <p>메뉴(ESC) › 결투장에서 규칙과 모드를 골라 <b>매칭</b>을 시작하거나, 다른 플레이어에게 <b>결투 신청</b>을 보냅니다(우클릭 메뉴 · 접속자 목록 · 채팅 <code>/결투 이름</code>, 3 대 3은 <code>/결투3 이름</code>, 동등 조건은 <code>/동등결투 이름</code> · <code>/동등결투3 이름</code>).</p>
+      ${table(['규칙', { t: '참가', c: 'r' }, '몸·장비·스킬', { t: '피해', c: 'r' }, { t: '치유·보호막', c: 'r' }], [
+        tr([`<b>${esc(full.name)}</b>`, R(`Lv${full.minLevel}+`), '내 레벨·장비·유물·도감·전직 그대로', R(pct(full.damageMul)), R(pct(full.healMul))]),
+        tr([`<b>${esc(eq.name)}</b>`, R(`Lv${eq.minLevel}+ (전직 후)`), `모두 Lv${du.equal.level} 몸 + 그 티어 일반 +0 장비 7칸, 내 갈래의 2차 전직 스킬(각성)과 1·2차 패시브. 3차 스킬·유물·도감·증강·제련·강화는 빠집니다`, R(pct(eq.damageMul)), R(pct(eq.healMul))]),
+      ])}
       <ul class="plain small">
-        <li>점수: 모드마다 따로, 처음 ${du.ratingStart}점. 매칭 경기만 점수가 바뀝니다(Elo, K=${du.eloK}, 편 평균 점수끼리 · 최저 ${du.ratingMin}점).</li>
-        <li>매칭: 점수 차 <b>${du.matchRange}점 이내</b>끼리만 잡힙니다(기다려도 범위가 넓어지지 않습니다). 3 대 3은 혼자 또는 파티장이 3명 이하 파티째로 들어가고, 한 경기에 든 모든 대기 묶음(파티는 파티원 평균)이 서로 ${du.matchRange}점 이내여야 합니다.</li>
-        <li>결투 신청(친선): 점수와 무관하게 싸우고 점수·전적이 바뀌지 않습니다. 1 대 1은 누구에게나, 3 대 3은 3명 파티의 파티장이 상대 3명 파티에게(상대 파티장이 받습니다). 응답 시간 ${du.challengeSec}초.</li>
-        <li>경기: 입장하면 HP·MP가 가득 차고 버프가 지워집니다. ${du.countdownSec}초 뒤 시작, 제한 시간 ${du.modes.map((m) => `${esc(m.name)} ${m.timeLimitSec / 60}분`).join(' · ')}.</li>
+        <li>점수: 규칙·모드마다 따로, 처음 ${du.ratingStart}점. 매칭 경기만 점수가 바뀝니다(Elo, K=${du.eloK}, 편 평균 점수끼리 · 최저 ${du.ratingMin}점).</li>
+        <li>매칭: 같은 규칙·모드에서 점수 차 <b>${du.matchRange}점 이내</b>끼리만 잡힙니다(기다려도 범위가 넓어지지 않습니다). ${esc(full.name)}은 레벨 차도 <b>${du.fullLevelGap}레벨 이내</b>여야 합니다. 3 대 3은 혼자 또는 파티장이 3명 이하 파티째로 들어가고, 한 경기에 든 모든 대기 묶음(파티는 파티원 평균)이 서로 이 범위 안이어야 합니다.</li>
+        <li>결투 신청(친선): 점수·레벨 차와 무관하게 싸우고 점수·전적이 바뀌지 않습니다. 1 대 1은 누구에게나, 3 대 3은 3명 파티의 파티장이 상대 3명 파티에게(상대 파티장이 받습니다). 응답 시간 ${du.challengeSec}초.</li>
+        <li>경기: 입장하면 HP·MP가 가득 차고 버프가 지워지며 스킬 재사용 대기가 모두 풀립니다. ${du.countdownSec}초 뒤 시작, 제한 시간 ${du.modes.map((m) => `${esc(m.name)} ${m.timeLimitSec / 60}분`).join(' · ')}.</li>
         <li>승패: 상대 편 전원을 쓰러뜨리면 승리. 제한 시간이 끝나면 남은 HP 비율 합이 큰 편이 이기고, 같으면 무승부. 도중에 나가거나 접속을 끊으면 그 사람은 패배로 처리됩니다.</li>
-        <li>규칙: 플레이어끼리 주는 피해 ${pct(du.damageMul)}, 치유·보호막 ${pct(du.healMul)}. 물약과 자연 회복은 없습니다. 쓰러지면 경기가 끝날 때까지 부활할 수 없고 관전합니다.</li>
+        <li>규칙: 플레이어끼리 주는 피해와 치유·보호막은 위 표의 비율만 들어갑니다. 물약과 자연 회복은 없습니다. 쓰러지면 경기가 끝날 때까지 부활할 수 없고 관전합니다.</li>
         <li>끝나면 ${du.resultSec}초 뒤 모두 원래 자리로 돌아가고, 쓰러진 사람도 되살아납니다.</li>
+        <li>PvP 랭킹: 랭킹 창의 「PvP 랭킹」 탭(또는 결투장 창 각 모드의 「랭킹」 단추)에서 규칙·모드마다 점수 순 상위 ${du.rankTop}명을 봅니다. 점수가 같으면 승이 많은 순, 그다음 패가 적은 순입니다. 그 규칙·모드의 매칭 경기를 한 번 이상 한 캐릭터만 오르고, ${du.rankRefreshSec / 60}분마다 갱신됩니다.</li>
       </ul>
+      <h3>직업별 결투장 피해 보정</h3>
+      <p class="small">결투장에서 플레이어에게 주는 피해(스킬·기본 공격·소환수·장판·중독)에 위 피해 비율과 함께 곱합니다. 기술 묶음 단계(1차·각성, 2차, 3차)마다 따로이고, ${esc(eq.name)}은 모두 2차 값을 씁니다. 전직 전(견습)은 ×1입니다.</p>
+      ${table(['갈래', '2차 직업', { t: '1차·각성', c: 'r' }, { t: '2차', c: 'r' }, { t: '3차', c: 'r' }], du.branchMuls.map((b) => tr([esc(b.name), esc(b.second), mulCell(b.first), mulCell(b.secondMul), mulCell(b.third)])))}
     </section>`;
   const gr = D.guildRank;
   const sc = gr.score;
@@ -1536,7 +1548,7 @@ function buildSearch() {
   for (const d of D.dungeons.list) add('레이드', d.name, '#/world#dungeons', `일일 던전 · 하루 ${d.dailyLimit}번 · 혼자~${d.size}인`, ph('crown'), '레벨업 던전 경험치 수련', '일일던전');
   add('레이드', D.augment.name, `#/world#raid-${D.augment.id}`, `웨이브 던전 베타 · ${D.augment.every}웨이브마다 증강 카드`, ph('crown'), D.augment.list.map((a) => `${a.name} ${a.desc}`).join(' · '), '레이드 증강 베타 카드');
   for (const w of D.worldBosses) add('레이드', w.name, `#/world#wb-${w.id}`, `필드 보스 원정 · ${M.mobs.get(w.bossId)?.name ?? ''}`, ph('crown'), w.phases.map((p) => p.label).join(' · '), '필드보스 월드보스 원정');
-  add('콘텐츠', D.duel.name, '#/world#duel', `PvP · ${D.duel.modes.map((m) => m.name).join(' · ')} · 입장 Lv${D.duel.minLevel}`, ph('swords'), `점수 매칭 ±${D.duel.matchRange} 결투 신청 친선`, '결투장 PvP 대전 결투 점수 레이팅');
+  add('콘텐츠', D.duel.name, '#/world#duel', `PvP · ${D.duel.modes.map((m) => m.name).join(' · ')} · ${D.duel.rules.map((r) => `${r.name} Lv${r.minLevel}+`).join(' · ')}`, ph('swords'), `점수 매칭 ±${D.duel.matchRange} 결투 신청 친선 스펙 적용 동등 조건`, '결투장 PvP 대전 결투 점수 레이팅 동등결투');
   add('콘텐츠', '선술집 의뢰', '#/world#tavern', `노을마을 선술집 · ${D.tavern.rotateHours}시간마다 교체 · 개인 의뢰 ${D.tavern.personalCount}개`, ph('scroll-text'), D.tavern.tiers.map((t) => t.name).join(' · '), '선술집 의뢰 일퀘 일일 퀘스트 게시판 개인 마고');
   const cq = D.catQuests;
   add('콘텐츠', '고양이 의뢰', '#/world#cat-quests', `${cq.hall} 곁가지 퀘스트 · ${cq.ids.length}개`, ph('scroll-text'), cq.npc, '고양이 의뢰 곁가지 퀘스트 선술집 김꼴꼴');
