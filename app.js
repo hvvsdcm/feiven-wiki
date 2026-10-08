@@ -465,7 +465,7 @@ function pageDrops() {
       </div>
       <div class="card">
         <h3>${itemLink('premium_box')}</h3>
-        <p class="small muted">젬으로만 사는 상자. 여는 사람의 직업·레벨 티어에 맞춰 아래 중 하나가 나오고(장비는 내 레벨 티어 장비 부위), 여는 순간 등급에 따라 빛이 달라지는 연출이 나옵니다.</p>
+        <p class="small muted"><b>2026-10-09부터 더 이상 얻을 수 없습니다</b>(젬 상점 판매·출석 보상 종료). 이미 가진 상자는 열 수 있고, 여는 사람의 직업·레벨 티어에 맞춰 아래 중 하나가 나옵니다(장비는 내 레벨 티어 장비 부위).</p>
         ${table(['결과', { t: '확률', c: 'r' }], [
           tr([`<span class="rar-unique">유니크 등급</span> 레이드 세트 장비(들어갈 수 있는 가장 높은 레이드, 아직 없으면 첫 레이드)`, R(pct(D.gems.premium.unique))]),
           tr([`<span class="rar-legendary">전설 등급</span> 장비(들어갈 수 있는 레이드가 있으면 ${pct(D.gems.premium.raidShare)}는 가장 높은 레이드 세트, 나머지는 레벨 티어 장비)`, R(pct(D.gems.premium.legendary))]),
@@ -1356,7 +1356,7 @@ function pageGrowth() {
       <li>${esc(D.infinite.name)}: 보스 웨이브(${D.scrolls.infinite.bossEvery}웨이브마다) 클리어 때 ${D.scrolls.infinite.perBoss}장 × (웨이브 ÷ ${D.scrolls.infinite.bossEvery}).</li>
       <li>일일 던전: ${D.scrolls.dungeons.map((d) => `${esc(d.name)} 보스 웨이브 ${d.perBoss}장`).join(' · ')}.</li>
       <li>레이드 클리어 고정 보상: ${D.scrolls.raids.map((r) => `${esc(r.name)} ${r.qty}장`).join(' · ')}.</li>
-      <li>필드 보스 원정 보상(기여 지분 이상)과 ${itemLink('premium_box')}(장비가 나오지 않을 때 ${D.scrolls.premium[0]}~${D.scrolls.premium[1]}장).</li>
+      <li>필드 보스 원정 보상(기여 지분 이상).</li>
       <li>상점에서는 팔지 않습니다.</li>
     </ul>
 
