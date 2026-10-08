@@ -472,7 +472,7 @@ function pageDrops() {
           tr([`<span class="rar-epic">영웅 등급</span> 장비(전설과 같은 방식)`, R(pct(D.gems.premium.epic))]),
           tr([`베리 ${fmt(D.gems.premium.gold[0])}~${fmt(D.gems.premium.gold[1])} + 강화서 ${D.gems.premium.scrolls[0]}~${D.gems.premium.scrolls[1]}장`, R(pct(1 - D.gems.premium.unique - D.gems.premium.legendary - D.gems.premium.epic))]),
         ])}
-        <p style="margin-top:10px"><b>천장</b>: 유니크 없이 ${D.gems.pity - 1}번 열면 <b>${D.gems.pity}번째는 유니크 확정</b>입니다. 유니크가 나오면(확률이든 천장이든) 카운트가 처음부터 다시 셉니다. 남은 횟수는 젬 상점과 개봉 화면에 보입니다(캐릭터마다).</p>
+        <p style="margin-top:10px">천장은 없습니다 — 매번 위 확률로만 나옵니다.</p>
       </div>
     </div>
 
