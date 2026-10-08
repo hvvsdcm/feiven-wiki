@@ -646,7 +646,8 @@ function pageBlacksmith(k) {
     <p class="muted small">장비 7칸 어디든 무작위 옵션을 1줄~랭크 최대 줄 수만큼 붙이고 각인을 남깁니다. 실패는 없고 강화·각성과는 따로입니다. 한 장비에 같은 옵션은 겹치지 않습니다. 이미 옵션이 있는 장비는 새 결과와 비교해 유지·교체를 고릅니다. 비용은 장비 순위 × ${fmt(B.cost.goldPerRank)} 베리, 강화서 ${B.cost.scrolls}장, 그 티어 지역 재료 ${B.cost.matQty}개에 위 표의 랭크별 비용 비율을 곱합니다(강화서·재료는 올림). ${esc(top.name)}는 ${esc(top.spec)} 장비에서 ${B.masterworkPct}% 확률로 줄 수·값이 모두 최대인 걸작 제련이 되고 서버 전체에 알려집니다. 공격 속도는 유물과 합쳐 ${B.fxCap.aspdPct}%, 재사용 대기 감소는 ${B.fxCap.cdrPct}%까지입니다.</p>
     ${table(['옵션', ...['하', '중', '상'].map((t) => ({ t: `값 ${t}`, c: 'r' })), '붙는 장비'], optRows)}
     <p class="muted small" style="margin-top:8px">제련 의뢰: 1:1 거래 거리 안에서 의뢰인이 장비 하나를 골라 신청하면, 대장장이가 회당 수고비와 최대 횟수를 먼저 제시하고 의뢰인이 받아들여야 시작됩니다. 신청 창과 제시 카드에서 그 대장장이가 붙일 수 있는 옵션과 값의 최소~최대를 볼 수 있습니다. 제련비·강화서·재료는 대장장이가 내고(한 번 할 만큼은 있어야 제시할 수 있습니다), 의뢰인은 실제로 제련한 횟수만큼 수고비만 냅니다(수고비에는 거래 수수료가 붙습니다). 장비는 의뢰인 가방에 잠긴 채로 남습니다. 의뢰가 시작되면 의뢰인과 대장장이가 같은 제련 창(의뢰인은 보기만)과 오른쪽 1:1 채팅을 씁니다. 횟수를 다 쓰면 장비 잠금이 풀리고, 어느 쪽이든 창을 닫을 때 의뢰가 끝나며 상대에게 알림이 갑니다. 대장장이가 한 의뢰를 시작하면 그 대장장이를 기다리던 다른 신청은 닫히고 알림이 갑니다. 제련한 장비는 거래소에 올릴 수 있고 옵션이 툴팁·살펴보기·매물에 보입니다.</p>
-    <h2 id="craft">무기 제작</h2>
+    <h2 id="craft">무기 제작${C.open ? '' : ' <span class="muted small">(지금은 중단)</span>'}</h2>
+    ${C.open ? '' : note('무기 제작은 지금 중단되어 대장장이 대화에 「무기 제작」이 나오지 않습니다. 이미 만든 제작 무기는 그대로 쓸 수 있고, 초월할 때는 같은 레이드·같은 직업의 레이드 무기와 같은 무기로 칩니다(예: 제작 전설 활 = 그 레이드 전설 활). 아래는 중단 전 규칙입니다.')}
     <p class="muted small">노을마을 대장장이 NPC의 「무기 제작」에서 ${esc(C.baseMin)} 이상 레이드 무기(어느 직업이든, 가방에 있는 것) 하나를 녹이고 그 레이드의 보스 재료와 함께 새 무기를 벼립니다. 만들 무기의 직업은 대장장이가 고르고, 이름은 「대장장이 이름의 무기 종류」가 됩니다(예: 「철수의 대검」). 등급은 바탕 등급 아래로 나오지 않습니다 — ${esc(C.baseMin)} 바탕은 ${esc(C.baseMin)} 또는 유니크, 유니크 바탕은 늘 유니크입니다. ${esc(C.baseMin)} 바탕의 유니크 확률은 숙련도가 높을수록 오르고 ${C.uniqueCap}%를 넘지 않습니다. 바탕 무기의 강화·제련은 사라지고, 귀속·계정 귀속은 그대로 이어집니다. 만든 무기는 다시 강화·제련할 수 있습니다.</p>
     <p class="muted small">보스 재료는 각 레이드를 클리어할 때 한 사람마다 ${pct(C.drop)} 확률로 1개 떨어지고 귀속되지 않습니다.</p>
     ${table(['조합법(레이드)', '보스 재료', '지역 재료', { t: '강화서', c: 'r' }, { t: '베리', c: 'r' }, { t: '숙련도', c: 'r' }], recipeRows)}
@@ -848,7 +849,7 @@ function sourceBlock(it) {
   const guildRank = by('guildRank');
   if (guildRank.length) out.push(`<div class="card"><h3><a href="#/world#guild-rank">길드 랭킹 일일 보상</a></h3><ul class="plain">${guildRank.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul></div>`);
   const craft = by('craft');
-  if (craft.length) out.push(`<div class="card"><h3><a href="#/classes/${D.blacksmith.id}#craft">대장장이 무기 제작</a></h3><ul class="plain">${craft.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul><p class="muted small" style="margin:8px 0 0">이름 앞에 만든 대장장이의 이름이 붙습니다(예: 「철수의 ${esc(it.name)}」).</p></div>`);
+  if (craft.length) out.push(`<div class="card"><h3><a href="#/classes/${D.blacksmith.id}#craft">대장장이 무기 제작</a></h3><ul class="plain">${craft.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul><p class="muted small" style="margin:8px 0 0">이름 앞에 만든 대장장이의 이름이 붙습니다(예: 「철수의 ${esc(it.name)}」).${D.blacksmith.craft.open ? '' : ' 무기 제작은 지금 중단되었고, 초월할 때는 같은 레이드·같은 직업의 레이드 무기와 같은 무기로 칩니다.'}</p></div>`);
   if (!out.length) out.push('<div class="empty-state">지금은 게임 안에서 얻는 곳이 없습니다.</div>');
   return out.join('');
 }
@@ -1308,9 +1309,10 @@ function pageGrowth() {
     ${table([{ t: '순위', c: 'r' }, '장비 세트', { t: '각성 베리', c: 'r' }, { t: '강화서', c: 'r' }], [...D.awaken.tiers, ...D.awaken.raidSets].sort((a, b) => a.rank - b.rank).map((a) => tr([R(a.rank), esc(a.label), R(fmt(a.gold)), R(a.scrolls)])))}
 
     <h2 id="transcend">초월</h2>
-    <p><b>Lv ${D.transcend.level}</b>부터 대장장이 강화 창에 <b>초월</b> 탭이 열립니다(그 전에는 보이지 않습니다). <b>각성한 무기</b>에 <b>같은 무기·같은 등급·같은 별 수의 각성 무기</b> 하나를 재료로 넣으면 별이 하나 붙어 초월 등급이 됩니다. ★1은 각성 무기 둘, ★2는 ★1 무기 둘, ★3은 ★2 무기 둘을 합칩니다(최대 ★${D.transcend.max}). 단계마다 <b>강화서와 베리</b>가 들고(아래 표), 결과는 대상 무기의 등급·제련 옵션·손질을 그대로 두며 재료 무기는 사라집니다. 귀속은 두 무기가 모두 귀속일 때만 남습니다.</p>
-    <p>초월 무기는 이름 옆에 별이 붙고 손에 든 무기 색이 바뀝니다(${D.transcend.colors.slice(1).map((col, i) => `<b style="color:${esc(col)}">★${i + 1}</b>`).join(' · ')}, ★${D.transcend.max}은 무지갯빛으로 돕니다). 초월 무기는 등급 합성·대장장이 무기 제작 바탕·도감 등록에 쓸 수 없습니다.</p>
-    ${table([{ t: '별', c: 'r' }, '재료', { t: '강화서', c: 'r' }, { t: '베리', c: 'r' }, { t: '무기 기본 공격력', c: 'r' }], D.transcend.mul.slice(1).map((mul, i) => tr([R(`<span style="color:${esc(D.transcend.colors[i + 1])}">${'★'.repeat(i + 1)}</span>`), i === 0 ? '각성 무기 2개' : `★${i} 무기 2개`, R(`${fmt(D.transcend.cost[i].scrolls)}개`), R(fmt(D.transcend.cost[i].gold)), R(`×${mul} (+${Math.round((mul - 1) * 100)}%)`)])))}
+    <p><b>Lv ${D.transcend.level}</b>부터 대장장이 강화 창에 <b>초월</b> 탭이 열립니다(그 전에는 보이지 않습니다). <b>각성한 장비</b>(무기·투구·갑옷·장갑·신발·목걸이·반지 모두)에 <b>같은 장비·같은 등급·같은 별 수의 각성 장비</b> 하나를 재료로 넣으면 별이 하나 붙어 초월 등급이 됩니다. ★1은 각성 장비 둘, ★2는 ★1 장비 둘, ★3은 ★2 장비 둘을 합칩니다(최대 ★${D.transcend.max}). 단계마다 <b>강화서와 베리</b>가 들고(아래 표), 결과는 대상 장비의 등급·제련 옵션·손질을 그대로 두며 재료 장비는 사라집니다. 귀속은 두 장비가 모두 귀속일 때만 남습니다.</p>
+    <p>초월하면 장비의 <b>기본 능력치(공격력·최대 HP)</b>가 아래 표만큼 오릅니다. 대장장이 제작 무기는 <b>같은 레이드·같은 직업의 레이드 무기와 같은 무기</b>로 칩니다(예: 제작 전설 활 + 그 레이드 전설 활). 결과는 대상 장비 그대로 남습니다.</p>
+    <p>초월 장비는 이름 옆에 별이 붙고, 무기는 손에 든 색이 바뀝니다(${D.transcend.colors.slice(1).map((col, i) => `<b style="color:${esc(col)}">★${i + 1}</b>`).join(' · ')}, ★${D.transcend.max}은 무지갯빛으로 돕니다). 초월 장비는 등급 합성·도감 등록에 쓸 수 없습니다.</p>
+    ${table([{ t: '별', c: 'r' }, '재료', { t: '강화서', c: 'r' }, { t: '베리', c: 'r' }, { t: '장비 기본 능력치', c: 'r' }], D.transcend.mul.slice(1).map((mul, i) => tr([R(`<span style="color:${esc(D.transcend.colors[i + 1])}">${'★'.repeat(i + 1)}</span>`), i === 0 ? '각성 장비 2개' : `★${i} 장비 2개`, R(`${fmt(D.transcend.cost[i].scrolls)}개`), R(fmt(D.transcend.cost[i].gold)), R(`×${mul} (+${Math.round((mul - 1) * 100)}%)`)])))}
 
     <h2 id="merge">합성</h2>
     <p>대장장이에게서 <b>같은 장비·같은 등급 세 개</b>를 합쳐 <b>한 등급 위 장비 한 개</b>로 바꿉니다. 베리는 들지 않고, 강화 단계는 셋 중 가장 높은 것이 남습니다. ${esc(D.constants.grades.mergeCaps.text)}.</p>
@@ -1340,8 +1342,8 @@ function pageGrowth() {
 
     <h2 id="codex">도감</h2>
     <p><b>Lv ${D.codex.level}</b>부터 ESC 메뉴의 <b>도감</b> 창에서 가방에 든 <a href="#/drops#raid-sets">레이드 장비</a>를 등록합니다. 등록한 장비는 가방에서 <b>사라지고</b>, 같은 종류는 한 번만 등록합니다(강화·제련 단계는 상관없음). 도감은 <b>계정 공용</b>이라 같은 계정의 모든 캐릭터가 효과를 받습니다(Lv ${D.codex.level} 미만 캐릭터도).</p>
-    <p>장비 하나마다 <b>${esc(D.codex.perItem)}</b>이고, 레이드마다 부위 무리(무기 · 갑옷·목걸이 · 보조 장비)를 다 채우면 완성 보너스가 붙습니다. ${D.codex.total}종을 모두 채우면 <b>${D.codex.full.map(esc).join(' · ')}</b>입니다. 최종 공격력은 물리·마법 공격력에 곱하고, 공격 속도·재사용 대기 감소는 유물과 합쳐 같은 상한까지만 칩니다.</p>
-    ${note('다른 캐릭터에게서 넘어온 장비(1:1 거래 · 거래소 구매 · 편지 첨부 · 길드 창고 꺼내기)와 귀속 장비, 초월한 무기는 등록할 수 없습니다. 같은 계정 캐릭터끼리의 거래·거래소·계정 창고는 괜찮습니다. 거래로 받은 장비는 툴팁에 표시됩니다.')}
+    <p>칸 하나마다 <b>${esc(D.codex.perItem)}</b>이고, 레이드마다 부위 무리(무기 · 갑옷·목걸이 · 보조 장비)를 다 채우면 완성 보너스가 붙습니다. 무기는 <b>자기 직업 무기 1종</b>만 등록하고 효과도 그것만 셉니다(다른 직업 무기는 그 직업 캐릭터가 셉니다. 레이드 무기가 없는 대장장이는 아무 직업 무기 1종). ${D.codex.total}칸을 모두 채우면 <b>${D.codex.full.map(esc).join(' · ')}</b>입니다. 최종 공격력은 물리·마법 공격력에 곱하고, 공격 속도·재사용 대기 감소는 유물과 합쳐 같은 상한까지만 칩니다.</p>
+    ${note('다른 캐릭터에게서 넘어온 장비(1:1 거래 · 거래소 구매 · 편지 첨부 · 길드 창고 꺼내기)와 귀속 장비, 초월한 장비는 등록할 수 없습니다. 같은 계정 캐릭터끼리의 거래·거래소·계정 창고는 괜찮습니다. 거래로 받은 장비는 툴팁에 표시됩니다.')}
     ${table(['레이드', '무리', '장비', { t: '완성 보너스', c: 'r' }], D.codex.sets.flatMap((s) => s.groups.map((g, i) => tr([i === 0 ? `<b>${esc(s.raidName)}</b><br><span class="muted small">Lv ${s.reqLevel}</span>` : '', esc(g.name), g.items.map((id) => itemLink(id)).join(' '), R(esc(g.bonus))]))))}
 
     <h2 id="fade">페이드</h2>
@@ -1551,8 +1553,8 @@ function buildSearch() {
   add('콘텐츠', '게시판', '#/world#board', `메뉴(ESC) › 게시판 · 말머리 ${so.board.tags.join('·')}`, ph('scroll-text'), `개념글(추천 ${so.board.bestUp}개 이상) 검색 댓글 추천 비추천`, '게시판 갤러리 디시 글 댓글 개념글 커뮤니티');
   add('콘텐츠', `${D.constants.grades.absolute.name} 장비`, '#/drops#absolute', `최상위 장비 · 착용 Lv${D.constants.grades.absolute.reqLevel} · ${D.constants.grades.absolute.raidName}`, ph('crown'), `유니크의 ${D.constants.grades.absolute.overUnique}배 모든 능력치 +${D.constants.grades.absolute.allStat}`, '앱솔루트 absolute 최초의 용자 황혼');
   add('콘텐츠', '파티 붐박스', '#/world#boombox', `파티 음악 · ${D.gems.name} ${D.boombox.gemPrice}개 = ${D.boombox.passMinutes}분`, ph('sparkles'), '유튜브 곡 대기열 이용권', '붐박스 음악 유튜브 노래 파티');
-  add('콘텐츠', '초월', '#/growth#transcend', `Lv${D.transcend.level} · 같은 각성 무기 둘 → ★ · 최대 ★${D.transcend.max} · 공격력 최대 +${Math.round((D.transcend.mul[D.transcend.max] - 1) * 100)}%`, ph('sparkles'), '각성 무기 별 초월 등급 · 단계마다 강화서·베리', '초월 별 각성 무기 합치기 transcend 강화서 베리 비용');
-  add('콘텐츠', '도감', '#/growth#codex', `레이드 장비 등록 · Lv${D.codex.level} · 계정 공용 · ${D.codex.total}종`, ph('scroll-text'), D.codex.full.join(' · '), '도감 컬렉션 수집 레이드 장비 등록 계정');
+  add('콘텐츠', '초월', '#/growth#transcend', `Lv${D.transcend.level} · 같은 각성 장비 둘 → ★ · 최대 ★${D.transcend.max} · 기본 능력치 최대 +${Math.round((D.transcend.mul[D.transcend.max] - 1) * 100)}%`, ph('sparkles'), '각성 장비(무기·방어구·장신구) 별 초월 등급 · 단계마다 강화서·베리', '초월 별 각성 장비 무기 방어구 장신구 합치기 transcend 강화서 베리 비용');
+  add('콘텐츠', '도감', '#/growth#codex', `레이드 장비 등록 · Lv${D.codex.level} · 계정 공용 · ${D.codex.total}칸`, ph('scroll-text'), D.codex.full.join(' · '), '도감 컬렉션 수집 레이드 장비 등록 계정');
   add('콘텐츠', '페이드', '#/growth#fade', `계정 레벨 합 ${D.codex.fade.step}마다 최종 공격력 +${D.codex.fade.stepPct}% · 최대 ${D.codex.fade.max}%`, ph('sparkles'), '가장 높은 캐릭터를 뺀 나머지 레벨 합', '페이드 계정 레벨 합 부캐 최종 공격력');
   add('콘텐츠', '명예의 전당', '#/world#hall-of-fame', `${D.hallOfFame.season} 레벨 랭킹 상위 ${D.hallOfFame.legends.length}명 동상`, ph('crown'), D.hallOfFame.legends.map((l) => l.name).join(' · '), '명예의전당 동상 랭커 시즌');
   for (const t of D.titles) add('콘텐츠', t.name, '#/growth#titles', `칭호 · ${t.how}`, ph('crown'), t.desc, '칭호');
