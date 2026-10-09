@@ -1109,7 +1109,8 @@ function pageWorld() {
         <li>길드를 탈퇴하거나 추방되면 <b>${gr.rejoinHours}시간</b> 동안 어느 길드에도 들어갈 수 없습니다(새 길드를 만드는 것은 됩니다).</li>
         <li>같은 계정의 캐릭터가 한 길드에 여럿이어도 우편은 계정마다 한 통입니다. 접속하지 않은 길드원도 받습니다.</li>
         <li>서버가 0시에 꺼져 있었다면 다시 켜진 뒤 바로 지급합니다(하루 한 번).</li>
-        <li>개인 랭킹은 전체와 직업별 탭으로 볼 수 있습니다.</li>
+        <li>개인 랭킹은 전체와 직업별 탭, 전투력 랭킹, PvP 랭킹으로 볼 수 있습니다.</li>
+        <li>머리 위 랭킹 배지: 레벨 랭킹(전체·직업별), 전투력 랭킹, PvP 랭킹(스펙 적용 1 대 1) 중 하나라도 <b>${gr.badgeTop}위</b> 안이면 이름 위에 「아이콘 N위」가 뜹니다(레벨 전체 왕관, 직업별 방패, 전투력 번개, PvP 엇갈린 칼). 여러 랭킹에 들면 가장 높은 순위 하나만, 순위가 같으면 레벨 › 전투력 › PvP 순(레벨은 전체가 직업별보다 먼저)으로 보입니다. ${gr.rankRefreshSec / 60}분마다 갱신됩니다.</li>
       </ul>
     </section>
     <section class="card" id="guild-shop">
@@ -1269,6 +1270,9 @@ function pageWorld() {
       <h2 style="margin-top:0">명예의 전당 <span class="chip">${esc(hof.season)}</span> <span class="chip">노을마을 동상 ${hof.legends.length}개</span></h2>
       <p>${esc(hof.season)} 레벨 랭킹 상위 ${hof.legends.length}명의 동상이 노을마을 곳곳에 서 있습니다. 동상 받침에 순위와 이름이 새겨져 있습니다.</p>
       ${table([{ t: '순위', c: 'r' }, '이름', '직업'], hof.legends.map((l) => tr([R(`${l.rank}위`), `<b>${esc(l.name)}</b>`, `<a href="#/classes/${esc(l.classId)}">${esc(classOf(l.classId)?.name ?? l.classId)}</a>`])))}
+      <h3 id="hall-lv300">${esc(hof.lv300.title)} 직업별 1~10위 <span class="chip">~${esc(hof.lv300.until)}</span></h3>
+      <p>최고 레벨이 350으로 오르기 직전의 직업별 레벨 랭킹 1~10위가 노을마을 모닥불 광장 동쪽 명예의 전당 청동판에 새겨져 있습니다. 판마다 그 직업의 돌 조각상이 서 있습니다.</p>
+      ${table([{ t: '순위', c: 'r' }, ...Object.keys(hof.lv300.ranks).map((id) => `<a href="#/classes/${esc(id)}">${esc(classOf(id)?.name ?? id)}</a>`)], Array.from({ length: 10 }, (_, i) => tr([R(`${i + 1}위`), ...Object.values(hof.lv300.ranks).map((rows) => rows[i] ? `<b>${esc(rows[i].name)}</b> <span class="muted small">Lv${rows[i].level}</span>` : '—')])))}
       <p class="muted small" style="margin-top:8px">이름의 X는 금칙어를 가린 글자입니다.</p>
     </section>`;
   const index = `<nav class="isl-index" aria-label="지역 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>${isl.hub ? "모항" : `Lv${isl.levelRange[0]}~${isl.levelRange[1]}`}${isl.shopTiers.length ? ` · ${isl.shopTiers.map((t) => `T${t}`).join('·')}` : ''}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a></nav>`;
@@ -1570,6 +1574,7 @@ function buildSearch() {
   add('콘텐츠', '도감', '#/growth#codex', `레이드 장비 등록 · Lv${D.codex.level} · 계정 공용 · ${D.codex.total}칸`, ph('scroll-text'), D.codex.full.join(' · '), '도감 컬렉션 수집 레이드 장비 등록 계정');
   add('콘텐츠', '페이드', '#/growth#fade', `계정 레벨 합 ${D.codex.fade.step}마다 최종 공격력 +${D.codex.fade.stepPct}% · 최대 ${D.codex.fade.max}%`, ph('sparkles'), '가장 높은 캐릭터를 뺀 나머지 레벨 합', '페이드 계정 레벨 합 부캐 최종 공격력');
   add('콘텐츠', '명예의 전당', '#/world#hall-of-fame', `${D.hallOfFame.season} 레벨 랭킹 상위 ${D.hallOfFame.legends.length}명 동상`, ph('crown'), D.hallOfFame.legends.map((l) => l.name).join(' · '), '명예의전당 동상 랭커 시즌');
+  add('콘텐츠', `${D.hallOfFame.lv300.title} 명예의 전당`, '#/world#hall-lv300', `직업별 레벨 랭킹 1~10위 · ~${D.hallOfFame.lv300.until}`, ph('crown'), Object.values(D.hallOfFame.lv300.ranks).flat().map((r) => r.name).join(' · '), '명예의전당 만렙 300 랭킹 직업별');
   for (const t of D.titles) add('콘텐츠', t.name, '#/growth#titles', `칭호 · ${t.how}`, ph('crown'), t.desc, '칭호');
   for (const c of D.cosmetics.list) add('콘텐츠', c.name, '#/drops#cosmetics', `꾸미기 · ${D.cosmetics.slots.find((s) => s.id === c.slot)?.name ?? c.slot}`, ph('sparkles'), `${c.desc} ${c.sources.join(' · ')}`, '꾸미기 오라 궤적 레벨업 의상 코스튬 자석펫 스킨');
   for (const p of D.cashShop.products) if (p.kind !== 'cosmetic') add('콘텐츠', p.name, '#/drops#cash-shop', `루비 상점 · ${fmt(p.priceRuby)}루비`, ph('gem'), p.contents.join(' · '), '상점 루비 현금');
