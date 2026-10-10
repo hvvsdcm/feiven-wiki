@@ -16,9 +16,9 @@ function pct(p) {
 const oneIn = (p) => (p > 0 ? `약 ${fmt(Math.round(1 / p))}번에 1번` : '—');
 const icon = (name, cls = 'i') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 
-const KIND = { weapon: '무기', helmet: '투구', armor: '갑옷', gloves: '장갑', boots: '신발', accessory: '목걸이', ring: '반지', potion: '회복 물약', mp_potion: '마나 물약', scroll: '두루마리', material: '재료', box: '상자', ticket: '이용권', boost: '부스트' };
+const KIND = { weapon: '무기', helmet: '투구', armor: '갑옷', gloves: '장갑', boots: '신발', accessory: '목걸이', ring: '반지', potion: '회복 물약', mp_potion: '마나 물약', scroll: '두루마리', material: '재료', box: '상자', ticket: '이용권', boost: '부스트', food: '음식' };
 const EQUIP = ['weapon', 'helmet', 'armor', 'gloves', 'boots', 'accessory', 'ring'];
-const ROLE = { chief: '촌장(전직)', quest: '퀘스트', shop: '상인', smith: '대장장이(강화)', sailor: '뱃사공(이동)', raid: '선술집(레이드·던전·원정)', gem: '젬 상인', storage: '창고', flavor: '주민' };
+const ROLE = { chief: '촌장(전직)', quest: '퀘스트', shop: '상인', smith: '대장장이(강화)', sailor: '뱃사공(이동)', raid: '선술집(레이드·던전·원정)', gem: '젬 상인', storage: '창고', tavern: '의뢰 중개인', cook: '요리사(생활)', smelter: '광부 반장(생활)', fishmonger: '어물전 주인(생활)', flavor: '주민' };
 const MOB_KIND = { field: '일반', elite: '정예', boss: '필드 보스', raid: '레이드 보스', raidAdd: '레이드 소환수', worldBoss: '원정 필드 보스', worldBossAdd: '원정 소환수' };
 const PASSIVE = { patkPct: ['물리 공격력', '%'], matkPct: ['마법 공격력', '%'], maxHpPct: ['최대 HP', '%'], maxMpPct: ['최대 MP', '%'], critPct: ['치명타 확률', '%p'] };
 const DMG = { phys: '물리', magic: '마법' };
@@ -429,7 +429,7 @@ function pageDrops() {
     ${table(['몬스터', '종류', { t: '베리', c: 'r' }, { t: '장비', c: 'r' }, { t: '티어', c: 'r' }, '등급표', '기타'], mobRows, { scroll: true })}
 
     ${chestRows.length ? `<h2>보물상자</h2>
-    <p class="muted small">섬마다 사냥터 곳곳과 마을 안에 놓인 보물상자를 F로 엽니다. 상자는 사람마다 따로라 남이 먼저 열어도 내 상자는 그대로이고, 내가 연 상자는 ${c.chestRespawnSec / 60}분 뒤 다시 열 수 있습니다(채널을 옮겨도 같은 자리 상자는 기다려야 합니다). 그 섬 회복 물약 1~2개는 반드시 나오고, 장비는 그 섬 시작 레벨 티어(등급은 필드 표)입니다. 열 때마다 아주 드물게 ${itemLink('primal_sword')}이 나옵니다(확률은 아이템 페이지의 얻는 곳, 가방이 가득 차면 우편으로 옵니다).</p>
+    <p class="muted small">섬마다 사냥터 곳곳과 마을 안에 있는 보물상자를 F로 엽니다. 상자는 정해진 자리가 없습니다 — 섬 안 무작위 자리에 나타나고 ${c.chestMoveSec[0]}~${c.chestMoveSec[1]}초마다 다른 자리로 옮깁니다(열 수 있는 사람이 곁에 있으면 조금 기다렸다 옮깁니다). 상자는 사람마다 따로라 남이 먼저 열어도 내 상자는 그대로이고, 내가 연 상자는 ${c.chestRespawnSec / 60}분 뒤 다시 열 수 있습니다(자리를 옮기거나 채널을 옮겨도 같은 상자는 기다려야 합니다). 그 섬 회복 물약 1~2개는 반드시 나오고, 장비는 그 섬 시작 레벨 티어(등급은 필드 표)입니다. 열 때마다 아주 드물게 ${itemLink('primal_sword')}이 나옵니다(확률은 아이템 페이지의 얻는 곳, 가방이 가득 차면 우편으로 옵니다).</p>
     ${table(['섬', { t: '베리', c: 'r' }, { t: '회복 물약', c: 'r' }, { t: '귀환 두루마리', c: 'r' }, { t: '장비(아무거나)', c: 'r' }, { t: '강화서', c: 'r' }], chestRows)}` : ''}
 
     <h2>암거래상</h2>
@@ -764,10 +764,10 @@ function bindSkills(focusId) {
 }
 
 // ── 페이지: 아이템 ──
-const ITEM_GROUPS = { all: ['전체', null], weapon: ['무기', ['weapon']], armor: ['방어구', ['armor', 'helmet', 'gloves', 'boots']], acc: ['장신구', ['accessory', 'ring']], use: ['소모품', ['potion', 'mp_potion', 'scroll', 'boost', 'box', 'ticket']], mat: ['재료', ['material']] };
+const ITEM_GROUPS = { all: ['전체', null], weapon: ['무기', ['weapon']], armor: ['방어구', ['armor', 'helmet', 'gloves', 'boots']], acc: ['장신구', ['accessory', 'ring']], use: ['소모품', ['potion', 'mp_potion', 'scroll', 'boost', 'box', 'ticket', 'food']], mat: ['재료', ['material']] };
 const itemState = { group: 'all', rarity: 'all', cls: 'all', q: '', sort: 'default', src: 'all' };
 /** 얻는 곳 한 줄 요약(도감 목록 칸). 레이드 출처는 무한의 던전·레이드를 가른다 */
-const SRC_LABEL = { shop: '상점', mob: '몬스터', rare: '등급 드랍', chest: '보물상자', worldBoss: '필드 보스', quest: '퀘스트', questDrop: '퀘스트 수집', premium: '고급 상자', gemShop: '젬 상점', legacy: '옛 장비', grant: '운영자 지급', cash: '현금 상점', guildRank: '길드 랭킹', craft: '대장장이 제작' };
+const SRC_LABEL = { shop: '상점', mob: '몬스터', rare: '등급 드랍', chest: '보물상자', worldBoss: '필드 보스', quest: '퀘스트', questDrop: '퀘스트 수집', premium: '고급 상자', gemShop: '젬 상점', legacy: '옛 장비', grant: '운영자 지급', cash: '현금 상점', guildRank: '길드 랭킹', craft: '대장장이 제작', life: '생활' };
 function srcLabel(s) {
   if (s.type === 'raid') return s.raid === D.infinite.id ? '무한의 던전' : M.dungeons.has(s.raid) ? '일일 던전' : '레이드';
   if (s.type === 'market') return D.constants.market.name;
@@ -850,6 +850,8 @@ function sourceBlock(it) {
   if (cash.length) out.push(`<div class="card"><h3>현금 상점</h3><ul class="plain">${cash.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul><p class="muted small" style="margin:8px 0 0">드랍·상점·상자에서는 나오지 않습니다.</p></div>`);
   const guildRank = by('guildRank');
   if (guildRank.length) out.push(`<div class="card"><h3><a href="#/world#guild-rank">길드 랭킹 일일 보상</a></h3><ul class="plain">${guildRank.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul></div>`);
+  const life = by('life');
+  if (life.length) out.push(`<div class="card"><h3><a href="#/world#life">생활 (${esc(D.life.islands.village)} 동쪽)</a></h3><ul class="plain">${life.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul></div>`);
   const craft = by('craft');
   if (craft.length) out.push(`<div class="card"><h3><a href="#/classes/${D.blacksmith.id}#craft">대장장이 무기 제작</a></h3><ul class="plain">${craft.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul><p class="muted small" style="margin:8px 0 0">이름 앞에 만든 대장장이의 이름이 붙습니다(예: 「철수의 ${esc(it.name)}」).${D.blacksmith.craft.open ? '' : ' 무기 제작은 지금 중단되었고, 초월할 때는 같은 레이드·같은 직업의 레이드 무기와 같은 무기로 칩니다.'}</p></div>`);
   if (!out.length) out.push('<div class="empty-state">지금은 게임 안에서 얻는 곳이 없습니다.</div>');
@@ -980,7 +982,7 @@ function pageWorld() {
               ${isl.bossId ? `<li><span class="chip accent">필드 보스</span> ${mobLink(isl.bossId)} · ${D.constants.bossRespawnSec}초마다</li>` : ''}</ul>`}
             <h3 style="margin-top:12px">NPC</h3>
             <p class="small">${isl.npcs.map((n) => `${esc(n.name)} <span class="muted">(${ROLE[n.role] ?? n.role})</span>`).join(' · ')}</p>
-            ${isl.hub || !isl.chests ? '' : `<p class="small muted">보물상자 ${isl.chests}개(필드 곳곳 + 마을) · 상자 보상은 <a href="#/drops">드랍률</a> 참고</p>`}
+            ${isl.hub || !isl.chests ? '' : `<p class="small muted">보물상자 ${isl.chests}개(필드 곳곳 + 마을, 자리는 무작위로 옮김) · 상자 보상은 <a href="#/drops">드랍률</a> 참고</p>`}
           </div>
           <div>
             <h3>상점</h3>
@@ -994,6 +996,7 @@ function pageWorld() {
     <section class="card" id="raid-${r.id}">
       <h2 style="margin-top:0">${esc(r.name)} <span class="chip">입장 Lv${r.minLevel}</span>${r.guild ? ' <span class="chip">길드 레이드</span>' : ''} <span class="chip">${r.minParty === 1 ? '혼자' : r.minParty}~${r.size}인</span> <span class="chip">제한 ${r.timeLimitSec / 60}분</span>${r.cooldownSec ? ` <span class="chip">클리어 뒤 재입장 ${Math.round(r.cooldownSec / 60)}분</span>` : ''}</h2>
       <p>보스: ${mobLink(r.bossId)} · HP ${fmt(M.mobs.get(r.bossId)?.hp ?? 0)}${r.bossHpScale ? ` × (${r.bossHpScale.base} + ${r.bossHpScale.perExtra} × (입장 인원 − ${r.bossHpScale.from ?? 1}${(r.bossHpScale.from ?? 1) > 1 ? ', 0 미만이면 0' : ''}))` : ''}${r.guideIsland ? ` · ${islandLink(r.guideIsland)}의 레이드 안내인에게서 출발` : ''}</p>
+      ${r.ladder ? `<p><b>만렙 사다리 ${r.ladder.step}단계(${esc(r.ladder.stepName)})</b> · <b>권장 전투력 ${fmt(r.ladder.power)}</b>(레이드 창에서 내 전투력과 비교). 입문 → 어려움 → 매우 어려움 → 지옥 순서로 페이즈와 기믹이 늘어나고 보스가 세집니다.</p>` : ''}
       ${r.guild ? '<p class="small">길드장·부길드장이 출발을 요청하면 접속한 길드원 전원(입장 레벨 이상·재입장 대기 아님)에게 준비 확인이 갑니다. 어느 섬에 있든 준비 완료를 누르면 바로 들어가고, 끝나면 각자 있던 섬으로 돌아옵니다. 보스는 뛰어올라 내리꽂고(도약) 직선으로 돌진하며, 보스 품이 안전한 고리(도넛) 패턴이 있습니다.</p>' : '<p class="small">레이드 창의 <b>레이드 파티</b>에서 이 레이드를 함께 갈 사람을 따로 모으거나(모집 글) 다른 사람의 레이드 파티에 참가할 수 있습니다. 레이드 파티에 있으면 출발할 때 필드 파티 대신 레이드 파티로 가고, 필드 파티는 그대로 남습니다. 레이드 파티가 없으면 필드 파티(없으면 혼자)로 출발합니다. 일일 던전·무한의 던전도 같습니다.</p>'}
       <p class="small">혼자 입장해 클리어하면 보상(베리·경험치·아이템 수량·장비/희귀/유니크 확률)이 ×${r.soloMul}입니다. 2명 이상이면 그대로입니다.</p>
       ${table(['페이즈', { t: '보스 HP', c: 'r' }, '패턴'], r.phases.map((p) => tr([`${p.phase}`, R(`${p.fromHpPct}% 이하`), esc(p.label) + (p.lethal ? ' <span class="small">· 즉사 패턴</span>' : '') + (p.debuffs?.length ? `<br><span class="small">맞으면: ${p.debuffs.map(esc).join(' · ')}</span>` : '')])))}
@@ -1169,6 +1172,53 @@ function pageWorld() {
       <p>${esc(cq.hall)} 술대 위에 앉은 <b>${esc(cq.npc)}</b>가 주는 곁가지 퀘스트입니다. 앞 의뢰를 끝내야 다음 의뢰를 받고, 하나씩 한 번만 할 수 있습니다.</p>
       ${questTable(catQuests)}
     </section>`;
+  const lf = D.life;
+  const lfRecipe = (r) => `${r.inputs.map((i) => `${itemLink(i.itemId)} ×${i.qty}`).join(' + ')}${r.gold ? ` + ${fmt(r.gold)} 베리` : ''} → ${itemLink(r.output.itemId)} ×${r.output.qty}`;
+  const lfTools = (kind) => lf.tools.filter((t) => t.kind === kind).map((t) => tr([`<b>${itemLink(t.id)}</b>`, R(t.tier), R(`+${t.rare}%p`), R(`+${t.epic}%p`), R(`−${t.speedPct}%`), R(won(t.price))]));
+  const lfMerchant = (kind) => ['common', 'rare', 'epic'].map((g) => `${itemLink(lf.kinds.find((k) => k.id === kind).items[g])} ${won(lf.merchantPrice[g])}`).join(' · ');
+  const GRADE_KO = { common: '일반', rare: '희귀', epic: '영웅' };
+  const lfFish = () => lf.fish.map((f) => tr([`<b>${itemLink(f.id)}</b>`, `<span class="rar-${f.grade}">${GRADE_KO[f.grade]}</span>`, ...f.pct.map((p) => R(p > 0 ? `${Math.round(p * 100) / 100}%` : '—')), R(won(f.price))]));
+  const lfNodes = (kind) => lf.nodes.filter((n) => n.kind === kind).map((n) => tr([`<b>${esc(n.name)}</b>`, R(`Lv${n.lv}`), R(`${100 - n.rare - n.epic}%`), R(`${n.rare}%`), R(`${n.epic}%`), R(n.exp)]));
+  const won = (v) => `${fmt(v)} 베리`;
+  const lifeCard = `
+    <section class="card" id="life">
+      <h2 style="margin-top:0">생활 — 농사·광산·낚시 <span class="chip">${esc(lf.islands.village)} 동쪽 거리</span> <span class="chip">Lv${lf.unlockLevel}부터</span> <span class="chip">콘텐츠마다 생활 Lv${lf.maxLevel}까지</span></h2>
+      <p><b>${esc(lf.islands.village)}</b> 동쪽 광장 이정표에서 북쪽 갱도 → <b>${esc(lf.islands.mine)}</b>, 남쪽 계단 → <b>${esc(lf.islands.cove)}</b>, 동쪽 문 → <b>${esc(lf.islands.farm)}</b>으로 갑니다. 모두 <b>직접 가서 하는</b> 콘텐츠입니다 — 떠나 있거나 접속하지 않으면 아무것도 쌓이지 않습니다. 행동 1회마다 자원·작물이 정한 생활 경험치가 들어오고(유물 경험치 보너스만 곱함), 생활 Lv1→${lf.maxLevel}에는 ${fmt(lf.totalExp)}이 듭니다(Lv L→L+1 = ${lf.expStep}×L). 하루 약 1시간씩 하면 약 100일입니다.</p>
+      <div class="grid g2">
+        <div class="card"><h3>광산 <span class="chip">곡괭이 ${lf.mineSec}초</span></h3>
+          <p class="small">가방에 <b>곡괭이</b>가 있어야 캘 수 있습니다(가장 높은 단계가 저절로 쓰임). 광맥 곁에서 F. ${lf.mineSec}초 채널(숙련·곡괭이로 짧아짐) 동안 자리를 지키면 광석이 들어오고 광맥은 사라졌다가 <b>${lf.mineRespawnSec}초</b> 뒤 같은 자리에 다시 생깁니다. 여럿이 같은 광맥을 캐면 먼저 끝낸 사람 것입니다.</p>
+          ${table(['광맥', { t: '필요', c: 'r' }, { t: '일반', c: 'r' }, { t: '희귀', c: 'r' }, { t: '영웅', c: 'r' }, { t: 'EXP', c: 'r' }], lfNodes('mine'))}
+          <p class="small"><b>광부 반장</b>이 광석을 사 줍니다: ${lfMerchant('mine')}. 곡괭이 다섯 단계도 팝니다(2단계부터는 광석과 베리로 만들 수도 있습니다).</p>
+          ${table(['곡괭이', { t: '단계', c: 'r' }, { t: '희귀', c: 'r' }, { t: '영웅', c: 'r' }, { t: '채굴 시간', c: 'r' }, { t: '값', c: 'r' }], lfTools('mine'))}
+        </div>
+        <div class="card"><h3>낚시 <span class="chip">입질 ${lf.fishWaitSec[0]}~${lf.fishWaitSec[1]}초</span></h3>
+          <p class="small">가방에 <b>낚싯대</b>가 있어야 합니다(가장 높은 단계가 저절로 쓰임). 물가 낚시 자리에서 F로 던지면 ${lf.fishWaitSec[0]}~${lf.fishWaitSec[1]}초(숙련·낚싯대로 짧아짐) 뒤 <b>「!」</b>가 뜹니다. <b>${lf.fishBiteMs / 1000}초</b> 안에 다시 F를 눌러 당기면 물고기, 놓치면 빈손입니다. 낚시 자리는 없어지지 않습니다.</p>
+          ${table(['낚시 자리', { t: '필요', c: 'r' }, { t: '일반', c: 'r' }, { t: '희귀', c: 'r' }, { t: '영웅', c: 'r' }, { t: 'EXP', c: 'r' }], lfNodes('fish'))}
+          <p class="small"><b>어물전 주인</b>이 물고기를 종류마다 다른 값에 사 줍니다. 등급을 굴린 뒤 그 등급 안에서 자리 레벨에 맞는 종류가 가중 추첨됩니다(표는 낡은 낚싯대·행운 0 기준, 자리마다 1회 확률). 낚싯대도 팝니다 — 비쌀수록 좋은 물고기가 잘 뭅니다.</p>
+          ${table(['물고기', '등급', ...lf.fishNodes.map((n) => ({ t: n, c: 'r' })), { t: '매입가', c: 'r' }], lfFish())}
+          ${table(['낚싯대', { t: '단계', c: 'r' }, { t: '희귀', c: 'r' }, { t: '영웅', c: 'r' }, { t: '입질 대기', c: 'r' }, { t: '값', c: 'r' }], lfTools('fish'))}
+        </div>
+      </div>
+      <h3>농사 <span class="chip">내 농장 · 부지 ${won(lf.farm.lotPrice)}</span> <span class="chip">풍작 ${lf.farm.bumperBase}% = 2배</span></h3>
+      <p class="small">${esc(lf.islands.farm)} 관리인에게 <b>부지</b>를 사면 동쪽 울타리 문 너머 <b>${esc(lf.islands.lot)}</b>(캐릭터마다 하나)이 생깁니다. 관리인에게 산 씨앗을 생활 창에서 손에 들고 빈 밭 칸에 F로 심고, 다 자라면(칸이 황금빛) F로 거둡니다. 자라는 동안은 다른 일을 보셔도 됩니다(심은 시각 기준).</p>
+      ${table(['작물', '씨앗', { t: '농사 Lv', c: 'r' }, { t: '씨앗 값', c: 'r' }, { t: '자라는 시간', c: 'r' }, '수확물', { t: 'EXP', c: 'r' }], lf.crops.map((c) => tr([`<b>${esc(c.name)}</b>`, itemLink(c.seed), R(c.lv), R(won(c.seedPrice)), R(`${c.growMin}분`), itemLink(c.item), R(c.exp)])))}
+      <ul class="plain small">
+        <li><b>밭 넓히기</b>: ${lf.farm.sizes.map((s, i) => `${s}×${s}${i < lf.farm.sizePrices.length ? ` → ${won(lf.farm.sizePrices[i])}` : ''}`).join(' · ')}</li>
+        <li><b>토양 개량</b>(단계당 성장 +${lf.farm.soilPct}%): ${lf.farm.soilPrices.map(won).join(' · ')}</li>
+        <li><b>허수아비</b>(단계당 수확량 +${lf.farm.scarePct}%): ${lf.farm.scarePrices.map(won).join(' · ')}</li>
+      </ul>
+      <h3>포인트 <span class="chip">생활 레벨 − 1 · 만렙 ${lf.pointsAtMax}점</span> <span class="chip">스탯마다 ${lf.statMax}까지</span></h3>
+      <ul class="plain small">
+        <li><b>${esc(lf.stats[0].name)}</b>: 포인트당 행동 1회의 아이템 +${lf.yieldPct}% (소수는 다음 번으로 이월)</li>
+        <li><b>${esc(lf.stats[1].name)}</b>: 포인트당 채굴·입질 대기·작물 성장 시간 −${lf.speedPct}%</li>
+        <li><b>${esc(lf.stats[2].name)}</b>: 포인트당 희귀 +${lf.luckRarePp}%p · 영웅 +${lf.luckEpicPp}%p(광산·낚시) · 풍작 +${lf.luckBumperPp}%p(농사)</li>
+        <li>행동 1회마다 <b>${itemLink(lf.rare.itemId)}</b>이 ${pct(lf.rare.chance)} × (생활 Lv ÷ ${lf.maxLevel}) 확률로 나옵니다(서버 전체 주 1개 꼴).</li>
+      </ul>
+      <h3>조합법 <span class="chip">${esc(lf.islands.farm)} 요리사 · ${esc(lf.islands.mine)} 광부 반장</span> <span class="chip">한 번에 ${lf.craftMax}묶음까지</span></h3>
+      <p class="small">요리사에게서는 물고기·작물로 음식(최종 공격력·최대 HP·경험치·베리를 한동안 올려 주는 버프, 같은 종류는 효과가 큰 쪽만)을, 광부 반장에게서는 광석과 베리로 다음 단계 곡괭이를 만듭니다.</p>
+      ${table(['요리', '재료 → 결과', '효과'], lf.recipes.filter((r) => r.role === 'cook').map((r) => { const f = (D.items.find((it) => it.id === r.output.itemId) || {}).food || {}; return tr([`<b>${esc(r.name)}</b>`, lfRecipe(r), `${[f.atk ? `최종 공격력 +${f.atk}%` : '', f.hp ? `최대 HP +${f.hp}%` : '', f.exp ? `경험치 +${f.exp}%` : '', f.gold ? `베리 +${f.gold}%` : ''].filter(Boolean).join(' · ')} · ${f.min}분`]); }))}
+      ${table(['곡괭이 제작', '재료 → 결과'], lf.recipes.filter((r) => r.role === 'smelter').map((r) => tr([`<b>${esc(r.name)}</b>`, lfRecipe(r)])))}
+    </section>`;
   const tg = D.training;
   const trainingCard = `
     <section class="card" id="training">
@@ -1183,11 +1233,12 @@ function pageWorld() {
     </section>`;
   const dg = D.dungeons;
   const lvDg = dg.list.find((d) => d.kind === 'levelup');
+  const trDg = dg.list.find((d) => d.kind === 'treasure');
   const roomFlow = (d) => d.rooms.map((k, i) => `${i + 1}구역 ${k === 'mid' ? '<b>중간 보스</b>' : k === 'boss' ? '<b>최종 보스</b>' : `몬스터 ${d.packSize}마리`}`).join(' → ');
   const midNo = lvDg.rooms.indexOf('mid') + 1;
   const dungeonCards = `
     <section class="card" id="dungeons">
-      <h2 style="margin-top:0">일일 던전 <span class="chip">하루(KST) 던전마다 ${lvDg.dailyLimit}번</span> <span class="chip">혼자~${lvDg.size}인</span> <span class="chip">${lvDg.maxWave}구역</span></h2>
+      <h2 style="margin-top:0">일일 던전 <span class="chip">던전마다 하루(KST) 횟수</span> <span class="chip">혼자~${lvDg.size}인</span> <span class="chip">${lvDg.maxWave}구역</span></h2>
       <p>노을마을 선술집 주인의 레이드 목록에서 출발합니다. 입장할 때마다 1회로 세고, 파티로 가면 <b>파티원 모두</b> 남은 횟수가 있어야 출발합니다. 랭킹·서버 최초 보상은 없습니다.</p>
       <p><b>방을 뚫고 나아가는 던전</b>입니다. 입구에서 회랑을 따라 방 ${lvDg.maxWave}곳을 차례로 지나며, <b>파티가 방에 들어서야</b> 그 방 몬스터가 나타납니다(방을 정리해야 다음 방이 열립니다). ${midNo}구역에는 <b>중간 보스</b>(한 단계 아래 지역의 섬 보스 · 최종 보스 수치 대비 HP ${pct(lvDg.midBoss?.hp ?? 0)} · 공격력 ${pct(lvDg.midBoss?.atk ?? 0)} · 호위 ${lvDg.midBoss?.escorts ?? 0}), 마지막 ${lvDg.maxWave}구역에는 <b>최종 보스</b>(그 레벨 지역의 섬 보스 · 호위 ${lvDg.bossEscorts})가 기다립니다. 진행 창의 화살표가 다음 방 쪽을 가리킵니다.</p>
       <p class="small">몬스터는 구역 번호가 아니라 <b>입장한 파티의 평균 레벨과 인원</b>에 맞춰집니다(그 레벨 지역의 몬스터를 기준으로 인원이 늘 때마다 HP가 불어납니다). 순서: ${roomFlow(lvDg)}</p>
@@ -1202,6 +1253,17 @@ function pageWorld() {
           </ul>
           ${table([{ t: '입장 레벨', c: 'r' }, { t: '한 번에 오르는 양', c: 'r' }], dg.levelup.map((l) => tr([R(`Lv${l.level}`), R(esc(l.text))])))}
         </div>
+        ${trDg ? `<div class="card">
+          <h3>${esc(trDg.name)} <span class="chip">Lv${trDg.minLevel}+</span> <span class="chip">하루 ${trDg.dailyLimit}번</span> <span class="chip">힐러 필수</span></h3>
+          <ul class="plain small">
+            <li><b>황금 저주</b>: 들어오고 ${trDg.curse.graceSec}초 뒤부터 끝날 때까지 1초마다 살아 있는 참가자 모두 최대 HP의 일정 비율을 잃습니다(보호막이 먼저 막고, 쓰러지면 사인 「황금 저주」). 구역별: ${trDg.curse.pcts.map((p, i) => `${i + 1}구역 ${fmt(p)}%`).join(' · ')}. 다음 구역으로 가는 길에서는 다음 구역 비율입니다.</li>
+            <li>던전 안은 레이드 규칙이라 물약이 절반만 듣고 HP가 저절로 차지 않습니다. 물약만으로는 저주를 따라잡지 못해 <b>힐러의 치유·보호막</b>이 있어야 완주합니다.</li>
+            <li>보상은 <b>베리뿐</b>: 최종 보스가 아닌 구역마다 ${fmt(trDg.treasure.room)} 베리, 최종 보스 처치에 ${fmt(trDg.treasure.bossMin)}~${fmt(trDg.treasure.bossMax)} 베리 무작위(한 사람마다 따로) — 완주 합계 <b>${fmt(trDg.treasure.min)}~${fmt(trDg.treasure.max)} 베리</b>. 경험치·강화서는 없습니다.</li>
+            <li>월정액 추가 입장은 레벨업 던전에만 쓰고, 보물 던전은 하루 ${trDg.dailyLimit}번 그대로입니다.</li>
+            <li>${rubyLine('daily_dungeon')}</li>
+            <li>몬스터 HP: 파티원 1명 늘 때마다 +${pct(trDg.partyHpMul)}.</li>
+          </ul>
+        </div>` : ''}
       </div>
     </section>`;
   const so = D.social;
@@ -1279,7 +1341,7 @@ function pageWorld() {
       <p class="muted small" style="margin-top:8px">이름의 X는 금칙어를 가린 글자입니다.</p>
     </section>`;
   const index = `<nav class="isl-index" aria-label="지역 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>${isl.hub ? "모항" : `Lv${isl.levelRange[0]}~${isl.levelRange[1]}`}${isl.shopTiers.length ? ` · ${isl.shopTiers.map((t) => `T${t}`).join('·')}` : ''}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a></nav>`;
-  return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 모항입니다.')}<h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>선술집 의뢰</h2><div class="stack">${tavernCard}${catCard}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>길드</h2><div class="stack">${guildRankCard}${guildStorageCard}</div><h2>교류·편의</h2><div class="stack">${socialCards}</div>`;
+  return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 모항입니다.')}<h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>선술집 의뢰</h2><div class="stack">${tavernCard}${catCard}</div><h2>생활</h2><div class="stack">${lifeCard}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>길드</h2><div class="stack">${guildRankCard}${guildStorageCard}</div><h2>교류·편의</h2><div class="stack">${socialCards}</div>`;
 }
 
 // ── 페이지: 성장·강화 ──
@@ -1340,10 +1402,11 @@ function pageGrowth() {
     <p class="muted small">등급 한 칸은 티어 ¼칸입니다(한 칸 최소 ×${D.constants.grades.minMul}): T1·T2는 ${esc(rarName('legendary'))}이 다음 티어 ${esc(rarName('common'))}과 같습니다. 자세한 배율은 <a href="#/drops#grades">드랍률</a>의 장비 등급을 보세요.</p>
 
     <h2 id="relics">유물</h2>
-    <p><b>Lv ${D.relics.level}</b>부터 ESC 메뉴의 <b>유물</b> 창에서 ${esc(D.gems.name)}으로 유물을 뽑습니다(1회 ${D.relics.drawCost}개 · ${D.relics.drawMulti}회 ${D.relics.drawCost * D.relics.drawMulti}개). 최대 <b>${D.relics.slots}개</b>를 장착하면 아래 능력치가 오릅니다. 유물은 가방 밖 보관함(최대 ${D.relics.cap}개)에 있고 거래·판매할 수 없습니다.</p>
+    <p><b>Lv ${D.relics.level}</b>부터 ESC 메뉴의 <b>유물</b> 창에서 ${esc(D.gems.name)}으로 유물을 뽑습니다(1회 ${D.relics.drawCost}개, 한 번에 ${D.relics.draws.map((n) => `${n}회`).join('·')}). 최대 <b>${D.relics.slots}개</b>를 장착하면 아래 능력치가 오릅니다. 유물은 가방 밖 보관함(최대 ${D.relics.cap}개)에 있고 거래·판매할 수 없습니다.</p>
+    <p><b>대량 소환</b>(${D.relics.bulk.map((n) => `${n}회`).join('·')}): 소환하다 보관함이 차면 거기까지만 소환하고, 남은 회차는 ${esc(D.gems.name)}·소환권을 쓰지 않습니다. ${D.relics.draws.filter((n) => !D.relics.bulk.includes(n)).map((n) => `${n}회`).join('·')} 소환은 보관함에 그만큼 자리가 없으면 소환되지 않습니다.</p>
     <p><b>1번 칸은 계정 공용</b>: 1번 칸에 낀 유물은 같은 계정의 모든 캐릭터가 효과를 받습니다(Lv ${D.relics.level} 미만 캐릭터도). 1번 칸에 끼면 그 유물은 캐릭터 보관함을 떠나 계정에 있고, 이미 있던 1번 칸 유물은 끼는 캐릭터의 보관함으로 돌아옵니다. 빼면 뺀 캐릭터의 보관함으로 들어갑니다(끼고 빼기는 Lv ${D.relics.level}부터).</p>
     <p>필드 정예 몬스터를 잡으면 Lv ${D.relics.level} 이상인 처치 인정자마다 <b>${pct(D.relics.eliteDrop.chance)}</b> 확률로 유물 1개가 보관함에 바로 들어옵니다(${D.relics.eliteDrop.grades.map((g) => `${esc(rarName(g.id))} ${pct(g.rate)}`).join(' · ')}). 보관함이 가득 차 있으면 나오지 않습니다.</p>
-    <p><b>천장</b>: 캐릭터마다 ${D.relics.pity.map((t) => `마지막 ${esc(rarName(t.id))} 이상 뒤로 뽑은 횟수`).join('와 ')}를 셉니다(${esc(D.gems.name)}·유물 소환권, 1회·${D.relics.drawMulti}회 뽑기 모두 회차마다 1). ${D.relics.pity.map((t) => `<b>${t.at}번째</b> 뽑기는 <span class="rar-${t.id}">${esc(rarName(t.id))}</span> 이상 확정`).join(', ')}이고(둘이 겹치면 높은 쪽), 확정 회차의 등급은 그 이상 등급끼리 원래 확률 비율대로 정해집니다(${D.relics.pity.map((t) => `${esc(rarName(t.id))} 확정: ${t.grades.map((g) => `${esc(rarName(g.id))} ${pct(g.rate)}`).join(' · ')}`).join(' / ')}). ${esc(rarName('epic'))} 이상이 나오면 ${esc(rarName('epic'))} 횟수를, ${esc(rarName('legendary'))} 이상이 나오면 두 횟수를 모두 처음부터 셉니다. 합성·정예 몬스터 드랍은 세지 않습니다. 진행은 유물 창 소환 띠에 보입니다. 천장이 생기기 전(2026-10-07)에 뽑은 횟수도 소급합니다: 그 뒤 처음 접속할 때 밀린 만큼 전설·영웅 유물을 한 번 넣어 드립니다(뽑은 횟수는 보관함 유물 수로 추정).</p>
+    <p><b>천장</b>: 캐릭터마다 ${D.relics.pity.map((t) => `마지막 ${esc(rarName(t.id))} 이상 뒤로 뽑은 횟수`).join('와 ')}를 셉니다(${esc(D.gems.name)}·유물 소환권, ${D.relics.draws.map((n) => `${n}회`).join('·')} 뽑기 모두 회차마다 1). ${D.relics.pity.map((t) => `<b>${t.at}번째</b> 뽑기는 <span class="rar-${t.id}">${esc(rarName(t.id))}</span> 이상 확정`).join(', ')}이고(둘이 겹치면 높은 쪽), 확정 회차의 등급은 그 이상 등급끼리 원래 확률 비율대로 정해집니다(${D.relics.pity.map((t) => `${esc(rarName(t.id))} 확정: ${t.grades.map((g) => `${esc(rarName(g.id))} ${pct(g.rate)}`).join(' · ')}`).join(' / ')}). ${esc(rarName('epic'))} 이상이 나오면 ${esc(rarName('epic'))} 횟수를, ${esc(rarName('legendary'))} 이상이 나오면 두 횟수를 모두 처음부터 셉니다. 합성·정예 몬스터 드랍은 세지 않습니다. 진행은 유물 창 소환 띠에 보입니다. 천장이 생기기 전(2026-10-07)에 뽑은 횟수도 소급합니다: 그 뒤 처음 접속할 때 밀린 만큼 전설·영웅 유물을 한 번 넣어 드립니다(뽑은 횟수는 보관함 유물 수로 추정).</p>
     <p><b>전설 유물 확정권</b>(루비 상점 「유물 패키지」): Lv ${D.relics.level}부터 가방에서 사용하면 <span class="rar-legendary">${esc(rarName('legendary'))}</span> 유물 1개(종류 무작위)를 바로 얻습니다. 뽑기가 아니라서 천장 횟수에는 들어가지 않고, 보관함이 가득 차 있으면 쓸 수 없습니다. 거래·판매할 수 없습니다.</p>
     <div class="grid g2">
       <div class="card">
@@ -1556,11 +1619,12 @@ function buildSearch() {
   }
   for (const r of D.raids) add('레이드', r.name, `#/world#raid-${r.id}`, `레이드 · 입장 Lv${r.minLevel}`, ph('crown'), r.phases.map((p) => p.label).join(' · '), '레이드');
   add('레이드', D.infinite.name, `#/world#raid-${D.infinite.id}`, `웨이브 던전 · 입장 Lv${D.infinite.minLevel} · 혼자~${D.infinite.size}인`, ph('crown'), '무한 웨이브 랭킹 서버 최초 유니크', '레이드');
-  for (const d of D.dungeons.list) add('레이드', d.name, '#/world#dungeons', `일일 던전 · 하루 ${d.dailyLimit}번 · 혼자~${d.size}인`, ph('crown'), '레벨업 던전 경험치 수련', '일일던전');
+  for (const d of D.dungeons.list) add('레이드', d.name, '#/world#dungeons', `일일 던전 · ${d.minLevel > 1 ? `Lv${d.minLevel}+ · ` : ''}하루 ${d.dailyLimit}번 · 혼자~${d.size}인`, ph('crown'), d.kind === 'treasure' ? '보물 던전 베리 황금 저주 힐러' : '레벨업 던전 경험치 수련', '일일던전');
   add('레이드', D.augment.name, `#/world#raid-${D.augment.id}`, `웨이브 던전 베타 · ${D.augment.every}웨이브마다 증강 카드`, ph('crown'), D.augment.list.map((a) => `${a.name} ${a.desc}`).join(' · '), '레이드 증강 베타 카드');
   for (const w of D.worldBosses) add('레이드', w.name, `#/world#wb-${w.id}`, `필드 보스 원정 · ${M.mobs.get(w.bossId)?.name ?? ''}`, ph('crown'), w.phases.map((p) => p.label).join(' · '), '필드보스 월드보스 원정');
   add('콘텐츠', D.duel.name, '#/world#duel', `PvP · ${D.duel.modes.map((m) => m.name).join(' · ')} · ${D.duel.rules.map((r) => `${r.name} Lv${r.minLevel}+`).join(' · ')}`, ph('swords'), `점수 매칭 ±${D.duel.matchRange} 결투 신청 친선 스펙 적용 동등 조건`, '결투장 PvP 대전 결투 점수 레이팅 동등결투');
   add('콘텐츠', '선술집 의뢰', '#/world#tavern', `노을마을 선술집 · ${D.tavern.rotateHours}시간마다 교체 · 개인 의뢰 ${D.tavern.personalCount}개`, ph('scroll-text'), D.tavern.tiers.map((t) => t.name).join(' · '), '선술집 의뢰 일퀘 일일 퀘스트 게시판 개인 마고');
+  add('콘텐츠', '생활(농사·광산·낚시)', '#/world#life', `${D.life.islands.mine} · ${D.life.islands.cove} · ${D.life.islands.farm} · Lv${D.life.unlockLevel}부터 · 직접 채굴·낚시·농사 · 요리·제련`, ph('scroll-text'), D.life.kinds.map((k) => k.name).join(' · '), '생활 농사 광산 낚시 수확 채굴 요리 제련 음식 노을 광산 노을 포구 농장 마을 내 농장 부지 풍요의 삼지창');
   const cq = D.catQuests;
   add('콘텐츠', '고양이 의뢰', '#/world#cat-quests', `${cq.hall} 곁가지 퀘스트 · ${cq.ids.length}개`, ph('scroll-text'), cq.npc, '고양이 의뢰 곁가지 퀘스트 선술집 김꼴꼴');
   add('NPC', cq.npc, '#/world#cat-quests', `${cq.hall} · 퀘스트`, ph('info'), '', 'npc퀘스트고양이');
