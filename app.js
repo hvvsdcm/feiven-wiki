@@ -996,6 +996,7 @@ function pageWorld() {
       <p class="small">혼자 입장해 클리어하면 보상(베리·경험치·아이템 수량·장비/희귀/유니크 확률)이 ×${r.soloMul}입니다. 2명 이상이면 그대로입니다.</p>
       ${table(['페이즈', { t: '보스 HP', c: 'r' }, '패턴'], r.phases.map((p) => tr([`${p.phase}`, R(`${p.fromHpPct}% 이하`), esc(p.label) + (p.lethal ? ' <span class="small">· 즉사 패턴</span>' : '') + (p.debuffs?.length ? `<br><span class="small">맞으면: ${p.debuffs.map(esc).join(' · ')}</span>` : '')])))}
       ${r.enrage ? `<p class="small" style="margin-top:8px">격노: 시작 ${r.enrage.afterSec / 60}분 뒤 보스 피해 ×${r.enrage.damageMultiplier}</p>` : ''}
+      ${r.lastStand ? `<p class="small">발악 「${esc(r.lastStand.name)}」: 보스 HP ${r.lastStand.hpPct}% 이하에서 한 번 — ${r.lastStand.freezeSec}초 동안 시간이 멈춘 뒤 참가자 전원의 HP가 1이 되고, 이어 보스가 ${r.lastStand.recoverSec}초 동안 지쳐 있습니다</p>` : ''}
       <h3>보상 (참가자 전원)</h3>
       <ul class="plain small">
         <li>경험치 ${fmt(r.rewards.exp)} · ${fmt(r.rewards.gold)} 베리 · ${r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')}${r.rewards.byLevel ? ` (입장 레벨 Lv${r.minLevel} 기준 — <b>받는 사람 레벨에 맞춰 늘어남</b>: 베리 ×(내 레벨 ÷ ${r.minLevel}), 아이템 ×(1 + 내 레벨 ÷ ${r.minLevel}) ÷ 2, 경험치는 내 레벨의 한 레벨 몫 비율만큼)` : ''}</li>
