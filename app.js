@@ -382,6 +382,8 @@ function pageDrops() {
   const tierRows = D.tiers.map((t) => tr([R(`T${t.tier}`), esc(t.set), R(`Lv${t.fromLevel}`), R(t.band), t.shops.map(islandLink).join(', ') || '—', t.bosses.map(mobLink).join(', ') || '—']));
   const raidSetRows = D.raidSets.map((s) => tr([R(s.rank), s.raidId ? islandLink(s.raidId) : esc(s.raidName), R(`Lv${s.reqLevel}`), esc(`${s.prefix} 세트`), s.bossId ? mobLink(s.bossId) : '—']));
   const inf = D.infinite;
+  // 파티 베리 나눔 섬(처치 베리를 경험치처럼 인원 몫만 — 잠긴 섬은 D.islands에 없다)
+  const goldSplit = D.islands.filter((isl) => isl.partyGoldSplit).map((isl) => islandLink(isl.id)).join(', ');
   const m = c.market;
   const raidRows = D.raids.map((r) => {
     const set = D.raidSets.find((s) => s.raidId === r.id);
@@ -392,7 +394,7 @@ function pageDrops() {
     ${head('드랍률', '게임 서버의 전리품 규칙 그대로입니다.')}
     <h2 style="margin-top:0">몬스터 한 마리를 잡으면</h2>
     <ol class="plain">
-      <li><b>베리</b>: 처치를 인정받은 사람마다 따로 굴려 바로 들어옵니다(줍지 않아도 됨).</li>
+      <li><b>베리</b>: 처치를 인정받은 사람마다 따로 굴려 바로 들어옵니다(줍지 않아도 됨).${goldSplit ? ` 단, ${goldSplit}에서는 경험치처럼 인원수로 나눠 받습니다 — 1인당 (1 + ${c.partyExpBonus} × (인원 − 1)) ÷ 인원(2명 ${Math.round(((1 + c.partyExpBonus) / 2) * 100)}%, 4명 ${Math.round(((1 + c.partyExpBonus * 3) / 4) * 100)}%).` : ''}</li>
       <li><b>전리품</b>: 몬스터 드랍표의 항목마다 <b>독립적으로</b> 한 번씩 굴립니다. 몬스터당 한 번이며, 바닥에 떨어진 뒤 ${c.dropOwnerSec}초 동안은 처치 인정자(파티 포함)만 보고 주울 수 있고(다른 사람 화면에는 보이지 않음), ${c.dropDespawnSec}초 뒤 사라집니다. ${itemLink(D.scrolls.id)}도 여기서 나옵니다(필드 몬스터 ${pct(D.scrolls.fieldDrop)}).</li>
       <li><b>장비</b>: 몬스터 레벨의 티어 장비 11종이 드랍표에 들어 있고(하나 이상 나올 확률 필드 몬스터 ${pct(c.gearDrop.field)}(T1은 ${pct(c.gearDrop.fieldT1)}) · 섬 보스 ${pct(c.gearDrop.boss)}), 떨어질 때 <a href="#/drops#grades">등급</a>을 한 번 굴립니다. 정예는 레벨 보너스를 뺀 원종 레벨의 티어입니다.</li>
     </ol>
@@ -427,7 +429,7 @@ function pageDrops() {
     ${table(['몬스터', '종류', { t: '베리', c: 'r' }, { t: '장비', c: 'r' }, { t: '티어', c: 'r' }, '등급표', '기타'], mobRows, { scroll: true })}
 
     ${chestRows.length ? `<h2>보물상자</h2>
-    <p class="muted small">섬마다 놓인 상자를 F로 엽니다. 연 뒤 ${c.chestRespawnSec / 60}분 뒤 다시 생깁니다. 그 섬 회복 물약 1~2개는 반드시 나오고, 장비는 그 섬 시작 레벨 티어(등급은 필드 표)입니다.</p>
+    <p class="muted small">섬마다 사냥터 곳곳과 마을 안에 놓인 보물상자를 F로 엽니다. 상자는 사람마다 따로라 남이 먼저 열어도 내 상자는 그대로이고, 내가 연 상자는 ${c.chestRespawnSec / 60}분 뒤 다시 열 수 있습니다(채널을 옮겨도 같은 자리 상자는 기다려야 합니다). 그 섬 회복 물약 1~2개는 반드시 나오고, 장비는 그 섬 시작 레벨 티어(등급은 필드 표)입니다. 열 때마다 아주 드물게 ${itemLink('primal_sword')}이 나옵니다(확률은 아이템 페이지의 얻는 곳, 가방이 가득 차면 우편으로 옵니다).</p>
     ${table(['섬', { t: '베리', c: 'r' }, { t: '회복 물약', c: 'r' }, { t: '귀환 두루마리', c: 'r' }, { t: '장비(아무거나)', c: 'r' }, { t: '강화서', c: 'r' }], chestRows)}` : ''}
 
     <h2>암거래상</h2>
@@ -969,7 +971,7 @@ function pageWorld() {
     const quests = isl.quests.map((q) => M.quests.get(q));
     return `
       <section class="card" id="isl-${isl.id}">
-        <h2 style="margin-top:0">${esc(isl.name)} ${isl.hub ? '<span class="chip accent">모항 · 시작 마을</span> <span class="chip">사냥터 없음</span>' : `<span class="chip">Lv${isl.levelRange[0]}~${isl.levelRange[1]}</span> <span class="chip">입장 Lv${isl.minLevel}</span>`} <span class="chip">상점 ${isl.shopTiers.map((t) => `T${t}`).join('·')}</span></h2>
+        <h2 style="margin-top:0">${esc(isl.name)} ${isl.hub ? '<span class="chip accent">모항 · 시작 마을</span> <span class="chip">사냥터 없음</span>' : `<span class="chip">Lv${isl.levelRange[0]}~${isl.levelRange[1]}</span> <span class="chip">입장 Lv${isl.minLevel}</span>`}${isl.partyGoldSplit ? ' <a class="chip" href="#/drops">파티 베리 나눔</a>' : ''} <span class="chip">상점 ${isl.shopTiers.map((t) => `T${t}`).join('·')}</span></h2>
         <div class="grid g2">
           <div>
             ${isl.hub ? `<p class="small">새 캐릭터가 처음 서는 마을입니다. 대장간·잡화점·창고·젬 상점이 모여 있고, 레이드·일일 던전·필드 보스 원정은 모두 <b>선술집 주인</b>에게서 출발합니다. 귀환 두루마리를 쓰면 이 마을 부두로 돌아옵니다. 광장 모닥불가에 둘러앉을 수 있고, 음유시인은 류트 연주를 할 수 있습니다.</p>` : `<h3>몬스터</h3>
@@ -978,7 +980,7 @@ function pageWorld() {
               ${isl.bossId ? `<li><span class="chip accent">필드 보스</span> ${mobLink(isl.bossId)} · ${D.constants.bossRespawnSec}초마다</li>` : ''}</ul>`}
             <h3 style="margin-top:12px">NPC</h3>
             <p class="small">${isl.npcs.map((n) => `${esc(n.name)} <span class="muted">(${ROLE[n.role] ?? n.role})</span>`).join(' · ')}</p>
-            ${isl.hub || !isl.chests ? '' : `<p class="small muted">보물상자 ${isl.chests}개 · 상자 보상은 <a href="#/drops">드랍률</a> 참고</p>`}
+            ${isl.hub || !isl.chests ? '' : `<p class="small muted">보물상자 ${isl.chests}개(필드 곳곳 + 마을) · 상자 보상은 <a href="#/drops">드랍률</a> 참고</p>`}
           </div>
           <div>
             <h3>상점</h3>
@@ -1339,6 +1341,7 @@ function pageGrowth() {
 
     <h2 id="relics">유물</h2>
     <p><b>Lv ${D.relics.level}</b>부터 ESC 메뉴의 <b>유물</b> 창에서 ${esc(D.gems.name)}으로 유물을 뽑습니다(1회 ${D.relics.drawCost}개 · ${D.relics.drawMulti}회 ${D.relics.drawCost * D.relics.drawMulti}개). 최대 <b>${D.relics.slots}개</b>를 장착하면 아래 능력치가 오릅니다. 유물은 가방 밖 보관함(최대 ${D.relics.cap}개)에 있고 거래·판매할 수 없습니다.</p>
+    <p><b>1번 칸은 계정 공용</b>: 1번 칸에 낀 유물은 같은 계정의 모든 캐릭터가 효과를 받습니다(Lv ${D.relics.level} 미만 캐릭터도). 1번 칸에 끼면 그 유물은 캐릭터 보관함을 떠나 계정에 있고, 이미 있던 1번 칸 유물은 끼는 캐릭터의 보관함으로 돌아옵니다. 빼면 뺀 캐릭터의 보관함으로 들어갑니다(끼고 빼기는 Lv ${D.relics.level}부터).</p>
     <p>필드 정예 몬스터를 잡으면 Lv ${D.relics.level} 이상인 처치 인정자마다 <b>${pct(D.relics.eliteDrop.chance)}</b> 확률로 유물 1개가 보관함에 바로 들어옵니다(${D.relics.eliteDrop.grades.map((g) => `${esc(rarName(g.id))} ${pct(g.rate)}`).join(' · ')}). 보관함이 가득 차 있으면 나오지 않습니다.</p>
     <p><b>천장</b>: 캐릭터마다 ${D.relics.pity.map((t) => `마지막 ${esc(rarName(t.id))} 이상 뒤로 뽑은 횟수`).join('와 ')}를 셉니다(${esc(D.gems.name)}·유물 소환권, 1회·${D.relics.drawMulti}회 뽑기 모두 회차마다 1). ${D.relics.pity.map((t) => `<b>${t.at}번째</b> 뽑기는 <span class="rar-${t.id}">${esc(rarName(t.id))}</span> 이상 확정`).join(', ')}이고(둘이 겹치면 높은 쪽), 확정 회차의 등급은 그 이상 등급끼리 원래 확률 비율대로 정해집니다(${D.relics.pity.map((t) => `${esc(rarName(t.id))} 확정: ${t.grades.map((g) => `${esc(rarName(g.id))} ${pct(g.rate)}`).join(' · ')}`).join(' / ')}). ${esc(rarName('epic'))} 이상이 나오면 ${esc(rarName('epic'))} 횟수를, ${esc(rarName('legendary'))} 이상이 나오면 두 횟수를 모두 처음부터 셉니다. 합성·정예 몬스터 드랍은 세지 않습니다. 진행은 유물 창 소환 띠에 보입니다. 천장이 생기기 전(2026-10-07)에 뽑은 횟수도 소급합니다: 그 뒤 처음 접속할 때 밀린 만큼 전설·영웅 유물을 한 번 넣어 드립니다(뽑은 횟수는 보관함 유물 수로 추정).</p>
     <p><b>전설 유물 확정권</b>(루비 상점 「유물 패키지」): Lv ${D.relics.level}부터 가방에서 사용하면 <span class="rar-legendary">${esc(rarName('legendary'))}</span> 유물 1개(종류 무작위)를 바로 얻습니다. 뽑기가 아니라서 천장 횟수에는 들어가지 않고, 보관함이 가득 차 있으면 쓸 수 없습니다. 거래·판매할 수 없습니다.</p>
@@ -1356,7 +1359,7 @@ function pageGrowth() {
     </div>
     <h3>종류별 능력치 (등급마다)</h3>
     ${table(['유물', '능력치', ...D.relics.grades.map((g) => ({ t: `<span class="rar-${g.id}">${esc(rarName(g.id))}</span>`, c: 'r' }))], D.relics.types.map((t) => tr([esc(t.name), esc(t.stat), ...t.values.map((v) => R(`+${v}${t.unit}`))])))}
-    <p class="muted small" style="margin-top:8px">공격력은 물리·마법 공격력에 모두 곱합니다. 공격 속도는 기본 공격 재사용 대기를 줄입니다. 다중 사격은 투사체 직업이면 기본 공격 투사체가 한 발 더 나가고, 근접 직업이면 기본 공격을 한 번 더 휘두릅니다. 장착 유물을 모두 더해도 공격 속도는 +${D.relics.fxCap.aspdPct}%, 스킬 재사용 대기 감소(가속 포함)는 −${D.relics.fxCap.cdrPct}%까지만 칩니다.</p>
+    <p class="muted small" style="margin-top:8px">공격력은 물리·마법 공격력에 모두 곱합니다. 공격 속도는 기본 공격 재사용 대기를 줄입니다. 다중 사격은 투사체 직업이면 기본 공격 투사체가 한 발 더 나가고, 근접 직업이면 기본 공격을 한 번 더 휘두릅니다. 장착 유물을 모두 더해도 공격 속도는 +${D.relics.fxCap.aspdPct}%, 스킬 재사용 대기 감소(가속 포함)는 −${D.relics.fxCap.cdrPct}%까지만 칩니다. 경험치 유물은 <a href="#/growth#exp-bonus">경험치 배율</a>에 더하고, 베리 유물은 몬스터를 잡을 때 받는 베리에만 붙습니다(상점 판매가는 그대로).</p>
 
     <h2 id="codex">도감</h2>
     <p><b>Lv ${D.codex.level}</b>부터 ESC 메뉴의 <b>도감</b> 창에서 가방에 든 <a href="#/drops#raid-sets">레이드 장비</a>를 등록합니다. 등록한 장비는 가방에서 <b>사라지고</b>, 같은 종류는 한 번만 등록합니다(강화·제련 단계는 상관없음). 도감은 <b>계정 공용</b>이라 같은 계정의 모든 캐릭터가 효과를 받습니다(Lv ${D.codex.level} 미만 캐릭터도).</p>
@@ -1384,6 +1387,7 @@ function pageGrowth() {
 function expBonusSection() {
   const x = D.expBonus;
   const g = D.guildShop.buffs.find((b) => b.id === 'exp');
+  const relicExp = D.relics.types.find((t) => t.id === 'exp');
   const bsExp = D.blacksmith.buff.list.filter((b) => b.kind === 'exp');
   const lvDg = D.dungeons.list.find((d) => d.kind === 'levelup');
   const example = 1 + (x.hourly.mul - 1) + (x.feed.mul - 1) + x.supporter;
@@ -1396,6 +1400,7 @@ function expBonusSection() {
     tr(['<b>서버 축복</b>', R(`+${pct(x.blessing.bonus)}`), `누군가 루비 상점에서 사면 서버 전체에 ${x.blessing.minutes / 60}시간(남은 시간 최대 ${x.blessing.maxMinutes / 60}시간까지 쌓임)`]),
     ...(g ? [tr([`<b>${esc(g.name)}</b>`, R(`+${g.pct}%`), `<a href="#/world#guild-shop">길드 상점</a>에서 사면 길드원 전체에 ${D.guildShop.buffHours}시간`])] : []),
     ...bsExp.map((b) => tr([`<b>${esc(b.name)}</b>`, R(`+${b.pct}%`), `플레이어 대장장이의 <a href="#/classes/${esc(D.blacksmith.id)}#buff">장비 손질</a>, ${b.min}분`])),
+    ...(relicExp ? [tr([`<b>${esc(relicExp.name)}</b>`, R(`+${relicExp.values[0]}~${relicExp.values[relicExp.values.length - 1]}%`), '<a href="#/growth#relics">유물</a>을 낀 캐릭터(1번 칸이면 계정의 모든 캐릭터). 여럿 끼면 모두 더합니다.'])] : []),
   ];
   return `
     <h2 id="exp-bonus">경험치 배율</h2>
