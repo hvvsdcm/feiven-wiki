@@ -962,11 +962,21 @@ function pageMob(id) {
     <dl class="stats">${stats.map(([k, v]) => `<div class="stat"><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
     ${raid ? `<p style="margin-top:12px">${islandLink(raid.id)}의 보스입니다. 보상은 레이드 클리어 보상으로 나옵니다.</p>${gimmickBlock(raid.gimmicks, raid.phases, true)}` : ''}
     ${wb ? `<p style="margin-top:12px">${islandLink(wb.islandId)}의 원정 필드 보스입니다. ${wb.periodSec / 60}분마다 ${wb.activeSec / 60}분 동안 나타나고, 기여(피해 + 지원 + 치유)한 사람 모두가 지분만큼 <a href="#/world#wb-${esc(wb.id)}">원정 보상</a>을 나눠 받습니다.</p>${gimmickBlock(wb.gimmicks, wb.phases, true)}` : ''}
+    ${D.seaBoss?.mobId === m.id ? seaBossBlock(D.seaBoss) : ''}
     ${m.kind === 'boss' ? `<p style="margin-top:12px">${rubyLine('island_boss')} <a href="#/drops#ruby">루비 드랍표</a></p>` : ''}
     <h2>드랍표 <span class="muted small">베리 ${fmt(m.loot.gold[0])}~${fmt(m.loot.gold[1])}</span></h2>
     ${table(['아이템', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }, { t: '', c: 'r' }], lootRows)}
     ${gearNote}
     <p class="muted small" style="margin-top:10px">경험치는 몬스터와 레벨이 같을 때 값입니다. 내가 ${c.expPenaltyDiff[0]}레벨 이상 높으면 50%, ${c.expPenaltyDiff[1]}레벨 이상 높으면 10%만 받습니다.</p>`;
+}
+
+/** 깊은 바다 보스(심연 크라켄): 레벨·HP는 곁 선원에 맞춰 정해진다 — 위 표의 수치는 기본값. 갑판 규칙 · 배 크기 · 기믹 */
+function seaBossBlock(s) {
+  return `<p style="margin-top:12px">깊은 바다 배낚시 보스입니다. 위 레벨·HP·공격력은 기본값이고, 나올 때 곁 선원에 맞춰 다시 정해집니다.</p>
+    <ul class="plain">${s.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
+    <p class="small muted">배 크기: ${s.boats.map((b) => `${esc(b.name)}(${b.seats}명) ×${b.scale}`).join(' · ')}</p>
+    <h3 style="margin-top:12px">기믹</h3>
+    <ul class="plain">${s.gimmicks.map((g) => `<li><span class="chip">페이즈 ${g.phase}부터</span> <b>${esc(g.name)}</b> — ${esc(g.text)}</li>`).join('')}</ul>`;
 }
 
 /** 보스 기믹 접기 상자: 패턴 간격·순서 · 같은 기믹 연속 피격 감쇠 · 맵 기믹 · 페이즈별 기믹(페이즈 시작 · 즉사 · 맞으면 걸리는 약화) */
@@ -1219,7 +1229,7 @@ function pageWorld() {
   const lifeCard = `
     <section class="card" id="life">
       <h2 style="margin-top:0">생활 — 농사·광산·낚시 <span class="chip">${esc(lf.islands.village)} 동쪽 거리</span> <span class="chip">Lv${lf.unlockLevel}부터</span> <span class="chip">콘텐츠마다 생활 Lv${lf.maxLevel}까지</span></h2>
-      <p><b>${esc(lf.islands.village)}</b> 동쪽 광장 이정표에서 북쪽 갱도 → <b>${esc(lf.islands.mine)}</b>, 남쪽 계단 → <b>${esc(lf.islands.cove)}</b>, 동쪽 문 → <b>${esc(lf.islands.farm)}</b>으로 갑니다. 모두 <b>직접 가서 하는</b> 콘텐츠입니다 — 떠나 있거나 접속하지 않으면 아무것도 쌓이지 않습니다. 행동 1회마다 자원·작물이 정한 생활 경험치가 들어오고(유물 경험치 보너스만 곱함), 생활 Lv1→${lf.maxLevel}에는 ${fmt(lf.totalExp)}이 듭니다(Lv L→L+1 = ${lf.expStep}×L). 하루 약 1시간씩 하면 약 100일입니다.${D.cashShop.lifeSub ? ` <a href="#/drops#cash-shop">생활 월정액</a> 중에는 생활 경험치 +${pct(D.cashShop.lifeSub.expBonus)}(다른 보너스와 더함)와 생활 가방 ${D.cashShop.lifeSub.bagSlots}칸이 붙습니다.` : ''}</p>
+      <p><b>${esc(lf.islands.village)}</b> 동쪽 광장 이정표에서 북쪽 갱도 → <b>${esc(lf.islands.mine)}</b>, 남쪽 계단 → <b>${esc(lf.islands.cove)}</b>, 동쪽 문 → <b>${esc(lf.islands.farm)}</b>으로 갑니다. 모두 <b>직접 가서 하는</b> 콘텐츠입니다 — 떠나 있거나 접속하지 않으면 아무것도 쌓이지 않습니다. 행동 1회마다 자원·작물이 정한 생활 경험치가 들어오고(유물 경험치 보너스만 곱함), 생활 Lv1→${lf.maxLevel}에는 ${fmt(lf.totalExp)}이 듭니다(Lv L→L+1 = ${lf.expStep}×L, 농사는 그 ${lf.farmExpMul}배). 하루 약 1시간씩 하면 약 100일입니다.${D.cashShop.lifeSub ? ` <a href="#/drops#cash-shop">생활 월정액</a> 중에는 생활 경험치 +${pct(D.cashShop.lifeSub.expBonus)}(다른 보너스와 더함)와 생활 가방 ${D.cashShop.lifeSub.bagSlots}칸이 붙습니다.` : ''}</p>
       <div class="grid g2">
         <div class="card"><h3>광산 <span class="chip">곡괭이 ${lf.mineSec}초</span></h3>
           <p class="small">가방에 <b>곡괭이</b>가 있어야 캘 수 있습니다(가장 높은 단계가 저절로 쓰임). 광맥 곁에서 F. ${lf.mineSec}초 채널(숙련으로 짧아짐) 동안 자리를 지키면 광석이 들어오고 광맥은 사라졌다가 <b>${lf.mineRespawnSec}초</b> 뒤 같은 자리에 다시 생깁니다. 여럿이 같은 광맥을 캐면 먼저 끝낸 사람 것입니다.</p>
