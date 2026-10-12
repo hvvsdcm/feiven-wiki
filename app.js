@@ -18,7 +18,7 @@ const icon = (name, cls = 'i') => `<svg class="${cls}" aria-hidden="true"><use h
 
 const KIND = { weapon: '무기', helmet: '투구', armor: '갑옷', gloves: '장갑', boots: '신발', accessory: '목걸이', ring: '반지', potion: '회복 물약', mp_potion: '마나 물약', scroll: '두루마리', material: '재료', box: '상자', ticket: '이용권', boost: '부스트', food: '음식' };
 const EQUIP = ['weapon', 'helmet', 'armor', 'gloves', 'boots', 'accessory', 'ring'];
-const ROLE = { chief: '촌장(전직)', quest: '퀘스트', shop: '상인', smith: '대장장이(강화)', sailor: '뱃사공(이동)', raid: '선술집(레이드·던전·원정)', gem: '젬 상인', storage: '창고', tavern: '의뢰 중개인', cook: '요리사(생활)', smelter: '광부 반장(생활)', fishmonger: '어물전 주인(생활)', flavor: '주민' };
+const ROLE = { chief: '촌장(전직)', quest: '퀘스트', shop: '상인', smith: '대장장이(강화)', sailor: '뱃사공(이동)', raid: '선술집(레이드·던전·원정)', gem: '젬 상인', storage: '창고', tavern: '의뢰 중개인', cook: '요리사(생활)', smelter: '광부 반장(생활)', fishmonger: '어물전 주인(생활)', farmer: '농장 관리인(생활)', shipwright: '선주(배낚시 배)', flavor: '주민' };
 const MOB_KIND = { field: '일반', elite: '정예', boss: '필드 보스', raid: '레이드 보스', raidAdd: '레이드 소환수', worldBoss: '원정 필드 보스', worldBossAdd: '원정 소환수' };
 const PASSIVE = { patkPct: ['물리 공격력', '%'], matkPct: ['마법 공격력', '%'], maxHpPct: ['최대 HP', '%'], maxMpPct: ['최대 MP', '%'], critPct: ['치명타 확률', '%p'] };
 const DMG = { phys: '물리', magic: '마법' };
@@ -161,7 +161,7 @@ function pageHome() {
     ['items', 'backpack', '#ff8a4c', '아이템 도감', `아이템 ${D.items.length}개 · 얻는 곳`],
     ['mobs', 'skull', '#ff6b6b', '몬스터 도감', `몬스터 ${D.mobs.length}종 · 드랍표`],
     ['world', 'map', '#2dd4bf', '지역·레이드', `지역 ${D.islands.length}곳 · 레이드 ${D.raids.length}개 · 일일 던전 ${D.dungeons.list.length}개 · 필드 보스 원정 ${D.worldBosses.length}곳 · 퀘스트 ${D.quests.length}개`],
-    ['growth', 'trending-up', '#f472b6', '성장·강화', '경험치 표 · 경험치 배율 · 강화 · 각성 · 초월 · 합성 · 칭호'],
+    ['growth', 'trending-up', '#f472b6', '성장·강화', '경험치 표 · 경험치 배율 · 강화 · 각성 · 초월 · 합성 · 칭호 · 보물 사냥 · 항해 등급'],
   ];
   const tries = ['합성', '강화서', '강화 성공률', '치명타', '크라켄', 'ㅎㄱㅅ'];
   const kv = [
@@ -960,13 +960,27 @@ function pageMob(id) {
     ${crumb('#/mobs', '몬스터 도감')}
     <div class="detail-head"><span class="ico lg ph">${icon(m.kind === 'field' ? 'skull' : 'crown', 'i')}</span><div><h1>${esc(m.name)}</h1><div class="chips"><span class="chip">${MOB_KIND[m.kind]}</span><span class="chip" ${m.aggro === 'aggressive' ? 'style="color:var(--bad)"' : ''}>${m.aggro === 'aggressive' ? '선공' : '비선공'}</span>${m.islands.map((i) => `<span class="chip">${islandLink(i)}</span>`).join('')}</div></div></div>
     <dl class="stats">${stats.map(([k, v]) => `<div class="stat"><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
-    ${raid ? `<p style="margin-top:12px">${islandLink(raid.id)}의 보스입니다. 보상은 레이드 클리어 보상으로 나옵니다.</p>` : ''}
-    ${wb ? `<p style="margin-top:12px">${islandLink(wb.islandId)}의 원정 필드 보스입니다. ${wb.periodSec / 60}분마다 ${wb.activeSec / 60}분 동안 나타나고, 기여(피해 + 지원 + 치유)한 사람 모두가 지분만큼 <a href="#/world#wb-${esc(wb.id)}">원정 보상</a>을 나눠 받습니다.</p>` : ''}
+    ${raid ? `<p style="margin-top:12px">${islandLink(raid.id)}의 보스입니다. 보상은 레이드 클리어 보상으로 나옵니다.</p>${gimmickBlock(raid.gimmicks, raid.phases, true)}` : ''}
+    ${wb ? `<p style="margin-top:12px">${islandLink(wb.islandId)}의 원정 필드 보스입니다. ${wb.periodSec / 60}분마다 ${wb.activeSec / 60}분 동안 나타나고, 기여(피해 + 지원 + 치유)한 사람 모두가 지분만큼 <a href="#/world#wb-${esc(wb.id)}">원정 보상</a>을 나눠 받습니다.</p>${gimmickBlock(wb.gimmicks, wb.phases, true)}` : ''}
     ${m.kind === 'boss' ? `<p style="margin-top:12px">${rubyLine('island_boss')} <a href="#/drops#ruby">루비 드랍표</a></p>` : ''}
     <h2>드랍표 <span class="muted small">베리 ${fmt(m.loot.gold[0])}~${fmt(m.loot.gold[1])}</span></h2>
     ${table(['아이템', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }, { t: '', c: 'r' }], lootRows)}
     ${gearNote}
     <p class="muted small" style="margin-top:10px">경험치는 몬스터와 레벨이 같을 때 값입니다. 내가 ${c.expPenaltyDiff[0]}레벨 이상 높으면 50%, ${c.expPenaltyDiff[1]}레벨 이상 높으면 10%만 받습니다.</p>`;
+}
+
+/** 보스 기믹 접기 상자: 패턴 간격·순서 · 같은 기믹 연속 피격 감쇠 · 맵 기믹 · 페이즈별 기믹(페이즈 시작 · 즉사 · 맞으면 걸리는 약화) */
+function gimmickBlock(g, phases, open = false) {
+  if (!g) return '';
+  const rg = D.bossRules.repeatGuard;
+  const line = (x) => `<li><b>${esc(x.name)}</b>${x.start ? ' <span class="chip">페이즈 시작</span>' : ''}${x.lethal ? ' <span class="chip" style="color:var(--bad)">즉사</span>' : ''} — ${esc(x.text)}${x.debuff ? `<br><span class="muted">맞으면: ${esc(x.debuff)}</span>` : ''}</li>`;
+  const map = g.map.map((m) => `<li><b>${esc(m.name)}</b><ul class="plain">${m.stages.map((s) => `<li>페이즈 ${s.fromPhase}부터: ${esc(s.text)}</li>`).join('')}</ul></li>`).join('');
+  const count = new Set(g.phases.flat().map((x) => x.name)).size + g.map.length;
+  return `<details style="margin-top:12px"${open ? ' open' : ''}><summary>보스 기믹 ${count}가지 (페이즈별 패턴)</summary>
+    <p class="small">패턴 간격 ${g.cdSec}초${g.jitterSec ? `(+0~${g.jitterSec}초 무작위)` : ''} · ${g.random ? '매번 무작위 순서' : '정해진 순서대로'} — 방금 쓴 패턴·같은 기믹은 잇달아 오지 않습니다. 다음 기믹은 ${rg.sec}초 안에 다시 맞으면 피해 ×${rg.mul}: ${rg.names.map(esc).join(' · ')}</p>
+    ${map ? `<h3 style="margin-top:12px">맵 기믹 (전투 내내)</h3><ul class="plain small">${map}</ul>` : ''}
+    ${phases.map((p, i) => `<h3 style="margin-top:12px">페이즈 ${p.phase} · 보스 HP ${p.fromHpPct}% 이하 <span class="muted small">${esc(p.label)}</span></h3><ul class="plain small">${(g.phases[i] ?? []).map(line).join('')}</ul>`).join('')}
+  </details>`;
 }
 
 // ── 페이지: 지역·레이드 ──
@@ -1021,6 +1035,7 @@ function pageWorld() {
       ${table(['페이즈', { t: '보스 HP', c: 'r' }, '패턴'], r.phases.map((p) => tr([`${p.phase}`, R(`${p.fromHpPct}% 이하`), esc(p.label) + (p.lethal ? ' <span class="small">· 즉사 패턴</span>' : '') + (p.debuffs?.length ? `<br><span class="small">맞으면: ${p.debuffs.map(esc).join(' · ')}</span>` : '')])))}
       ${r.enrage ? `<p class="small" style="margin-top:8px">격노: 시작 ${r.enrage.afterSec / 60}분 뒤 보스 피해 ×${r.enrage.damageMultiplier}</p>` : ''}
       ${r.lastStand ? `<p class="small">발악 「${esc(r.lastStand.name)}」: 보스 HP ${r.lastStand.hpPct}% 이하에서 한 번 — ${r.lastStand.freezeSec}초 동안 시간이 멈춘 뒤 참가자 전원의 HP가 1이 되고, 이어 보스가 ${r.lastStand.recoverSec}초 동안 지쳐 있습니다</p>` : ''}
+      ${gimmickBlock(r.gimmicks, r.phases)}
       <h3>보상 (참가자 전원)</h3>
       <ul class="plain small">
         <li>경험치 ${fmt(r.rewards.exp)} · ${fmt(r.rewards.gold)} 베리 · ${r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')}${r.rewards.byLevel ? ` (입장 레벨 Lv${r.minLevel} 기준 — <b>받는 사람 레벨에 맞춰 늘어남</b>: 베리 ×(내 레벨 ÷ ${r.minLevel}), 아이템 ×(1 + 내 레벨 ÷ ${r.minLevel}) ÷ 2, 경험치는 내 레벨의 한 레벨 몫 비율만큼)` : ''}</li>
@@ -1039,6 +1054,7 @@ function pageWorld() {
       <p><b>출현 시간</b>: 매시 정각과 30분(${w.periodSec / 60}분 간격)에 나타나 <b>${w.activeSec / 60}분 동안</b> 머뭅니다. 그 안에 쓰러뜨리지 못하면 물러나고, 기여한 사람은 깎은 HP 비율만큼 줄어든 보상을 받습니다. 1인 피해 한도는 없습니다.</p>
       ${table(['페이즈', { t: '보스 HP', c: 'r' }, '패턴'], w.phases.map((p) => tr([`${p.phase}`, R(`${p.fromHpPct}% 이하`), esc(p.label)])))}
       ${w.enrage ? `<p class="small" style="margin-top:8px">격노: 교전 ${w.enrage.afterSec / 60}분 뒤 보스 피해 ×${w.enrage.damageMultiplier}</p>` : ''}
+      ${gimmickBlock(w.gimmicks, w.phases)}
       <h3>보상 (기여한 사람 모두 — 기여 = 피해 + 지원 + 치유 × ${D.constants.worldBossHealWeight})</h3>
       <p class="small">아래 보상 풀을 기여 지분만큼 나눠 받습니다. 내 몫 = max(내 지분, ${w.floorSharePct}%) — 한 번이라도 기여했으면 최소 ${w.floorSharePct}% 몫을 받습니다. 시간이 다 되어 물러나면 몫 × 깎은 HP 비율. 낱개 보상(강화서·젬)은 몫을 곱한 기대값으로 확률 반올림합니다.</p>
       <ul class="plain small">
@@ -1212,7 +1228,7 @@ function pageWorld() {
           ${table(['곡괭이', { t: '단계', c: 'r' }, { t: '행운', c: 'r' }, '살 조건(누적)', { t: '값', c: 'r' }], lfTools('mine'))}
         </div>
         <div class="card"><h3>낚시 <span class="chip">입질 ${lf.fishWaitSec[0]}~${lf.fishWaitSec[1]}초</span></h3>
-          <p class="small">가방에 <b>낚싯대</b>가 있어야 합니다(가장 높은 단계가 저절로 쓰임). 물가 낚시 자리에서 F로 던지면 ${lf.fishWaitSec[0]}~${lf.fishWaitSec[1]}초(숙련으로 짧아짐) 뒤 <b>「!」</b>가 뜹니다(기다리는 동안 대기 범위가 보입니다). 그다음 <b>낚아채기</b>: 막대 위를 오가는 바늘이 <b>금색 구간</b>에 있을 때 F를 누릅니다. 구간 자리·폭·바늘 속도는 매번 바뀌고, <b>${lf.fishReel.stages}번</b> 연달아 맞히면 물고기, 구간 밖에서 누르거나 시간이 지나면 빈손입니다. 낚시 자리는 없어지지 않고, 물가·잔교 끝·바위 여울 어느 자리든 똑같습니다.</p>
+          <p class="small">가방에 <b>낚싯대</b>가 있어야 합니다(가장 높은 단계가 저절로 쓰임). 물가 낚시 자리에서 F로 던지면 ${lf.fishWaitSec[0]}~${lf.fishWaitSec[1]}초(숙련으로 짧아짐) 뒤 <b>「!」</b>가 뜹니다(기다리는 동안 대기 범위가 보입니다). 그다음 <b>낚아채기</b>: 화면에 ${lf.fishSeq.keys.join('·')} 키 <b>${lf.fishSeq.len}개</b>가 키보드 모양으로 뜨면 왼쪽부터 순서대로 누릅니다(모바일은 화면 키를 누름). 순서는 매번 바뀌고, ${lf.fishSeq.ms / 1000}초 안에 다 누르면 물고기, 틀린 키를 누르거나 시간이 지나면 빈손입니다. 낚시 자리는 없어지지 않고, 물가·잔교 끝·바위 여울 어느 자리든 똑같습니다.</p>
           ${table(['낚시 자리', { t: '필요', c: 'r' }, { t: '일반', c: 'r' }, { t: '희귀', c: 'r' }, { t: '영웅', c: 'r' }, { t: 'EXP', c: 'r' }], lfNodes('fish'))}
           <p class="small"><b>어물전 주인</b>이 물고기를 종류마다 다른 값에 사 줍니다. 등급을 굴린 뒤 그 등급 안에서 <b>낚시 레벨</b>로 열린 종류가 가중 추첨됩니다(표는 낡은 낚싯대·행운 0 기준, 1회 확률). 낚싯대도 팝니다 — 옵션은 <b>행운</b> 하나라 높은 단계일수록 좋은 물고기가 잘 뭅니다. 2단계부터는 그 종류 물고기를 <b>누적으로</b> 낚아야 살 수 있습니다(거대 물고기도 그 종류로 셉니다).</p>
           ${table(['물고기', '등급', ...lf.fishBands.map((n) => ({ t: n, c: 'r' })), { t: '매입가', c: 'r' }], lfFish())}
@@ -1366,6 +1382,54 @@ function pageWorld() {
 
 // ── 페이지: 성장·강화 ──
 const growthState = { rank: 1, level: 1 };
+/** 주간 시즌 「보물 사냥」: 조각 얻는 곳 · 보물 일정 · 교환소 · 시즌패스 · 길잡이 */
+function seasonSection() {
+  const S = D.season;
+  const G = S.guide;
+  const tok = `<img class="ico sm" src="${esc(S.tokenIcon)}" alt="" width="40" height="40"> <b>${esc(S.token)}</b>`;
+  const scheduleRows = S.schedule.flatMap((w) => w.treasures.map((t, i) => tr([
+    i === 0 ? `<b>시즌 ${w.season}</b><br><span class="muted small">${esc(w.start)} 주</span>` : '',
+    `<span class="name-cell"><img class="ico sm" src="${esc(t.icon)}" alt="" loading="lazy" width="40" height="40"><b>${esc(t.name)}</b></span><br><span class="muted small">${esc(t.desc)}</span>`,
+    R(esc(t.per)), R(`<b>${esc(t.max)}</b>`),
+  ])));
+  const exRows = S.exchange.map((e) => tr([
+    e.gems ? `<b>${esc(D.gems.name)} ${fmt(e.gems)}개</b>` : `${itemLink(e.itemId)} × ${e.qty}`,
+    R(`${fmt(e.cost)}개`), R(`주 ${e.weekly}번`), e.freeOnly ? '<span class="small">무료 조각으로만</span>' : '',
+  ]));
+  return `
+    <h2 id="season">보물 사냥(주간 시즌)</h2>
+    <p>매주 <b>월요일 0시(한국 시간)</b>에 새 시즌이 열립니다. 시즌마다 <b>보물 2개</b>를 그 주에만 팔고, 보물은 ${tok}으로 삽니다. ESC 메뉴의 <b>보물</b> 창에서 봅니다.</p>
+    <h3>${esc(S.token)} 얻는 곳</h3>
+    <ul class="plain">
+      <li><b>선술집 의뢰</b>: 한 장 끝낼 때마다 ${S.tavern.map((t) => `<span style="color:${esc(t.color)}">${esc(t.name)}</span> ${t.tokens}개`).join(' · ')}. 계정 전체로 <b>하루 ${S.dailyCap}개</b>까지입니다(한국 시간 자정에 다시 채워짐).</li>
+      <li><b>레이드 초행</b>: 그 계정의 어느 캐릭터도 깬 적 없는 레이드(사다리 레이드는 단계마다)를 처음 깨면 조각 <b>${G.firstTokens}개</b> · ${itemLink(D.scrolls.id)} ${G.firstScrolls}개. 시즌이 바뀌어도 다시 받지 않습니다.</li>
+      <li><b>길잡이</b>: 초행인 사람과 함께 레이드를 깨면, 함께 깬 초행 1명당 조각 <b>${G.perNewbieTokens}개</b>와 그 판 클리어 베리 <b>+${G.perNewbieGoldPct}%</b>(한 판에 초행 ${G.maxNewbies}명까지). 계정마다 시즌에 <b>${G.weeklyRuns}판</b>, 같은 초행 계정과는 시즌에 ${G.perAccountWeekly}판까지 셉니다. 초행 보상과 길잡이 보상은 하루 상한과 따로입니다. 일반·사다리 레이드만 해당하고 길드 레이드는 빠집니다.</li>
+    </ul>
+    <h3>보물</h3>
+    <p>보물은 한 단계씩 <b>${S.levels}단계</b>까지 삽니다. 단계 값은 ${S.costs.map((c) => `${c}`).join(' · ')}개(합 <b>${S.costTotal}개</b>)입니다. 산 보물은 <b>계정 공용 · 영구</b>라 같은 계정의 모든 캐릭터가 효과를 받고, 시즌이 지나도 남습니다. 지난 시즌 보물은 다시 팔지 않습니다. 남은 조각도 다음 시즌으로 그대로 넘어갑니다.</p>
+    ${table(['시즌', '보물', { t: '1단계', c: 'r' }, { t: `${S.levels}단계`, c: 'r' }], scheduleRows)}
+    <h3>교환소</h3>
+    <p>보물을 다 사고 남은 조각은 교환소에서 씁니다. 받은 아이템은 모두 귀속입니다. 한도는 시즌(주)마다 다시 채워집니다.</p>
+    ${table(['받는 것', { t: '값', c: 'r' }, { t: '한도', c: 'r' }, ''], exRows)}
+    <h3>시즌패스</h3>
+    <p>루비 상점의 <b>시즌패스</b>(${fmt(S.passRuby)}루비)는 그 시즌 동안 얻는 조각을 <b>${S.passMul}배</b>로 늘립니다(하루 상한도 ${S.passMul}배). 시즌 중간에 사도 그 시즌에 이미 얻은 조각만큼 바로 더 받습니다. 시즌마다 한 번 살 수 있고 선물할 수 있습니다. 패스로 더 받은 조각은 따로 세며, 보물·교환소 아이템에 먼저 쓰이고 <b>${esc(D.gems.name)}</b>으로는 바꿀 수 없습니다.</p>
+    ${note('무과금으로도 한 시즌에 의뢰만으로 보물 두 개를 모두 5단계까지 살 수 있게 맞췄습니다. 시즌패스는 조각을 더 빨리 모아 교환소를 더 쓰게 해 줄 뿐, 보물 단계 상한은 같습니다.')}`;
+}
+/** 항해 등급: Lv300 뒤 경험치 → 등급 · 네 갈래 · 필요 항해 경험치 */
+function voyageSection() {
+  const V = D.voyage;
+  const branchRows = V.branches.map((b) => tr([`<b>${esc(b.name)}</b>`, esc(b.stat), R(`+${b.per}${b.unit}`), R(`<b>+${b.max}${b.unit}</b>`)]));
+  const needRows = V.needs.map((n) => tr([R(`${n.rank} → ${n.rank + 1}`), R(fmt(n.need))]));
+  return `
+    <h2 id="voyage">항해 등급</h2>
+    <p><b>Lv ${D.meta.maxLevel}</b>부터 받는 경험치(사냥·레이드·의뢰·던전·필드 보스)는 모두 <b>항해 경험치</b>가 되어 <b>항해 등급</b>을 올립니다. 레벨은 ${D.meta.maxLevel} 그대로입니다. 사료·축복·월정액·보물 경험치 배율도 그대로 붙습니다. 능력치 창(C)의 <b>항해 등급</b> 탭에서 봅니다. 항해 등급은 캐릭터마다 따로입니다.</p>
+    <p>등급이 오를 때마다 1점을 받아 네 갈래 중 하나에 찍습니다(갈래마다 ${V.branchMax}점, 합 ${V.pointCap}점). 다시 찍기는 하루(한국 시간) 1번 무료, 그 뒤로는 ${fmt(V.respecCost)}베리입니다.</p>
+    ${table(['갈래', '오르는 것', { t: '1점', c: 'r' }, { t: `${V.branchMax}점`, c: 'r' }], branchRows)}
+    <p>${V.pointCap}등급 위로도 등급은 계속 오르고, 등급마다 ${itemLink(D.scrolls.id)} ${V.postScrolls}장, ${V.tokenEvery}등급마다 <b>${esc(D.season.token)}</b> ${V.tokens}개를 받습니다.</p>
+    <h3>필요 항해 경험치</h3>
+    <p class="muted small">0 → ${V.pointCap}등급 합 ${fmt(V.total)} — 배율 없이 사냥만 하면 약 ${fmt(V.targetHours)}시간입니다. ${V.pointCap}등급 위는 ${V.pointCap}등급 값 그대로입니다.</p>
+    ${table([{ t: '등급', c: 'r' }, { t: '필요 항해 경험치', c: 'r' }], needRows)}`;
+}
 function pageGrowth() {
   const c = D.constants;
   const mulRows = D.classes.map((k) => tr([`<a href="#/classes/${k.id}">${esc(k.name)}</a>`, R(`×${k.classMul.atk}`), R(`×${k.classMul.hp}`), R(`+${k.atkPerLevel}`), R(`+${k.hpPerLevel}`), R(`+${k.mpPerLevel}`)]));
@@ -1455,6 +1519,10 @@ function pageGrowth() {
     <h2 id="fade">페이드</h2>
     <p>계정 캐릭터들의 레벨을 모두 더한 뒤 <b>가장 높은 캐릭터 하나</b>의 레벨을 뺀 값이 <b>${D.codex.fade.step}</b> 오를 때마다 최종 공격력 <b>+${D.codex.fade.stepPct}%</b>, 최대 <b>+${D.codex.fade.max}%</b>입니다. 계정의 모든 캐릭터가 같은 값을 받고, 다른 캐릭터가 레벨을 올리면 바로 반영됩니다. 능력치 창의 <b>계정 보너스</b>와 도감 창에서 지금 값과 다음 단계까지 남은 레벨을 볼 수 있습니다.</p>
     <p class="muted small">예: Lv 300 · 250 · 150 캐릭터가 있으면 250 + 150 = 400 → 최종 공격력 +${4 * D.codex.fade.stepPct}%.</p>
+
+    ${seasonSection()}
+
+    ${voyageSection()}
 
     <h2 id="scroll">${itemLink(D.scrolls.id)} 얻는 곳</h2>
     <ul class="plain">
@@ -1640,11 +1708,12 @@ function buildSearch() {
       if (q) add('퀘스트', q.name, `#/world#isl-${i.id}`, `${i.name} 퀘스트 · Lv${q.minLevel}`, ph('scroll-text'), '', '퀘스트');
     }
   }
-  for (const r of D.raids) add('레이드', r.name, `#/world#raid-${r.id}`, `레이드 · 입장 Lv${r.minLevel}`, ph('crown'), r.phases.map((p) => p.label).join(' · '), '레이드');
+  const gimmickWords = (g) => (g ? ['기믹 패턴', ...new Set([...g.phases.flat(), ...g.map].map((x) => x.name))].join(' ') : '');
+  for (const r of D.raids) add('레이드', r.name, `#/world#raid-${r.id}`, `레이드 · 입장 Lv${r.minLevel}`, ph('crown'), r.phases.map((p) => p.label).join(' · '), `레이드 ${gimmickWords(r.gimmicks)}`);
   add('레이드', D.infinite.name, `#/world#raid-${D.infinite.id}`, `웨이브 던전 · 입장 Lv${D.infinite.minLevel} · 혼자~${D.infinite.size}인`, ph('crown'), '무한 웨이브 랭킹 서버 최초 유니크', '레이드');
   for (const d of D.dungeons.list) add('레이드', d.name, '#/world#dungeons', `일일 던전 · ${d.minLevel > 1 ? `Lv${d.minLevel}+ · ` : ''}하루 ${d.dailyLimit}번 · 혼자~${d.size}인`, ph('crown'), d.kind === 'treasure' ? '보물 던전 베리 황금 저주 힐러' : '레벨업 던전 경험치 수련', '일일던전');
   add('레이드', D.augment.name, `#/world#raid-${D.augment.id}`, `웨이브 던전 베타 · ${D.augment.every}웨이브마다 증강 카드`, ph('crown'), D.augment.list.map((a) => `${a.name} ${a.desc}`).join(' · '), '레이드 증강 베타 카드');
-  for (const w of D.worldBosses) add('레이드', w.name, `#/world#wb-${w.id}`, `필드 보스 원정 · ${M.mobs.get(w.bossId)?.name ?? ''}`, ph('crown'), w.phases.map((p) => p.label).join(' · '), '필드보스 월드보스 원정');
+  for (const w of D.worldBosses) add('레이드', w.name, `#/world#wb-${w.id}`, `필드 보스 원정 · ${M.mobs.get(w.bossId)?.name ?? ''}`, ph('crown'), w.phases.map((p) => p.label).join(' · '), `필드보스 월드보스 원정 ${gimmickWords(w.gimmicks)}`);
   add('콘텐츠', D.duel.name, '#/world#duel', `PvP · ${D.duel.modes.map((m) => m.name).join(' · ')} · ${D.duel.rules.map((r) => `${r.name} Lv${r.minLevel}+`).join(' · ')}`, ph('swords'), `점수 매칭 ±${D.duel.matchRange} 결투 신청 친선 스펙 적용 동등 조건`, '결투장 PvP 대전 결투 점수 레이팅 동등결투');
   add('콘텐츠', '선술집 의뢰', '#/world#tavern', `노을마을 선술집 · ${D.tavern.rotateHours}시간마다 교체 · 개인 의뢰 ${D.tavern.personalCount}개`, ph('scroll-text'), D.tavern.tiers.map((t) => t.name).join(' · '), '선술집 의뢰 일퀘 일일 퀘스트 게시판 개인 마고');
   add('콘텐츠', '생활(농사·광산·낚시)', '#/world#life', `${D.life.islands.mine} · ${D.life.islands.cove} · ${D.life.islands.farm} · Lv${D.life.unlockLevel}부터 · 직접 채굴·낚시·농사 · 요리·제련`, ph('scroll-text'), D.life.kinds.map((k) => k.name).join(' · '), '생활 농사 광산 낚시 수확 채굴 요리 제련 음식 노을 광산 노을 포구 농장 마을 내 농장 부지 풍요의 삼지창');
@@ -1666,6 +1735,10 @@ function buildSearch() {
   add('콘텐츠', '초월', '#/growth#transcend', `Lv${D.transcend.level} · 같은 각성 장비 둘 → ★ · 최대 ★${D.transcend.max} · 기본 능력치 최대 +${Math.round((D.transcend.mul[D.transcend.max] - 1) * 100)}%`, ph('sparkles'), '각성 장비(무기·방어구·장신구) 별 초월 등급 · 단계마다 강화서·베리', '초월 별 각성 장비 무기 방어구 장신구 합치기 transcend 강화서 베리 비용');
   add('콘텐츠', '도감', '#/growth#codex', `레이드 장비 등록 · Lv${D.codex.level} · 계정 공용 · ${D.codex.total}칸`, ph('scroll-text'), D.codex.full.join(' · '), '도감 컬렉션 수집 레이드 장비 등록 계정');
   add('콘텐츠', '페이드', '#/growth#fade', `계정 레벨 합 ${D.codex.fade.step}마다 최종 공격력 +${D.codex.fade.stepPct}% · 최대 ${D.codex.fade.max}%`, ph('sparkles'), '가장 높은 캐릭터를 뺀 나머지 레벨 합', '페이드 계정 레벨 합 부캐 최종 공격력');
+  add('콘텐츠', '보물 사냥', '#/growth#season', `주간 시즌 · ${D.season.token} · 보물 2개 × ${D.season.levels}단계 · 교환소 · 시즌패스`, ph('gem'), D.season.schedule.flatMap((w) => w.treasures.map((t) => t.name)).join(' · '), '보물 사냥 시즌 주간 보물 지도 조각 시즌패스 교환소 길잡이 초행 season');
+  for (const w of D.season.schedule) for (const t of w.treasures) add('콘텐츠', t.name, '#/growth#season', `보물 · 시즌 ${w.season} · ${t.max}`, ph('gem'), t.desc, '보물 시즌');
+  add('콘텐츠', '길잡이', '#/growth#season', `초행과 함께 레이드 클리어 · 1명당 조각 ${D.season.guide.perNewbieTokens}개 · 베리 +${D.season.guide.perNewbieGoldPct}%`, ph('map'), `시즌마다 ${D.season.guide.weeklyRuns}판`, '길잡이 초행 레이드 처음 새싹 동행');
+  add('콘텐츠', '항해 등급', '#/growth#voyage', `Lv${D.meta.maxLevel} 뒤 경험치 → 등급 · ${D.voyage.branches.map((b) => b.name).join('·')}`, ph('trending-up'), D.voyage.branches.map((b) => `${b.name} ${b.stat} +${b.max}${b.unit}`).join(' · '), '항해 등급 만렙 경험치 파라곤 돌격 버팀 급소 풍어 voyage');
   add('콘텐츠', '명예의 전당', '#/world#hall-of-fame', `${D.hallOfFame.season} 레벨 랭킹 상위 ${D.hallOfFame.legends.length}명 동상`, ph('crown'), D.hallOfFame.legends.map((l) => l.name).join(' · '), '명예의전당 동상 랭커 시즌');
   add('콘텐츠', `${D.hallOfFame.lv300.title} 명예의 전당`, '#/world#hall-lv300', `직업별 레벨 랭킹 1~10위 · ~${D.hallOfFame.lv300.until}`, ph('crown'), Object.values(D.hallOfFame.lv300.ranks).flat().map((r) => r.name).join(' · '), '명예의전당 만렙 300 랭킹 직업별');
   for (const t of D.titles) add('콘텐츠', t.name, '#/growth#titles', `칭호 · ${t.how}`, ph('crown'), t.desc, '칭호');
