@@ -1066,7 +1066,7 @@ function pageWorld() {
       ${w.enrage ? `<p class="small" style="margin-top:8px">격노: 교전 ${w.enrage.afterSec / 60}분 뒤 보스 피해 ×${w.enrage.damageMultiplier}</p>` : ''}
       ${gimmickBlock(w.gimmicks, w.phases)}
       <h3>보상 (기여한 사람 모두 — 기여 = 피해 + 지원 + 치유 × ${D.constants.worldBossHealWeight})</h3>
-      <p class="small">아래 보상 풀을 기여 지분만큼 나눠 받습니다. 내 몫 = max(내 지분, ${w.floorSharePct}%) — 한 번이라도 기여했으면 최소 ${w.floorSharePct}% 몫을 받습니다. 시간이 다 되어 물러나면 몫 × 깎은 HP 비율. 낱개 보상(강화서·젬)은 몫을 곱한 기대값으로 확률 반올림합니다.</p>
+      <p class="small">아래 보상 풀을 기여 지분만큼 나눠 받습니다. 한 번이라도 기여했으면 최소 ${w.floorSharePct}% 몫을 보장하고, 그만큼 모두의 몫을 다시 나눠 몫의 합이 보상 풀을 넘지 않습니다(내 몫 = max(내 지분, ${w.floorSharePct}%) ÷ 모두의 max(지분, ${w.floorSharePct}%) 합). 시간이 다 되어 물러나면 몫 × 깎은 HP 비율. 낱개 보상(강화서·젬)은 몫을 곱한 기대값으로 확률 반올림합니다.</p>
       <ul class="plain small">
         <li>보상 풀: ${fmt(w.rewards.gold)} 베리 · 경험치(${levelShare(pct(w.rewards.expLevelFrac))}) · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')} · 젬 ${w.rewards.gems[0]}~${w.rewards.gems[1]}개</li>
         ${w.rewards.legendaryChance ? `<li>처치 때만: min(100%, ${pct(w.rewards.legendaryChance)} × 내 몫) 확률로 내 레벨 티어 장비 부위 1점을 전설 등급으로</li>` : ''}
@@ -1181,13 +1181,14 @@ function pageWorld() {
   const gs = D.guildStorage;
   const guildStorageCard = `
     <section class="card" id="guild-storage">
-      <h2 style="margin-top:0">길드 창고 <span class="chip">길드 공용</span> <span class="chip">기본 ${gs.base}칸 · 최대 ${gs.base + gs.maxLevel * gs.perLevel}칸</span></h2>
-      <p>메뉴(ESC) › 길드 › <b>창고</b> 탭에서 어디서나 엽니다. 길드원 모두가 함께 쓰는 아이템 창고입니다. 기본 ${gs.base}칸이고, 길드 상점의 <b>창고 확장</b>을 한 단계 살 때마다 +${gs.perLevel}칸(최대 ${gs.maxLevel}단계) 늘어납니다.</p>
+      <h2 style="margin-top:0">길드 창고 <span class="chip">길드 공용</span> <span class="chip">공개 · 잠금 두 곳</span> <span class="chip">각 기본 ${gs.base}칸 · 최대 ${gs.base + gs.maxLevel * gs.perLevel}칸</span></h2>
+      <p>메뉴(ESC) › 길드 › <b>창고</b> 탭에서 어디서나 엽니다. 길드원 모두가 함께 쓰는 아이템 창고로, <b>공개 창고</b>와 <b>잠금 창고</b> 두 곳이 있습니다. 두 곳 모두 기본 ${gs.base}칸이고, 길드 상점의 <b>창고 확장</b>을 한 단계 살 때마다 함께 +${gs.perLevel}칸(최대 ${gs.maxLevel}단계) 늘어납니다.</p>
       <ul class="plain small">
-        <li><b>넣기</b>: 길드원 누구나. 귀속·잠근 아이템, 거래에 올린 아이템, 제련 결과를 고르지 않은 장비는 넣을 수 없습니다(개인 거래와 같은 규칙). 겹치는 아이템은 수량을 정해 일부만 넣을 수 있습니다.</li>
-        <li><b>꺼내기</b>: 길드장·부길드장은 언제나 꺼냅니다. 일반 길드원은 길드장이 「길드원 꺼내기」를 허용했을 때만, 하루(한국 시간) ${gs.memberTakeDay}번까지 꺼냅니다.</li>
-        <li>최근 ${gs.logMax}건의 입출고 기록(누가 · 무엇을 · 몇 개 · 언제)을 창고 탭에서 볼 수 있습니다.</li>
-        <li>길드가 해체되면 창고에 남은 아이템은 마지막 길드원에게 우편으로 돌아갑니다(우편 한 통에 ${gs.returnPerMail}칸씩).</li>
+        <li><b>넣기</b>: 두 창고 모두 길드원 누구나. 귀속·잠근 아이템, 거래에 올린 아이템, 제련 결과를 고르지 않은 장비는 넣을 수 없습니다(개인 거래와 같은 규칙). 겹치는 아이템은 수량을 정해 일부만 넣을 수 있습니다.</li>
+        <li><b>공개 창고 꺼내기</b>: 언제나 열려 있어 모든 길드원이 횟수 제한 없이 꺼냅니다.</li>
+        <li><b>잠금 창고 꺼내기</b>: 길드장·부길드장이 잠그고 엽니다. 잠겨 있으면 길드장·부길드장만, 열려 있으면 일반 길드원도 하루(한국 시간) ${gs.memberTakeDay}번까지 꺼냅니다. 길드장·부길드장은 언제나 꺼냅니다.</li>
+        <li>최근 ${gs.logMax}건의 입출고 기록(어느 창고 · 누가 · 무엇을 · 몇 개 · 언제)을 창고 탭에서 볼 수 있습니다.</li>
+        <li>길드가 해체되면 두 창고에 남은 아이템은 마지막 길드원에게 우편으로 돌아갑니다(우편 한 통에 ${gs.returnPerMail}칸씩).</li>
       </ul>
     </section>`;
   const tv = D.tavern;
