@@ -491,7 +491,7 @@ function pageDrops() {
     ${table(['전장', { t: '기여 지분', c: 'r' }, '장비', '고정 보상'], wbRows)}
     <p class="muted small" style="margin-top:8px">기여(보스에게 넣은 피해 + 내 강화(전투의 노래·3차 동료 버프·받는 피해 증가)로 아군 피해가 늘어난 지원 몫 + 보스와 싸우는 동안 채운 치유량 × ${c.worldBossHealWeight})가 있는 사람 모두가 보상 풀을 지분만큼(최소 보장 몫까지) 나눠 받습니다. 시간이 다 되어 보스가 물러나면 깎은 HP 비율만큼만 받고, 전설 장비 · 성장 보너스 · 희귀 드랍은 처치 때만 나옵니다. 전장을 떠나 다른 곳에 있어도 받고, 접속을 끊었으면 그 캐릭터로 다음에 들어올 때 받습니다. 처치 경험치와 전리품은 없습니다.</p>`;
 }
-const CASH_KIND = { starter: '스타터 팩', subscription: '월정액', lifesub: '생활 월정액', pass: '레벨 패스', pet: '펫', blessing: '서버 축복', bundle: '아이템', cosmetic: '꾸미기' };
+const CASH_KIND = { starter: '스타터 팩', subscription: '월정액', pass: '레벨 패스', pet: '펫', blessing: '서버 축복', bundle: '아이템', cosmetic: '꾸미기' };
 /** 루비 상점: 상품 표(꾸미기 상품은 꾸미기 표로) · 월정액·자석펫·축복·패스·선물 규칙 · 레벨 패스 단계별 보상 */
 function cashShopSection() {
   const cs = D.cashShop;
@@ -510,8 +510,7 @@ function cashShopSection() {
     <p>메뉴(ESC) › <b>상점</b>에서 루비로 삽니다. 루비는 계정 공용이고 1루비는 ${D.ruby.krw}원 기준입니다. 꾸미기 상품은 아래 <a href="#/drops#cosmetics">꾸미기</a> 표에 있습니다.</p>
     ${table(['상품', { t: '값', c: 'r' }, '구성'], rows)}
     <ul class="plain small" style="margin-top:12px">
-      <li><b>모험가 월정액</b>: 계정의 모든 캐릭터에 ${sup.days}일 동안 혜택이 붙습니다. 쓰는 중에 또 사면 ${sup.days}일이 더해집니다(최대 ${sup.maxDays}일). 경험치 +${pct(sup.expBonus)}는 다른 경험치 보너스와 더합니다(<a href="#/growth#exp-bonus">경험치 배율</a>).</li>
-      ${cs.lifeSub ? `<li><b>생활 월정액</b>: 모험가 월정액과 따로 쌓이며 계정의 모든 캐릭터에 ${cs.lifeSub.days}일 동안 붙습니다(최대 ${cs.lifeSub.maxDays}일). 생활 경험치(채굴·낚시·농사) +${pct(cs.lifeSub.expBonus)}는 다른 생활 경험치 보너스와 더하고, 수확량·행운은 그대로입니다. 가방 뒤에 생활 아이템만 들어가는 <b>생활 가방 ${cs.lifeSub.bagSlots}칸</b>이 붙고 생활 아이템은 이 칸부터 채웁니다(구독이 끝나면 꺼내기만 됩니다). 밀짚모자·낚싯대 외형 꾸미기는 구독 중에만 장착합니다.</li>` : ''}
+      <li><b>모험가 월정액</b>: 계정의 모든 캐릭터에 ${sup.days}일 동안 혜택이 붙습니다. 쓰는 중에 또 사면 ${sup.days}일이 더해집니다(최대 ${sup.maxDays}일). 경험치 +${pct(sup.expBonus)}는 다른 경험치 보너스와 더합니다(<a href="#/growth#exp-bonus">경험치 배율</a>). 생활 경험치(채굴·낚시·농사) +${pct(sup.lifeExpBonus)}도 다른 생활 경험치 보너스와 더하고, 수확량·행운은 그대로입니다. 가방 뒤에 생활 아이템만 들어가는 <b>생활 가방 ${sup.lifeBagSlots}칸</b>이 붙고 생활 아이템은 이 칸부터 채웁니다(구독이 끝나면 꺼내기만 됩니다). 전용 오라·궤적과 밀짚모자·낚싯대 외형 꾸미기는 구독 중에만 장착합니다.</li>
       <li><b>${esc(mp.name)}</b>: 계정의 모든 캐릭터 곁을 떠다니며 주변 드랍을 끌어와 줍습니다. 자동 줍기 거리가 기본 ${mp.basePickup}의 ${mp.pickupRadius}배가 됩니다. 계정에 영구로 남고, 모험가 월정액을 사면 함께 받습니다. ${esc(mp.name)}을 이미 가진 계정은 월정액을 ${fmt(mp.priceRuby)}루비 싸게 삽니다.</li>
       <li><b>서버 축복</b>: 받는 순간 서버 전체에 ${bl.minutes / 60}시간 동안 경험치 +${pct(bl.expBonus)}가 붙습니다. 축복 중에 또 받으면 시간이 늘어납니다(남은 시간 최대 ${bl.maxQueueMinutes / 60}시간). 계정당 하루 ${bl.perAccountPerDay}번까지 삽니다.</li>
       <li><b>레벨 패스</b>: 무료 줄은 누구나, 유료 줄은 패스를 산 계정만 받습니다. 캐릭터마다 그 단계 레벨에 닿으면 상점 창에서 각자 받고, 지난 단계도 받을 수 있습니다. 유료 줄 보상은 강화서 말고는 귀속입니다.</li>
@@ -1230,7 +1229,7 @@ function pageWorld() {
   const lifeCard = `
     <section class="card" id="life">
       <h2 style="margin-top:0">생활 — 농사·광산·낚시 <span class="chip">${esc(lf.islands.village)} 동쪽 거리</span> <span class="chip">Lv${lf.unlockLevel}부터</span> <span class="chip">콘텐츠마다 생활 Lv${lf.maxLevel}까지</span></h2>
-      <p><b>${esc(lf.islands.village)}</b> 동쪽 광장 이정표에서 북쪽 갱도 → <b>${esc(lf.islands.mine)}</b>, 남쪽 계단 → <b>${esc(lf.islands.cove)}</b>, 동쪽 문 → <b>${esc(lf.islands.farm)}</b>으로 갑니다. 모두 <b>직접 가서 하는</b> 콘텐츠입니다 — 떠나 있거나 접속하지 않으면 아무것도 쌓이지 않습니다. 행동 1회마다 자원·작물이 정한 생활 경험치가 들어오고(유물 경험치 보너스만 곱함), 생활 Lv1→${lf.maxLevel}에는 ${fmt(lf.totalExp)}이 듭니다(Lv L→L+1 = ${lf.expStep}×L, 농사는 그 ${lf.farmExpMul}배). 하루 약 1시간씩 하면 약 100일입니다.${D.cashShop.lifeSub ? ` <a href="#/drops#cash-shop">생활 월정액</a> 중에는 생활 경험치 +${pct(D.cashShop.lifeSub.expBonus)}(다른 보너스와 더함)와 생활 가방 ${D.cashShop.lifeSub.bagSlots}칸이 붙습니다.` : ''}</p>
+      <p><b>${esc(lf.islands.village)}</b> 동쪽 광장 이정표에서 북쪽 갱도 → <b>${esc(lf.islands.mine)}</b>, 남쪽 계단 → <b>${esc(lf.islands.cove)}</b>, 동쪽 문 → <b>${esc(lf.islands.farm)}</b>으로 갑니다. 모두 <b>직접 가서 하는</b> 콘텐츠입니다 — 떠나 있거나 접속하지 않으면 아무것도 쌓이지 않습니다. 행동 1회마다 자원·작물이 정한 생활 경험치가 들어오고(유물 경험치 보너스만 곱함), 생활 Lv1→${lf.maxLevel}에는 ${fmt(lf.totalExp)}이 듭니다(Lv L→L+1 = ${lf.expStep}×L, 농사는 그 ${lf.farmExpMul}배). 하루 약 1시간씩 하면 약 100일입니다. <a href="#/drops#cash-shop">모험가 월정액</a> 중에는 생활 경험치 +${pct(D.cashShop.supporter.lifeExpBonus)}(다른 보너스와 더함)와 생활 가방 ${D.cashShop.supporter.lifeBagSlots}칸이 붙습니다.</p>
       <div class="grid g2">
         <div class="card"><h3>광산 <span class="chip">곡괭이 ${lf.mineSec}초</span></h3>
           <p class="small">가방에 <b>곡괭이</b>가 있어야 캘 수 있습니다(가장 높은 단계가 저절로 쓰임). 광맥 곁에서 F. ${lf.mineSec}초 채널(숙련으로 짧아짐) 동안 자리를 지키면 광석이 들어오고 광맥은 사라졌다가 <b>${lf.mineRespawnSec}초</b> 뒤 같은 자리에 다시 생깁니다. 여럿이 같은 광맥을 캐면 먼저 끝낸 사람 것입니다.</p>
@@ -1393,7 +1392,7 @@ function pageWorld() {
 
 // ── 페이지: 성장·강화 ──
 const growthState = { rank: 1, level: 1 };
-/** 주간 시즌 「보물 사냥」: 조각 얻는 곳 · 보물 일정 · 교환소 · 시즌패스 · 길잡이 */
+/** 주간 시즌 「보물 사냥」: 조각 얻는 곳 · 보물 일정 · 교환소 · 길잡이 */
 function seasonSection() {
   const S = D.season;
   const G = S.guide;
@@ -1405,7 +1404,7 @@ function seasonSection() {
   ])));
   const exRows = S.exchange.map((e) => tr([
     e.gems ? `<b>${esc(D.gems.name)} ${fmt(e.gems)}개</b>` : `${itemLink(e.itemId)} × ${e.qty}`,
-    R(`${fmt(e.cost)}개`), R(`주 ${e.weekly}번`), e.freeOnly ? '<span class="small">무료 조각으로만</span>' : '',
+    R(`${fmt(e.cost)}개`), R(`주 ${e.weekly}번`),
   ]));
   return `
     <h2 id="season">보물 사냥(주간 시즌)</h2>
@@ -1421,10 +1420,8 @@ function seasonSection() {
     ${table(['시즌', '보물', { t: '1단계', c: 'r' }, { t: `${S.levels}단계`, c: 'r' }], scheduleRows)}
     <h3>교환소</h3>
     <p>보물을 다 사고 남은 조각은 교환소에서 씁니다. 받은 아이템은 모두 귀속입니다. 한도는 시즌(주)마다 다시 채워집니다.</p>
-    ${table(['받는 것', { t: '값', c: 'r' }, { t: '한도', c: 'r' }, ''], exRows)}
-    <h3>시즌패스</h3>
-    <p>루비 상점의 <b>시즌패스</b>(${fmt(S.passRuby)}루비)는 그 시즌 동안 얻는 조각을 <b>${S.passMul}배</b>로 늘립니다(하루 상한도 ${S.passMul}배). 시즌 중간에 사도 그 시즌에 이미 얻은 조각만큼 바로 더 받습니다. 시즌마다 한 번 살 수 있고 선물할 수 있습니다. 패스로 더 받은 조각은 따로 세며, 보물·교환소 아이템에 먼저 쓰이고 <b>${esc(D.gems.name)}</b>으로는 바꿀 수 없습니다.</p>
-    ${note('무과금으로도 한 시즌에 의뢰만으로 보물 두 개를 모두 5단계까지 살 수 있게 맞췄습니다. 시즌패스는 조각을 더 빨리 모아 교환소를 더 쓰게 해 줄 뿐, 보물 단계 상한은 같습니다.')}`;
+    ${table(['받는 것', { t: '값', c: 'r' }, { t: '한도', c: 'r' }], exRows)}
+    ${note('무과금으로도 한 시즌에 의뢰만으로 보물 두 개를 모두 5단계까지 살 수 있게 맞췄습니다.')}`;
 }
 /** 항해 등급: Lv300 뒤 경험치 → 등급 · 네 갈래 · 필요 항해 경험치 */
 function voyageSection() {
@@ -1500,7 +1497,7 @@ function pageGrowth() {
     <p><b>Lv ${D.relics.level}</b>부터 ESC 메뉴의 <b>유물</b> 창에서 ${esc(D.gems.name)}으로 유물을 뽑습니다(1회 ${D.relics.drawCost}개, 한 번에 ${D.relics.draws.map((n) => `${n}회`).join('·')}). 최대 <b>${D.relics.slots}개</b>를 장착하면 아래 능력치가 오릅니다. 유물은 가방 밖 보관함(최대 ${D.relics.cap}개)에 있고 거래·판매할 수 없습니다.</p>
     <p><b>대량 소환</b>(${D.relics.bulk.map((n) => `${n}회`).join('·')}): 소환하다 보관함이 차면 거기까지만 소환하고, 남은 회차는 ${esc(D.gems.name)}·소환권을 쓰지 않습니다. ${D.relics.draws.filter((n) => !D.relics.bulk.includes(n)).map((n) => `${n}회`).join('·')} 소환은 보관함에 그만큼 자리가 없으면 소환되지 않습니다.</p>
     <p><b>1번 칸은 계정 공용</b>: 1번 칸에 낀 유물은 같은 계정의 모든 캐릭터가 효과를 받습니다(Lv ${D.relics.level} 미만 캐릭터도). 1번 칸에 끼면 그 유물은 캐릭터 보관함을 떠나 계정에 있고, 이미 있던 1번 칸 유물은 끼는 캐릭터의 보관함으로 돌아옵니다. 빼면 뺀 캐릭터의 보관함으로 들어갑니다(끼고 빼기는 Lv ${D.relics.level}부터).</p>
-    <p><b>장착 프리셋</b>: 장착 칸 오른쪽 위의 프리셋 단추 ${D.relics.presets}개로 2·3번 칸 조합을 저장해 두고 한 번에 갈아 낍니다(캐릭터마다). 1번 공용 칸은 프리셋과 상관없이 그대로이고, 그새 합성 등으로 없어진 유물 칸은 비어서 낍니다. 어느 프리셋에든 들어 있는 유물은 합성 재료로 쓰이지 않습니다.</p>
+    <p><b>장착 프리셋</b>: 장착 칸 오른쪽 위의 프리셋 단추 ${D.relics.presets}개로 1·2·3번 칸 조합을 저장해 두고 한 번에 갈아 낍니다(캐릭터마다). 1번 공용 칸도 프리셋마다 바뀌고, 원래 있던 공용 칸 유물은 그 캐릭터 보관함으로 돌아옵니다. 공용 칸을 정하지 않은 프리셋이거나 다른 캐릭터가 넣은 공용 칸 유물이면 그대로 두고, 그새 합성 등으로 없어진 유물 칸은 비어서 낍니다. 어느 프리셋에든 들어 있는 유물은 합성 재료로 쓰이지 않습니다.</p>
     <p>필드 정예 몬스터를 잡으면 Lv ${D.relics.level} 이상인 처치 인정자마다 <b>${pct(D.relics.eliteDrop.chance)}</b> 확률로 유물 1개가 보관함에 바로 들어옵니다(${D.relics.eliteDrop.grades.map((g) => `${esc(rarName(g.id))} ${pct(g.rate)}`).join(' · ')}). 보관함이 가득 차 있으면 나오지 않습니다.</p>
     <p><b>천장</b>: 캐릭터마다 ${D.relics.pity.map((t) => `마지막 ${esc(rarName(t.id))} 이상 뒤로 뽑은 횟수`).join('와 ')}를 셉니다(${esc(D.gems.name)}·유물 소환권, ${D.relics.draws.map((n) => `${n}회`).join('·')} 뽑기 모두 회차마다 1). ${D.relics.pity.map((t) => `<b>${t.at}번째</b> 뽑기는 <span class="rar-${t.id}">${esc(rarName(t.id))}</span> 이상 확정`).join(', ')}이고(둘이 겹치면 높은 쪽), 확정 회차의 등급은 그 이상 등급끼리 원래 확률 비율대로 정해집니다(${D.relics.pity.map((t) => `${esc(rarName(t.id))} 확정: ${t.grades.map((g) => `${esc(rarName(g.id))} ${pct(g.rate)}`).join(' · ')}`).join(' / ')}). ${esc(rarName('epic'))} 이상이 나오면 ${esc(rarName('epic'))} 횟수를, ${esc(rarName('legendary'))} 이상이 나오면 두 횟수를 모두 처음부터 셉니다. 합성·정예 몬스터 드랍은 세지 않습니다. 진행은 유물 창 소환 띠에 보입니다. 천장이 생기기 전(2026-10-07)에 뽑은 횟수도 소급합니다: 그 뒤 처음 접속할 때 밀린 만큼 전설·영웅 유물을 한 번 넣어 드립니다(뽑은 횟수는 보관함 유물 수로 추정).</p>
     <p><b>전설 유물 확정권</b>(루비 상점 「유물 패키지」): Lv ${D.relics.level}부터 가방에서 사용하면 <span class="rar-legendary">${esc(rarName('legendary'))}</span> 유물 1개(종류 무작위)를 바로 얻습니다. 뽑기가 아니라서 천장 횟수에는 들어가지 않고, 보관함이 가득 차 있으면 쓸 수 없습니다. 거래·판매할 수 없습니다.</p>
@@ -1746,7 +1743,7 @@ function buildSearch() {
   add('콘텐츠', '초월', '#/growth#transcend', `Lv${D.transcend.level} · 같은 각성 장비 둘 → ★ · 최대 ★${D.transcend.max} · 기본 능력치 최대 +${Math.round((D.transcend.mul[D.transcend.max] - 1) * 100)}%`, ph('sparkles'), '각성 장비(무기·방어구·장신구) 별 초월 등급 · 단계마다 강화서·베리', '초월 별 각성 장비 무기 방어구 장신구 합치기 transcend 강화서 베리 비용');
   add('콘텐츠', '도감', '#/growth#codex', `레이드 장비 등록 · Lv${D.codex.level} · 계정 공용 · ${D.codex.total}칸`, ph('scroll-text'), D.codex.full.join(' · '), '도감 컬렉션 수집 레이드 장비 등록 계정');
   add('콘텐츠', '페이드', '#/growth#fade', `계정 레벨 합 ${D.codex.fade.step}마다 최종 공격력 +${D.codex.fade.stepPct}% · 최대 ${D.codex.fade.max}%`, ph('sparkles'), '가장 높은 캐릭터를 뺀 나머지 레벨 합', '페이드 계정 레벨 합 부캐 최종 공격력');
-  add('콘텐츠', '보물 사냥', '#/growth#season', `주간 시즌 · ${D.season.token} · 보물 2개 × ${D.season.levels}단계 · 교환소 · 시즌패스`, ph('gem'), D.season.schedule.flatMap((w) => w.treasures.map((t) => t.name)).join(' · '), '보물 사냥 시즌 주간 보물 지도 조각 시즌패스 교환소 길잡이 초행 season');
+  add('콘텐츠', '보물 사냥', '#/growth#season', `주간 시즌 · ${D.season.token} · 보물 2개 × ${D.season.levels}단계 · 교환소`, ph('gem'), D.season.schedule.flatMap((w) => w.treasures.map((t) => t.name)).join(' · '), '보물 사냥 시즌 주간 보물 지도 조각 교환소 길잡이 초행 season');
   for (const w of D.season.schedule) for (const t of w.treasures) add('콘텐츠', t.name, '#/growth#season', `보물 · 시즌 ${w.season} · ${t.max}`, ph('gem'), t.desc, '보물 시즌');
   add('콘텐츠', '길잡이', '#/growth#season', `초행과 함께 레이드 클리어 · 1명당 조각 ${D.season.guide.perNewbieTokens}개 · 베리 +${D.season.guide.perNewbieGoldPct}%`, ph('map'), `시즌마다 ${D.season.guide.weeklyRuns}판`, '길잡이 초행 레이드 처음 새싹 동행');
   add('콘텐츠', '항해 등급', '#/growth#voyage', `Lv${D.meta.maxLevel} 뒤 경험치 → 등급 · ${D.voyage.branches.map((b) => b.name).join('·')}`, ph('trending-up'), D.voyage.branches.map((b) => `${b.name} ${b.stat} +${b.max}${b.unit}`).join(' · '), '항해 등급 만렙 경험치 파라곤 돌격 버팀 급소 풍어 voyage');
