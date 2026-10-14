@@ -498,7 +498,7 @@ function cashShopSection() {
   const mp = cs.magnetPet;
   const sup = cs.supporter;
   const bl = cs.blessing;
-  const limit = (p) => (p.perAccountMax ? `계정당 ${p.perAccountMax}번` : p.perDayMax ? `계정당 하루 ${p.perDayMax}번` : '');
+  const limit = (p) => (p.perAccountMax ? `계정당 ${p.perAccountMax}번` : p.perDayMax ? `계정당 하루 ${p.perDayMax}번` : p.relicStep ? `${p.relicStep}단계 · 순서대로, 5단계 다음 주 월요일부터 다시` : '');
   const rows = cs.products.filter((p) => p.kind !== 'cosmetic').map((p) => tr([
     `<b>${esc(p.name)}</b><div class="muted small">${[CASH_KIND[p.kind] ?? p.kind, limit(p)].filter(Boolean).map(esc).join(' · ')}</div>`,
     R(`${fmt(p.priceRuby)}루비<div class="muted small">${fmt(p.priceKrw)}원</div>`),
@@ -1229,7 +1229,7 @@ function pageWorld() {
   const lifeCard = `
     <section class="card" id="life">
       <h2 style="margin-top:0">생활 — 농사·광산·낚시 <span class="chip">${esc(lf.islands.village)} 동쪽 거리</span> <span class="chip">Lv${lf.unlockLevel}부터</span> <span class="chip">콘텐츠마다 생활 Lv${lf.maxLevel}까지</span></h2>
-      <p><b>${esc(lf.islands.village)}</b> 동쪽 광장 이정표에서 북쪽 갱도 → <b>${esc(lf.islands.mine)}</b>, 남쪽 계단 → <b>${esc(lf.islands.cove)}</b>, 동쪽 문 → <b>${esc(lf.islands.farm)}</b>으로 갑니다. 모두 <b>직접 가서 하는</b> 콘텐츠입니다 — 떠나 있거나 접속하지 않으면 아무것도 쌓이지 않습니다. 행동 1회마다 자원·작물이 정한 생활 경험치가 들어오고(유물 경험치 보너스만 곱함), 생활 Lv1→${lf.maxLevel}에는 ${fmt(lf.totalExp)}이 듭니다(Lv L→L+1 = ${lf.expStep}×L, 농사는 그 ${lf.farmExpMul}배). 하루 약 1시간씩 하면 약 100일입니다. <a href="#/drops#cash-shop">모험가 월정액</a> 중에는 생활 경험치 +${pct(D.cashShop.supporter.lifeExpBonus)}(다른 보너스와 더함)와 생활 가방 ${D.cashShop.supporter.lifeBagSlots}칸이 붙습니다.</p>
+      <p><b>${esc(lf.islands.village)}</b> 동쪽 광장 이정표에서 북쪽 갱도 → <b>${esc(lf.islands.mine)}</b>, 동쪽 문 → <b>${esc(lf.islands.farm)}</b>으로 가고, 낚시는 마을 남쪽 <b>${esc(lf.islands.cove)}</b>(물가·잔교·바위 여울)과 강가에서 합니다. 모두 <b>직접 가서 하는</b> 콘텐츠입니다 — 떠나 있거나 접속하지 않으면 아무것도 쌓이지 않습니다. 행동 1회마다 자원·작물이 정한 생활 경험치가 들어오고(유물 경험치 보너스만 곱함), 생활 Lv1→${lf.maxLevel}에는 ${fmt(lf.totalExp)}이 듭니다(Lv L→L+1 = ${lf.expStep}×L, 농사는 그 ${lf.farmExpMul}배). 하루 약 1시간씩 하면 약 100일입니다. <a href="#/drops#cash-shop">모험가 월정액</a> 중에는 생활 경험치 +${pct(D.cashShop.supporter.lifeExpBonus)}(다른 보너스와 더함)와 생활 가방 ${D.cashShop.supporter.lifeBagSlots}칸이 붙습니다.</p>
       <div class="grid g2">
         <div class="card"><h3>광산 <span class="chip">곡괭이 ${lf.mineSec}초</span></h3>
           <p class="small">가방에 <b>곡괭이</b>가 있어야 캘 수 있습니다(가장 높은 단계가 저절로 쓰임). 광맥 곁에서 F. ${lf.mineSec}초 채널(숙련으로 짧아짐) 동안 자리를 지키면 광석이 들어오고 광맥은 사라졌다가 <b>${lf.mineRespawnSec}초</b> 뒤 같은 자리에 다시 생깁니다. 여럿이 같은 광맥을 캐면 먼저 끝낸 사람 것입니다.</p>
@@ -1258,6 +1258,7 @@ function pageWorld() {
         <li><b>${esc(lf.stats[0].name)}</b>: 포인트당 행동 1회의 아이템 +${lf.yieldPct}% (소수는 다음 번으로 이월)</li>
         <li><b>${esc(lf.stats[1].name)}</b>: 포인트당 채굴·입질 대기·작물 성장 시간 −${lf.speedPct}%</li>
         <li><b>${esc(lf.stats[2].name)}</b>: 포인트당 희귀 +${lf.luckRarePp}%p · 영웅 +${lf.luckEpicPp}%p(광산·낚시) · 풍작 +${lf.luckBumperPp}%p(농사)</li>
+        <li><b>초기화</b>: 생활 창(Z)에서 농사·광산·낚시마다 따로, 나눈 포인트를 모두 되돌립니다(${esc(D.gems.name)} ${lf.respecGems}개).</li>
         <li>행동 1회마다 <b>${itemLink(lf.rare.itemId)}</b>이 ${pct(lf.rare.chance)} × (생활 Lv ÷ ${lf.maxLevel}) 확률로 나옵니다(서버 전체 주 1개 꼴).</li>
       </ul>
       <h3>조합법 <span class="chip">${esc(lf.islands.farm)} 요리사 · ${esc(lf.islands.mine)} 광부 반장</span> <span class="chip">한 번에 ${lf.craftMax}묶음까지</span></h3>
@@ -1724,7 +1725,7 @@ function buildSearch() {
   for (const w of D.worldBosses) add('레이드', w.name, `#/world#wb-${w.id}`, `필드 보스 원정 · ${M.mobs.get(w.bossId)?.name ?? ''}`, ph('crown'), w.phases.map((p) => p.label).join(' · '), `필드보스 월드보스 원정 ${gimmickWords(w.gimmicks)}`);
   add('콘텐츠', D.duel.name, '#/world#duel', `PvP · ${D.duel.modes.map((m) => m.name).join(' · ')} · ${D.duel.rules.map((r) => `${r.name} Lv${r.minLevel}+`).join(' · ')}`, ph('swords'), `점수 매칭 ±${D.duel.matchRange} 결투 신청 친선 스펙 적용 동등 조건`, '결투장 PvP 대전 결투 점수 레이팅 동등결투');
   add('콘텐츠', '선술집 의뢰', '#/world#tavern', `노을마을 선술집 · ${D.tavern.rotateHours}시간마다 교체 · 개인 의뢰 ${D.tavern.personalCount}개`, ph('scroll-text'), D.tavern.tiers.map((t) => t.name).join(' · '), '선술집 의뢰 일퀘 일일 퀘스트 게시판 개인 마고');
-  add('콘텐츠', '생활(농사·광산·낚시)', '#/world#life', `${D.life.islands.mine} · ${D.life.islands.cove} · ${D.life.islands.farm} · Lv${D.life.unlockLevel}부터 · 직접 채굴·낚시·농사 · 요리·제련`, ph('scroll-text'), D.life.kinds.map((k) => k.name).join(' · '), '생활 농사 광산 낚시 수확 채굴 요리 제련 음식 노을 광산 노을 포구 농장 마을 내 농장 부지 풍요의 삼지창');
+  add('콘텐츠', '생활(농사·광산·낚시)', '#/world#life', `${D.life.islands.mine} · ${D.life.islands.cove} · ${D.life.islands.farm} · Lv${D.life.unlockLevel}부터 · 직접 채굴·낚시·농사 · 요리·제련`, ph('scroll-text'), D.life.kinds.map((k) => k.name).join(' · '), '생활 농사 광산 낚시 수확 채굴 요리 제련 음식 노을 광산 노을 해변 낚시터 농장 마을 내 농장 부지 풍요의 삼지창');
   const cq = D.catQuests;
   add('콘텐츠', '고양이 의뢰', '#/world#cat-quests', `${cq.hall} 곁가지 퀘스트 · ${cq.ids.length}개`, ph('scroll-text'), cq.npc, '고양이 의뢰 곁가지 퀘스트 선술집 김꼴꼴');
   add('NPC', cq.npc, '#/world#cat-quests', `${cq.hall} · 퀘스트`, ph('info'), '', 'npc퀘스트고양이');
