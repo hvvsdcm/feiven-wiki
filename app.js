@@ -52,8 +52,8 @@ function mobLink(id) {
   const m = M.mobs.get(id);
   return m ? `<a href="#/mobs/${esc(id)}">${esc(m.name)}</a> <span class="muted small">Lv${m.level}</span>` : esc(id);
 }
-const islandName = (id) => M.islands.get(id)?.name ?? M.raids.get(id)?.name ?? M.wbIsland.get(id)?.name ?? M.dungeons.get(id)?.name ?? (id === D.infinite.id ? D.infinite.name : id);
-const islandLink = (id) => (M.islands.has(id) ? `<a href="#/world#isl-${esc(id)}">${esc(islandName(id))}</a>` : M.raids.has(id) || id === D.infinite.id ? `<a href="#/world#raid-${esc(id)}">${esc(islandName(id))}</a>` : M.dungeons.has(id) ? `<a href="#/world#dungeons">${esc(islandName(id))}</a>` : M.wbIsland.has(id) ? `<a href="#/world#wb-${esc(M.wbIsland.get(id).id)}">${esc(islandName(id))}</a>` : esc(id));
+const islandName = (id) => M.islands.get(id)?.name ?? M.raids.get(id)?.name ?? M.wbIsland.get(id)?.name ?? M.dungeons.get(id)?.name ?? (id === D.infinite.id ? D.infinite.name : id === D.dungeons.hidden.id ? D.dungeons.hidden.name : id);
+const islandLink = (id) => (M.islands.has(id) ? `<a href="#/world#isl-${esc(id)}">${esc(islandName(id))}</a>` : M.raids.has(id) || id === D.infinite.id ? `<a href="#/world#raid-${esc(id)}">${esc(islandName(id))}</a>` : M.dungeons.has(id) ? `<a href="#/world#dungeons">${esc(islandName(id))}</a>` : id === D.dungeons.hidden.id ? `<a href="#/world#hidden">${esc(islandName(id))}</a>` : M.wbIsland.has(id) ? `<a href="#/world#wb-${esc(M.wbIsland.get(id).id)}">${esc(islandName(id))}</a>` : esc(id));
 /** 모항(노을마을) 젬 NPC 이름: gem = 젬 상인, storage = 창고지기 */
 const npcNameOfRole = (role) => D.npcNames?.[role === 'gem' ? 'vg_gem' : 'vg_storage'] ?? (role === 'gem' ? '젬 상인' : '창고지기');
 const RUBY_NOTE = '루비는 계정 공용 재화로 상점에서 씁니다. 일반·정예 몬스터와 월정액 추가·면제 회차에서는 나오지 않습니다. 드랍 이벤트 배율이 붙지 않습니다.';
@@ -498,7 +498,8 @@ function cashShopSection() {
   const mp = cs.magnetPet;
   const sup = cs.supporter;
   const bl = cs.blessing;
-  const limit = (p) => (p.perAccountMax ? `계정당 ${p.perAccountMax}번` : p.perDayMax ? `계정당 하루 ${p.perDayMax}번` : p.relicStep ? `${p.relicStep}단계 · 순서대로, 5단계 다음 주 월요일부터 다시` : '');
+  const STEP_NAME = { relic: '유물', pet: '펫' };
+  const limit = (p) => (p.perAccountMax ? `계정당 ${p.perAccountMax}번` : p.perWeekMax ? `계정당 주 ${p.perWeekMax}번(월요일 0시 초기화)` : p.perDayMax ? `계정당 하루 ${p.perDayMax}번` : p.step ? `${STEP_NAME[p.step.line] ?? p.step.line} 스텝업 ${p.step.n}단계 · 순서대로, 5단계 다음 주 월요일부터 다시` : '');
   const rows = cs.products.filter((p) => p.kind !== 'cosmetic').map((p) => tr([
     `<b>${esc(p.name)}</b><div class="muted small">${[CASH_KIND[p.kind] ?? p.kind, limit(p)].filter(Boolean).map(esc).join(' · ')}</div>`,
     R(`${fmt(p.priceRuby)}루비<div class="muted small">${fmt(p.priceKrw)}원</div>`),
@@ -643,9 +644,8 @@ function pageBlacksmith(k) {
   const optRows = B.options.map((o) => tr([`<b>${esc(o.name)}</b>`, ...o.bands.map((b) => R(`${b.min}~${b.max}${o.unit}`)), `<span class="small">${o.slots.map((s) => KIND[s]).join(' · ')}</span>`]));
   const C = B.craft;
   const itemLink = (id) => `<a href="#/items/${id}">${esc(M.items.get(id)?.name ?? id)}</a>`;
-  const recipeRows = C.recipes.map((r) => tr([`${islandLink(r.raidId)}<div class="muted small">Lv${r.reqLevel} · ${itemLink(r.outId)}</div>`, `${itemLink(r.boss)} ×${r.bossQty}`, `${itemLink(r.mat)} ×${r.matQty}`, R(r.scrolls), R(fmt(r.gold)), R(r.score)]));
-  const atkRows = C.recipes.map((r) => tr([`<b>${esc(r.raidName)}</b>`, ...r.atk.map((a, i) => R(`${fmt(a)}<div class="muted small">레이드 ${fmt(r.baseAtk[i])}</div>`))]));
-  const oddsRows = C.odds.map((o) => tr([`<b>${esc(o.name)}</b>`, R(fmt(o.score)), ...C.grades.map((g) => R(`${o.odds[g.id] >= 1 ? +o.odds[g.id].toFixed(1) : +o.odds[g.id].toFixed(2)}%`))]));
+  const lineRows = C.lines.map((l) => tr([itemLink(l.itemId), R(fmt(l.qty)), l.keep ? '남음' : '사라짐']));
+  const weaponRows = C.weapons.map((w) => tr([`<b>${esc(classOf(w.cls)?.name ?? w.cls)}</b>`, itemLink(w.outId), R(fmt(w.atk)), R(`${fmt(w.stormAtk)}<div class="muted small">${itemLink(w.stormId)}</div>`)]));
   return `
     ${crumb('#/classes', '직업 목록')}
     <div class="detail-head">${k.icon ? `<img class="ico lg" src="${esc(k.icon)}" alt="">` : ''}<div><h1 style="color:${esc(k.color)}">${esc(k.name)}</h1>
@@ -666,16 +666,12 @@ function pageBlacksmith(k) {
     <p class="muted small">장비 7칸 어디든 무작위 옵션을 1줄~랭크 최대 줄 수만큼 붙이고 각인을 남깁니다. 실패는 없고 강화·각성과는 따로입니다. 한 장비에 같은 옵션은 겹치지 않습니다. 이미 옵션이 있는 장비는 새 결과와 비교해 유지·교체를 고릅니다. 비용은 장비 순위 × ${fmt(B.cost.goldPerRank)} 베리, 강화서 ${B.cost.scrolls}장, 그 티어 지역 재료 ${B.cost.matQty}개에 위 표의 랭크별 비용 비율을 곱합니다(강화서·재료는 올림). ${esc(top.name)}는 ${esc(top.spec)} 장비에서 ${B.masterworkPct}% 확률로 줄 수·값이 모두 최대인 걸작 제련이 되고 서버 전체에 알려집니다. 공격 속도는 유물과 합쳐 ${B.fxCap.aspdPct}%, 재사용 대기 감소는 ${B.fxCap.cdrPct}%까지입니다.</p>
     ${table(['옵션', ...['하', '중', '상'].map((t) => ({ t: `값 ${t}`, c: 'r' })), '붙는 장비'], optRows)}
     <p class="muted small" style="margin-top:8px">제련 의뢰: 1:1 거래 거리 안에서 의뢰인이 장비 하나를 골라 신청하면, 대장장이가 회당 수고비와 최대 횟수를 먼저 제시하고 의뢰인이 받아들여야 시작됩니다. 신청 창과 제시 카드에서 그 대장장이가 붙일 수 있는 옵션과 값의 최소~최대를 볼 수 있습니다. 제련비·강화서·재료는 대장장이가 내고(한 번 할 만큼은 있어야 제시할 수 있습니다), 의뢰인은 실제로 제련한 횟수만큼 수고비만 냅니다(수고비에는 거래 수수료가 붙습니다). 장비는 의뢰인 가방에 잠긴 채로 남습니다. 의뢰가 시작되면 의뢰인과 대장장이가 같은 제련 창(의뢰인은 보기만)과 오른쪽 1:1 채팅을 씁니다. 횟수를 다 쓰면 장비 잠금이 풀리고, 어느 쪽이든 창을 닫을 때 의뢰가 끝나며 상대에게 알림이 갑니다. 대장장이가 한 의뢰를 시작하면 그 대장장이를 기다리던 다른 신청은 닫히고 알림이 갑니다. 제련한 장비는 거래소에 올릴 수 있고 옵션이 툴팁·살펴보기·매물에 보입니다.</p>
-    <h2 id="craft">무기 제작${C.open ? '' : ' <span class="muted small">(지금은 중단)</span>'}</h2>
-    ${C.open ? '' : note('무기 제작은 지금 중단되어 대장장이 대화에 「무기 제작」이 나오지 않습니다. 이미 만든 제작 무기는 그대로 쓸 수 있고, 초월할 때는 같은 레이드·같은 직업의 레이드 무기와 같은 무기로 칩니다(예: 제작 전설 활 = 그 레이드 전설 활). 아래는 중단 전 규칙입니다.')}
-    <p class="muted small">노을마을 대장장이 NPC의 「무기 제작」에서 ${esc(C.baseMin)} 이상 레이드 무기(어느 직업이든, 가방에 있는 것) 하나를 녹이고 그 레이드의 보스 재료와 함께 새 무기를 벼립니다. 만들 무기의 직업은 대장장이가 고르고, 이름은 「대장장이 이름의 무기 종류」가 됩니다(예: 「철수의 대검」). 등급은 바탕 등급 아래로 나오지 않습니다 — ${esc(C.baseMin)} 바탕은 ${esc(C.baseMin)} 또는 유니크, 유니크 바탕은 늘 유니크입니다. ${esc(C.baseMin)} 바탕의 유니크 확률은 숙련도가 높을수록 오르고 ${C.uniqueCap}%를 넘지 않습니다. 바탕 무기의 강화·제련은 사라지고, 귀속·계정 귀속은 그대로 이어집니다. 만든 무기는 다시 강화·제련할 수 있습니다.</p>
-    <p class="muted small">보스 재료는 각 레이드를 클리어할 때 한 사람마다 ${pct(C.drop)} 확률로 1개 떨어지고 귀속되지 않습니다.</p>
-    ${table(['조합법(레이드)', '보스 재료', '지역 재료', { t: '강화서', c: 'r' }, { t: '베리', c: 'r' }, { t: '숙련도', c: 'r' }], recipeRows)}
-    <h3>등급별 공격력(+0, 기사 무기)</h3>
-    <p class="muted small">제작 무기는 같은 레이드 무기보다 한 단계 강하고, 유니크는 그보다 더 크게 오릅니다. 가장 높은 조합법의 유니크가 게임에서 가장 강한 무기입니다.</p>
-    ${table(['조합법', ...C.grades.map((g) => ({ t: g.name, c: 'r' }))], atkRows, { scroll: true })}
-    <h3>랭크별 등급 확률(${esc(C.baseMin)} 바탕)</h3>
-    ${table(['랭크', { t: '숙련도', c: 'r' }, ...C.grades.map((g) => ({ t: g.name, c: 'r' }))], oddsRows)}
+    <h2 id="craft">명장 제작</h2>
+    <p class="muted small">노을마을 대장장이 NPC의 「명장 제작」에서 만들 무기의 직업을 고르고, 레이드 보스 재료 9종과 강화서·광석·베리를 들여 「명장의 무기」를 벼립니다. 성공 확률은 ${C.rate}%이고, 성공하면 늘 유니크 등급이 나옵니다. 실패하면 보스 재료는 그대로 남고 강화서·광석·베리만 사라집니다. 성공하든 실패하든 숙련도가 ${C.score} 오릅니다. 이름은 「명장 대장장이 이름의 무기 종류」가 됩니다(예: 「명장 철수의 대검」). 공격력은 같은 직업 폭풍신 무기 유니크의 ${Math.round(C.atkPct * 100)}%이고, 다시 강화·제련할 수 있으며 귀속되지 않습니다. 초월할 때는 같은 직업 폭풍신 무기와 같은 무기로 칩니다.</p>
+    <p class="muted small">보스 재료는 각 레이드를 클리어할 때 한 사람마다 ${pct(C.drop)} 확률로 1개 떨어지고 귀속되지 않습니다. 예전 「무기 제작」으로 만든 무기(「철수의 대검」 등)는 그대로 쓸 수 있습니다.</p>
+    ${table(['재료', { t: '개수', c: 'r' }, '실패하면'], [...lineRows, tr(['베리', R(fmt(C.gold)), '사라짐'])])}
+    <h3>직업별 명장 무기(유니크 +0)</h3>
+    ${table(['직업', '무기', { t: '공격력', c: 'r' }, { t: '폭풍신 유니크', c: 'r' }], weaponRows, { scroll: true })}
     <h2 id="buff">장비 손질</h2>
     <p class="muted small">「장비 손질」은 플레이어 대장장이에게 맡기는 일시 효과입니다. 대장장이를 눌러 플레이어 메뉴에서 「장비 손질」을 신청하면 대장장이가 수고비를 제시하고, 받아들이면 바로 손질됩니다. 손질 비용인 베리(받는 사람 레벨 티어 × ${fmt(B.buff.goldPerTier)})와 그 티어 지역 재료 ${B.buff.matQty}개는 대장장이가 내고, 받는 사람은 수고비만 냅니다(거래 수수료를 떼고 대장장이에게). 대장장이는 손질 한 번에 받는 사람 레벨 티어 장비의 의뢰 제련 한 번 숙련도의 ×${B.buff.scoreMul}을 얻습니다(전문 구간보다 낮은 티어면 제련처럼 깎입니다). 같은 손질을 다시 받으면 시간이 새로 채워지고(겹치지 않음), 두 가지는 함께 걸 수 있습니다. 죽거나 결투해도 사라지지 않고, 접속을 끊어도 시간은 흐릅니다.</p>
     ${table(['손질', '효과', { t: '지속', c: 'r' }], B.buff.list.map((b) => tr([`<b>${esc(b.name)}</b>`, b.kind === 'atk' ? `공격력 +${b.pct}%` : `경험치 +${b.pct}%`, R(`${b.min}분`)])))}
@@ -787,7 +783,7 @@ const itemState = { group: 'all', rarity: 'all', cls: 'all', q: '', sort: 'defau
 /** 얻는 곳 한 줄 요약(도감 목록 칸). 레이드 출처는 무한의 던전·레이드를 가른다 */
 const SRC_LABEL = { shop: '상점', mob: '몬스터', rare: '등급 드랍', chest: '보물상자', worldBoss: '필드 보스', quest: '퀘스트', questDrop: '퀘스트 수집', premium: '고급 상자', gemShop: '젬 상점', legacy: '옛 장비', grant: '운영자 지급', cash: '현금 상점', guildRank: '길드 랭킹', craft: '대장장이 제작', life: '생활' };
 function srcLabel(s) {
-  if (s.type === 'raid') return s.raid === D.infinite.id ? '무한의 던전' : M.dungeons.has(s.raid) ? '일일 던전' : '레이드';
+  if (s.type === 'raid') return s.raid === D.infinite.id ? '무한의 던전' : M.dungeons.has(s.raid) ? '일일 던전' : s.raid === D.dungeons.hidden.id ? '히든 던전' : '레이드';
   if (s.type === 'market') return D.constants.market.name;
   return SRC_LABEL[s.type] ?? s.type;
 }
@@ -871,7 +867,10 @@ function sourceBlock(it) {
   const life = by('life');
   if (life.length) out.push(`<div class="card"><h3><a href="#/world#life">생활 (${esc(D.life.islands.village)} 동쪽)</a></h3><ul class="plain">${life.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul></div>`);
   const craft = by('craft');
-  if (craft.length) out.push(`<div class="card"><h3><a href="#/classes/${D.blacksmith.id}#craft">대장장이 무기 제작</a></h3><ul class="plain">${craft.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul><p class="muted small" style="margin:8px 0 0">이름 앞에 만든 대장장이의 이름이 붙습니다(예: 「철수의 ${esc(it.name)}」).${D.blacksmith.craft.open ? '' : ' 무기 제작은 지금 중단되었고, 초월할 때는 같은 레이드·같은 직업의 레이드 무기와 같은 무기로 칩니다.'}</p></div>`);
+  if (craft.length) {
+    const master = it.id.startsWith('mastercraft_');
+    out.push(`<div class="card"><h3><a href="#/classes/${D.blacksmith.id}#craft">${master ? '대장장이 명장 제작' : '옛 대장장이 무기 제작'}</a></h3><ul class="plain">${craft.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul><p class="muted small" style="margin:8px 0 0">${master ? `가방에서는 「명장」과 만든 대장장이의 이름이 붙습니다(예: 「명장 철수의 ${esc(it.name.replace(/^명장의 /, ''))}」). 초월할 때는 같은 직업 폭풍신 무기와 같은 무기로 칩니다.` : `이름 앞에 만든 대장장이의 이름이 붙습니다(예: 「철수의 ${esc(it.name)}」). 이 제작은 지금 없고, 초월할 때는 같은 레이드·같은 직업의 레이드 무기와 같은 무기로 칩니다.`}</p></div>`);
+  }
   if (!out.length) out.push('<div class="empty-state">지금은 게임 안에서 얻는 곳이 없습니다.</div>');
   return out.join('');
 }
@@ -1313,6 +1312,19 @@ function pageWorld() {
         </div>` : ''}
       </div>
     </section>`;
+  const hd = dg.hidden;
+  const hiddenCard = `
+    <section class="card" id="hidden">
+      <h2 style="margin-top:0">${esc(hd.name)} <span class="chip">Lv${hd.minLevel}+</span> <span class="chip">혼자~${hd.size}인</span> <span class="chip">제한 시간 ${hd.timeLimitMin}분</span> <span class="chip">하루 횟수 제한 없음</span></h2>
+      <p>${hd.periodHours}시간에 한 번, 그 사이 무작위 때에 <b>필드 섬 어딘가</b>에 작은 입구(보랏빛 소용돌이 우물)가 열립니다. 서버 전체에 「히든 던전 입구가 열렸습니다」만 알리고 <b>자리는 알려 주지 않습니다</b> — 직접 찾아야 합니다. 마을·인스턴스 섬에는 열리지 않고, 채널마다 같은 자리에 섭니다.</p>
+      <ul class="plain small">
+        <li>입구 곁에서 F(모바일은 「들어가기」) → 「히든 던전에 입장하시겠습니까?」에서 입장. 혼자면 바로 들어가고, 파티면 입구에서 ${hd.partyRadius}칸 안에 있는 파티원에게 준비 확인이 가서 <b>수락한 사람만</b> 함께 들어갑니다.</li>
+        <li><b>먼저 들어간 무리가 입구를 닫습니다</b>(한 번에 한 무리 — 닫히면 서버 전체에 알립니다). 아무도 들어가지 않으면 ${hd.lifetimeMin}분 뒤 사라집니다.</li>
+        <li>안: ${roomFlow(hd)} · 라이프 토큰 ${hd.lifeTokens}개 · 들어가고 ${hd.timeLimitMin}분이 지나면 보상 없이 나옵니다.</li>
+        <li>난이도는 <b>${hd.refRaid}급</b>으로 파티 레벨과 상관없이 고정입니다. 최종 보스는 HP ${fmt(hd.bossHp)}·공격력 ${fmt(hd.bossAtk)}(${hd.refRaid} 보스와 같고, 6명부터 인원마다 HP가 늘어납니다)이고, 앞 구역 몬스터와 중간 보스도 그에 맞춰 강합니다.</li>
+        <li>보상은 <b>최종 보스를 쓰러뜨릴 때만</b>(참가자마다 따로): 베리 레벨 × ${fmt(hd.goldPerLevel)} · ${hd.ores.map((o) => `${itemLink(o.itemId)} ${o.min === o.max ? o.min : `${o.min}~${o.max}`}개${o.chance < 1 ? `(${pct(o.chance)})` : ''}`).join(' · ')} · ${itemLink(hd.swordId)} <b>${pct(hd.swordChance)}</b>(${oneIn(hd.swordChance)}, 핫타임 드랍 배율 적용). 구역 보상·경험치·강화서·젬·루비는 없습니다.</li>
+      </ul>
+    </section>`;
   const so = D.social;
   const ex = so.exchange;
   const td = so.trade;
@@ -1388,7 +1400,7 @@ function pageWorld() {
       <p class="muted small" style="margin-top:8px">이름의 X는 금칙어를 가린 글자입니다.</p>
     </section>`;
   const index = `<nav class="isl-index" aria-label="지역 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>${isl.hub ? "모항" : `Lv${isl.levelRange[0]}~${isl.levelRange[1]}`}${isl.shopTiers.length ? ` · ${isl.shopTiers.map((t) => `T${t}`).join('·')}` : ''}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a></nav>`;
-  return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 모항입니다.')}<h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>선술집 의뢰</h2><div class="stack">${tavernCard}${catCard}</div><h2>생활</h2><div class="stack">${lifeCard}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>길드</h2><div class="stack">${guildRankCard}${guildStorageCard}</div><h2>교류·편의</h2><div class="stack">${socialCards}</div>`;
+  return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 모항입니다.')}<h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>히든 던전</h2><div class="stack">${hiddenCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>선술집 의뢰</h2><div class="stack">${tavernCard}${catCard}</div><h2>생활</h2><div class="stack">${lifeCard}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>길드</h2><div class="stack">${guildRankCard}${guildStorageCard}</div><h2>교류·편의</h2><div class="stack">${socialCards}</div>`;
 }
 
 // ── 페이지: 성장·강화 ──
@@ -1528,6 +1540,19 @@ function pageGrowth() {
     <h2 id="fade">페이드</h2>
     <p>계정 캐릭터들의 레벨을 모두 더한 뒤 <b>가장 높은 캐릭터 하나</b>의 레벨을 뺀 값이 <b>${D.codex.fade.step}</b> 오를 때마다 최종 공격력 <b>+${D.codex.fade.stepPct}%</b>, 최대 <b>+${D.codex.fade.max}%</b>입니다. 계정의 모든 캐릭터가 같은 값을 받고, 다른 캐릭터가 레벨을 올리면 바로 반영됩니다. 능력치 창의 <b>계정 보너스</b>와 도감 창에서 지금 값과 다음 단계까지 남은 레벨을 볼 수 있습니다.</p>
     <p class="muted small">예: Lv 300 · 250 · 150 캐릭터가 있으면 250 + 150 = 400 → 최종 공격력 +${4 * D.codex.fade.stepPct}%.</p>
+
+    <h2 id="pets">펫</h2>
+    <p><b>Lv ${D.pets.level}</b>부터 ESC 메뉴의 <b>펫</b> 창을 씁니다. 펫·소환 레벨·주머니(소라고둥·펫 간식·선택권)는 <b>계정 공용</b>이라 같은 계정의 모든 캐릭터가 장착 펫 효과를 받습니다. ${itemLink('pet_shell')} · ${itemLink('pet_snack')} · 펫 선택권은 가방에 귀속 아이템으로 들어오고, 펫 창을 열면 계정 주머니로 옮겨집니다.</p>
+    <p>장착 펫(최대 <b>${D.pets.slots}칸</b>, 가진 펫 레벨 합 ${D.pets.slotUnlock.slice(1).join(' · ')}에 칸이 열림)마다 <b>최종 공격력 × (1 + 펫 공격력%)</b> — 다른 효과를 모두 더한 뒤에 <b>곱합니다</b>. ${esc(D.pets.grades.find((g) => g.id === 'unique').name)} 펫은 Lv1부터 +${D.pets.grades.find((g) => g.id === 'unique').atk[0]}%이고 특수 능력이 둘 붙습니다. 특수 능력은 전투 효과뿐이고 유물과 같은 상한을 받습니다.</p>
+    <ul>
+      <li>소환: 소라고둥 1개 = 1회(${D.pets.drawCounts.join(' · ')}회). 등급은 소환 레벨 확률표, 같은 등급 안의 펫은 모두 같은 확률입니다. 누적 소환 횟수로 소환 레벨이 오르고(최대 Lv${D.pets.summonMax}, ${fmt(D.pets.summonAt[D.pets.summonMax - 1])}회), 레벨 보상으로 선택권을 받습니다: ${D.pets.milestones.map((m) => `Lv${m.level} ${esc(m.grade)}`).join(' · ')}.</li>
+      <li>${esc(D.pets.pityText)}</li>
+      <li>레벨: 펫 간식으로 올립니다(최대 Lv${D.pets.maxLevel}, Lv1→${D.pets.maxLevel} 합 ${fmt(D.pets.snackTotal)}개). Lv${D.pets.breakLevels.join(' · Lv')}에서 다음 레벨로 갈 때는 그 펫 조각(돌파)이 듭니다. 돌파에 더 필요 없는 조각은 등급별 펫 간식으로 바뀝니다.</li>
+      <li>매일 보급(계정 하루 한 번): 소라고둥 ${D.pets.daily.shells}개 · 펫 간식 ${D.pets.daily.snacks}개. 접속 이벤트와 보물 사냥 교환소에서도 받습니다. 과금 없이 약 1년이면 소환 Lv${D.pets.summonMax}과 ${D.pets.slots}칸 모두 최고 등급 펫으로 채우는 것이 목표입니다.</li>
+    </ul>
+    ${table(['등급', { t: '최종 공격력', c: 'r' }, { t: '돌파 조각', c: 'r' }, { t: '남는 조각 → 간식', c: 'r' }], D.pets.grades.map((g) => tr([`<b class="rar-${g.id}">${esc(g.name)}</b>`, R(`+${g.atk[0]}% → +${g.atk[1]}%`), R(g.breakFrags.join(' · ')), R(fmt(g.extraSnacks))])))}
+    ${table(['소환 Lv', ...D.pets.grades.map((g) => ({ t: esc(g.name), c: 'r' }))], D.pets.rates.map((row, i) => tr([`Lv${i + 1}<span class="muted small"> · ${fmt(D.pets.summonAt[i])}회</span>`, ...row.map((v) => R(`${v}%`))])))}
+    ${table(['펫', '등급', '특수 능력'], D.pets.list.map((p) => tr([`<b>${esc(p.name)}</b><div class="muted small">${esc(p.desc)}</div>`, `<span class="rar-${p.grade}">${esc(D.pets.grades.find((g) => g.id === p.grade).name)}</span>`, p.specials.map(esc).join('<br>') || '<span class="muted">-</span>'])))}
 
     ${seasonSection()}
 
@@ -1721,6 +1746,7 @@ function buildSearch() {
   for (const r of D.raids) add('레이드', r.name, `#/world#raid-${r.id}`, `레이드 · 입장 Lv${r.minLevel}`, ph('crown'), r.phases.map((p) => p.label).join(' · '), `레이드 ${gimmickWords(r.gimmicks)}`);
   add('레이드', D.infinite.name, `#/world#raid-${D.infinite.id}`, `웨이브 던전 · 입장 Lv${D.infinite.minLevel} · 혼자~${D.infinite.size}인`, ph('crown'), '무한 웨이브 랭킹 서버 최초 유니크', '레이드');
   for (const d of D.dungeons.list) add('레이드', d.name, '#/world#dungeons', `일일 던전 · ${d.minLevel > 1 ? `Lv${d.minLevel}+ · ` : ''}하루 ${d.dailyLimit}번 · 혼자~${d.size}인`, ph('crown'), d.kind === 'treasure' ? '보물 던전 베리 황금 저주 힐러' : '레벨업 던전 경험치 수련', '일일던전');
+  add('레이드', D.dungeons.hidden.name, '#/world#hidden', `히든 던전 · Lv${D.dungeons.hidden.minLevel}+ · ${D.dungeons.hidden.periodHours}시간마다 필드 어딘가 입구 · 혼자~${D.dungeons.hidden.size}인`, ph('crown'), `히든 던전 입구 포탈 봉인된 태초의 검 광석 ${D.dungeons.hidden.refRaid}`, '히든던전');
   add('레이드', D.augment.name, `#/world#raid-${D.augment.id}`, `웨이브 던전 베타 · ${D.augment.every}웨이브마다 증강 카드`, ph('crown'), D.augment.list.map((a) => `${a.name} ${a.desc}`).join(' · '), '레이드 증강 베타 카드');
   for (const w of D.worldBosses) add('레이드', w.name, `#/world#wb-${w.id}`, `필드 보스 원정 · ${M.mobs.get(w.bossId)?.name ?? ''}`, ph('crown'), w.phases.map((p) => p.label).join(' · '), `필드보스 월드보스 원정 ${gimmickWords(w.gimmicks)}`);
   add('콘텐츠', D.duel.name, '#/world#duel', `PvP · ${D.duel.modes.map((m) => m.name).join(' · ')} · ${D.duel.rules.map((r) => `${r.name} Lv${r.minLevel}+`).join(' · ')}`, ph('swords'), `점수 매칭 ±${D.duel.matchRange} 결투 신청 친선 스펙 적용 동등 조건`, '결투장 PvP 대전 결투 점수 레이팅 동등결투');
@@ -1744,6 +1770,7 @@ function buildSearch() {
   add('콘텐츠', '초월', '#/growth#transcend', `Lv${D.transcend.level} · 같은 각성 장비 둘 → ★ · 최대 ★${D.transcend.max} · 기본 능력치 최대 +${Math.round((D.transcend.mul[D.transcend.max] - 1) * 100)}%`, ph('sparkles'), '각성 장비(무기·방어구·장신구) 별 초월 등급 · 단계마다 강화서·베리', '초월 별 각성 장비 무기 방어구 장신구 합치기 transcend 강화서 베리 비용');
   add('콘텐츠', '도감', '#/growth#codex', `레이드 장비 등록 · Lv${D.codex.level} · 계정 공용 · ${D.codex.total}칸`, ph('scroll-text'), D.codex.full.join(' · '), '도감 컬렉션 수집 레이드 장비 등록 계정');
   add('콘텐츠', '페이드', '#/growth#fade', `계정 레벨 합 ${D.codex.fade.step}마다 최종 공격력 +${D.codex.fade.stepPct}% · 최대 ${D.codex.fade.max}%`, ph('sparkles'), '가장 높은 캐릭터를 뺀 나머지 레벨 합', '페이드 계정 레벨 합 부캐 최종 공격력');
+  add('콘텐츠', '펫', '#/growth#pets', `Lv${D.pets.level} · 계정 공용 · 장착 ${D.pets.slots}칸 · 최종 공격력 곱연산`, ph('sparkles'), D.pets.list.map((p) => p.name).join(' · '), '펫 소환 소라고둥 펫 간식 선택권 유니크 pet');
   add('콘텐츠', '보물 사냥', '#/growth#season', `주간 시즌 · ${D.season.token} · 보물 2개 × ${D.season.levels}단계 · 교환소`, ph('gem'), D.season.schedule.flatMap((w) => w.treasures.map((t) => t.name)).join(' · '), '보물 사냥 시즌 주간 보물 지도 조각 교환소 길잡이 초행 season');
   for (const w of D.season.schedule) for (const t of w.treasures) add('콘텐츠', t.name, '#/growth#season', `보물 · 시즌 ${w.season} · ${t.max}`, ph('gem'), t.desc, '보물 시즌');
   add('콘텐츠', '길잡이', '#/growth#season', `초행과 함께 레이드 클리어 · 1명당 조각 ${D.season.guide.perNewbieTokens}개 · 베리 +${D.season.guide.perNewbieGoldPct}%`, ph('map'), `시즌마다 ${D.season.guide.weeklyRuns}판`, '길잡이 초행 레이드 처음 새싹 동행');
