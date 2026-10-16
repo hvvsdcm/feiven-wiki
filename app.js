@@ -161,7 +161,7 @@ function pageHome() {
     ['items', 'backpack', '#ff8a4c', '아이템 도감', `아이템 ${D.items.length}개 · 얻는 곳`],
     ['mobs', 'skull', '#ff6b6b', '몬스터 도감', `몬스터 ${D.mobs.length}종 · 드랍표`],
     ['world', 'map', '#2dd4bf', '지역·레이드', `지역 ${D.islands.length}곳 · 레이드 ${D.raids.length}개 · 일일 던전 ${D.dungeons.list.length}개 · 필드 보스 원정 ${D.worldBosses.length}곳 · 퀘스트 ${D.quests.length}개`],
-    ['growth', 'trending-up', '#f472b6', '성장·강화', '경험치 표 · 경험치 배율 · 강화 · 각성 · 초월 · 합성 · 칭호 · 보물 사냥 · 항해 등급'],
+    ['growth', 'trending-up', '#f472b6', '성장·강화', '레벨 해금 · 경험치 표 · 경험치 배율 · 강화 · 각성 · 초월 · 합성 · 칭호 · 보물 사냥 · 항해 등급'],
   ];
   const tries = ['합성', '강화서', '강화 성공률', '치명타', '크라켄', 'ㅎㄱㅅ'];
   const kv = [
@@ -1462,6 +1462,9 @@ function pageGrowth() {
     ${table(['직업', { t: '공격 계수', c: 'r' }, { t: 'HP 계수', c: 'r' }, { t: '레벨당 공격력(계수 전)', c: 'r' }, { t: '레벨당 HP(계수 전)', c: 'r' }, { t: '레벨당 MP', c: 'r' }], mulRows)}
     <p class="muted small" style="margin-top:8px">「모든 능력치 +1」(올스탯) 1점: 공격력 +${ae.atk}, 최대 HP +${ae.maxHp}, 최대 MP +${ae.maxMp}. 다른 능력치와 함께 직업 계수가 곱해집니다(MP 제외).</p>
 
+    <h2 id="unlocks">레벨 해금</h2>
+    <p>레벨이 오르면 시스템이 하나씩 열립니다. 새로 열리면 화면 왼쪽 아래(모바일은 아래 가운데)에 「새 시스템」 알림이 뜨고, 누르면 짧은 안내와 「바로 가기」 「백과사전」 단추가 나옵니다. 경험치 줄 오른쪽에 다음에 열리는 시스템을 보여 주고, 아직 열리지 않은 시스템은 메뉴에 「Lv N」으로 표시합니다. <b>잠금</b> 표시가 붙은 시스템은 그 레벨 전에는 쓸 수 없습니다(길드는 초대받는 사람도 그 레벨이어야 합니다).</p>
+    ${table([{ t: '레벨', c: 'r' }, '시스템', '설명', '잠금'], D.unlocks.map((u) => tr([R(`Lv${u.level}`), `<b>${esc(u.name)}</b>`, esc(u.desc), u.gated ? '잠금' : ''])))}
     <h2>경험치</h2>
     <div class="formula">몬스터 경험치 = (10 + 6 × 몬스터 레벨) × (보스면 15)
 내가 ${c.expPenaltyDiff[0]}레벨 이상 높으면 × 0.5, ${c.expPenaltyDiff[1]}레벨 이상 높으면 × 0.1</div>
@@ -1475,6 +1478,7 @@ function pageGrowth() {
       <li><b>경험치 배율</b>: 몬스터가 세진 만큼 처치 경험치를 더 줍니다 — Lv${c.hunt.exp[0][0]} ×${c.hunt.exp[0][1]} → Lv${c.hunt.exp[1][0]} ×${c.hunt.exp[1][1]} → Lv${c.hunt.exp[2][0]} ×${c.hunt.exp[2][1]}(사이는 직선). 아래 표의 몬스터 수에 들어 있습니다. 레이드·던전·퀘스트 보상에는 곱하지 않습니다.</li>
       <li><b>연속 처치</b>(모든 레벨 필드 사냥터): ${c.hunt.combo.windowSec}초 안에 다음 필드 몬스터(일반·정예)를 잡으면 이어집니다. ${c.hunt.combo.step}마리마다 처치 경험치 +${Math.round(c.hunt.combo.stepBonus * 100)}%(최대 +${Math.round(c.hunt.combo.maxBonus * 100)}%). 쓰러지면 끊깁니다.</li>
       <li><b>사냥터 폭주</b>(모든 레벨 필드 사냥터): 같은 채널에서 함께 ${c.hunt.frenzy.kills}마리를 잡으면 ${c.hunt.frenzy.sec}초 동안 일반 몬스터가 ×${c.hunt.frenzy.countMul}로 몰려오고 거의 바로 다시 나오며, 처치 경험치 +${Math.round(c.hunt.frenzy.expBonus * 100)}%입니다. 체력 막대 바로 위 칩에서 연속 처치 수와 「열기」 게이지를 봅니다.</li>
+      <li><b>돌발 사건</b>(모든 레벨 필드 사냥터): 사람이 있는 사냥터 채널에 ${c.fieldEvent.gapSec[0] / 60}~${c.fieldEvent.gapSec[1] / 60}분마다 ${Object.values(c.fieldEvent.names).join(' · ')} 중 하나가 터집니다(${c.fieldEvent.limitSec / 60}분 안에 해결). 정예 습격은 정예 ${c.fieldEvent.ambush.base + c.fieldEvent.ambush.perPlayer}~${c.fieldEvent.ambush.max}마리, 몬스터 몰이는 일반 몬스터 ${c.fieldEvent.horde.waves}웨이브, 현상수배는 체력이 ${c.fieldEvent.bounty.hpBase + c.fieldEvent.bounty.hpPerPlayer}~${c.fieldEvent.bounty.hpMax}배인 정예 하나이고, 사람이 많을수록 커집니다. 사건 몬스터를 하나라도 잡는 데 끼면 성공할 때 반복 보상 기준 경험치의 ${Math.round(c.fieldEvent.reward.exp * 100)}%, 정예 ${c.fieldEvent.reward.goldKills}마리 몫 베리, ${Math.round(c.fieldEvent.reward.scrollChance * 100)}% 확률로 강화 주문서를 받습니다.</li>
       <li><b>사냥터 채널</b>: 한 사냥터 정원이 차면 다음 사람은 채널 2·3…으로 나뉘고, 사람이 줄면 자동으로 합쳐집니다. 미니맵 이름표(모바일은 큰 지도 머리줄)의 「채널 N」을 누르면 채널마다 인원을 보고 자리가 남은 채널이나 <b>새 채널</b>(혼자 사냥)을 직접 고를 수 있습니다. 직접 고른 채널은 자동 조정으로 옮겨지지 않고, 마을로 돌아가거나 섬을 옮기면 풀립니다. 전투 중에는 못 고르고 10초마다 한 번 바꿀 수 있습니다. 다른 채널에 있는 파티에 들어가면 전투 중이어도 바로 파티장 채널로 옮겨집니다. 마을·부두 가장자리를 잠깐(2초 안) 스치기만 하면 채널은 그대로입니다.</li>
       <li>연속 처치·폭주 보너스는 서버 이벤트·사료·축복과 더합니다(합연산).</li>
     </ul>
@@ -1545,7 +1549,7 @@ function pageGrowth() {
     <p><b>Lv ${D.pets.level}</b>부터 ESC 메뉴의 <b>펫</b> 창을 씁니다. 펫·소환 레벨·주머니(소라고둥·펫 간식·선택권)는 <b>계정 공용</b>이라 같은 계정의 모든 캐릭터가 장착 펫 효과를 받습니다. ${itemLink('pet_shell')} · ${itemLink('pet_snack')} · 펫 선택권은 가방에 귀속 아이템으로 들어오고, 펫 창을 열면 계정 주머니로 옮겨집니다.</p>
     <p>장착 펫(최대 <b>${D.pets.slots}칸</b>, 가진 펫 레벨 합 ${D.pets.slotUnlock.slice(1).join(' · ')}에 칸이 열림)마다 <b>최종 공격력 × (1 + 펫 공격력%)</b> — 다른 효과를 모두 더한 뒤에 <b>곱합니다</b>. ${esc(D.pets.grades.find((g) => g.id === 'unique').name)} 펫은 Lv1부터 +${D.pets.grades.find((g) => g.id === 'unique').atk[0]}%이고 특수 능력이 둘 붙습니다. 특수 능력은 전투 효과뿐이고 유물과 같은 상한을 받습니다.</p>
     <ul>
-      <li>소환: 소라고둥 1개 = 1회(${D.pets.drawCounts.join(' · ')}회). 등급은 소환 레벨 확률표, 같은 등급 안의 펫은 모두 같은 확률입니다. 누적 소환 횟수로 소환 레벨이 오르고(최대 Lv${D.pets.summonMax}, ${fmt(D.pets.summonAt[D.pets.summonMax - 1])}회), 레벨 보상으로 선택권을 받습니다: ${D.pets.milestones.map((m) => `Lv${m.level} ${esc(m.grade)}`).join(' · ')}.</li>
+      <li>소환: 소라고둥 1개 = 1회(${D.pets.drawCounts.join(' · ')}회). 소라고둥이 모자란 회차는 젬 ${D.pets.drawGems}개로 대신 소환합니다(소라고둥 먼저, 확률 같음). 등급은 소환 레벨 확률표, 같은 등급 안의 펫은 모두 같은 확률입니다. 누적 소환 횟수로 소환 레벨이 오르고(최대 Lv${D.pets.summonMax}, ${fmt(D.pets.summonAt[D.pets.summonMax - 1])}회), 레벨 보상으로 선택권을 받습니다: ${D.pets.milestones.map((m) => `Lv${m.level} ${esc(m.grade)}`).join(' · ')}.</li>
       <li>${esc(D.pets.pityText)}</li>
       <li>레벨: 펫 간식으로 올립니다(최대 Lv${D.pets.maxLevel}, Lv1→${D.pets.maxLevel} 합 ${fmt(D.pets.snackTotal)}개). Lv${D.pets.breakLevels.join(' · Lv')}에서 다음 레벨로 갈 때는 그 펫 조각(돌파)이 듭니다. 돌파에 더 필요 없는 조각은 등급별 펫 간식으로 바뀝니다.</li>
       <li>매일 보급(계정 하루 한 번): 소라고둥 ${D.pets.daily.shells}개 · 펫 간식 ${D.pets.daily.snacks}개. 접속 이벤트와 보물 사냥 교환소에서도 받습니다. 과금 없이 약 1년이면 소환 Lv${D.pets.summonMax}과 ${D.pets.slots}칸 모두 최고 등급 펫으로 채우는 것이 목표입니다.</li>
@@ -1771,6 +1775,8 @@ function buildSearch() {
   add('콘텐츠', '도감', '#/growth#codex', `레이드 장비 등록 · Lv${D.codex.level} · 계정 공용 · ${D.codex.total}칸`, ph('scroll-text'), D.codex.full.join(' · '), '도감 컬렉션 수집 레이드 장비 등록 계정');
   add('콘텐츠', '페이드', '#/growth#fade', `계정 레벨 합 ${D.codex.fade.step}마다 최종 공격력 +${D.codex.fade.stepPct}% · 최대 ${D.codex.fade.max}%`, ph('sparkles'), '가장 높은 캐릭터를 뺀 나머지 레벨 합', '페이드 계정 레벨 합 부캐 최종 공격력');
   add('콘텐츠', '펫', '#/growth#pets', `Lv${D.pets.level} · 계정 공용 · 장착 ${D.pets.slots}칸 · 최종 공격력 곱연산`, ph('sparkles'), D.pets.list.map((p) => p.name).join(' · '), '펫 소환 소라고둥 펫 간식 선택권 유니크 pet');
+  add('콘텐츠', '레벨 해금', '#/growth#unlocks', `레벨마다 열리는 시스템 ${D.unlocks.length}개 · 잠금 ${D.unlocks.filter((u) => u.gated).map((u) => `${u.name} Lv${u.level}`).join(' · ')}`, ph('trending-up'), D.unlocks.map((u) => `Lv${u.level} ${u.name}`).join(' · '), '레벨 해금 잠금 새 시스템 튜토리얼 안내 unlock');
+  add('콘텐츠', '돌발 사건', '#/growth', `필드 사냥터 · ${Object.values(D.constants.fieldEvent.names).join(' · ')} · ${D.constants.fieldEvent.limitSec / 60}분 제한`, ph('sparkles'), '사람이 있는 사냥터 채널에 몇 분마다 터지는 사건', '돌발 사건 정예 습격 몬스터 몰이 현상수배 사냥터 이벤트');
   add('콘텐츠', '보물 사냥', '#/growth#season', `주간 시즌 · ${D.season.token} · 보물 2개 × ${D.season.levels}단계 · 교환소`, ph('gem'), D.season.schedule.flatMap((w) => w.treasures.map((t) => t.name)).join(' · '), '보물 사냥 시즌 주간 보물 지도 조각 교환소 길잡이 초행 season');
   for (const w of D.season.schedule) for (const t of w.treasures) add('콘텐츠', t.name, '#/growth#season', `보물 · 시즌 ${w.season} · ${t.max}`, ph('gem'), t.desc, '보물 시즌');
   add('콘텐츠', '길잡이', '#/growth#season', `초행과 함께 레이드 클리어 · 1명당 조각 ${D.season.guide.perNewbieTokens}개 · 베리 +${D.season.guide.perNewbieGoldPct}%`, ph('map'), `시즌마다 ${D.season.guide.weeklyRuns}판`, '길잡이 초행 레이드 처음 새싹 동행');
