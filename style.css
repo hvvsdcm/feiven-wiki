@@ -204,6 +204,10 @@ ul.plain, ol.plain { margin: 0; padding-left: 22px; }
 ul.plain li + li, ol.plain li + li { margin-top: 10px; }
 ul.plain li::marker { color: var(--muted); }
 ol.plain li::marker { color: var(--accent-text); font-weight: 700; }
+/* 보스 기믹 영상: 넓은 화면은 설명 왼쪽, 좁은 화면은 설명 위 */
+ul.plain li.has-clip { display: flex; gap: 14px; align-items: flex-start; }
+video.gclip { flex: none; width: 240px; aspect-ratio: 16 / 9; border-radius: 10px; background: #0d0f14; object-fit: cover; }
+@media (max-width: 600px) { ul.plain li.has-clip { flex-direction: column; } video.gclip { width: 100%; } }
 details { border-radius: var(--radius); background: var(--s2); padding: 4px 16px; }
 details[open] { padding-bottom: 16px; }
 details summary { cursor: pointer; font-weight: 700; color: var(--text); padding: 10px 0; }

@@ -56,11 +56,11 @@ const islandName = (id) => M.islands.get(id)?.name ?? M.raids.get(id)?.name ?? M
 const islandLink = (id) => (M.islands.has(id) ? `<a href="#/world#isl-${esc(id)}">${esc(islandName(id))}</a>` : M.raids.has(id) || id === D.infinite.id ? `<a href="#/world#raid-${esc(id)}">${esc(islandName(id))}</a>` : M.dungeons.has(id) ? `<a href="#/world#dungeons">${esc(islandName(id))}</a>` : id === D.dungeons.hidden.id ? `<a href="#/world#hidden">${esc(islandName(id))}</a>` : M.wbIsland.has(id) ? `<a href="#/world#wb-${esc(M.wbIsland.get(id).id)}">${esc(islandName(id))}</a>` : esc(id));
 /** 모항(노을마을) 젬 NPC 이름: gem = 젬 상인, storage = 창고지기 */
 const npcNameOfRole = (role) => D.npcNames?.[role === 'gem' ? 'vg_gem' : 'vg_storage'] ?? (role === 'gem' ? '젬 상인' : '창고지기');
-const RUBY_NOTE = '루비는 계정 공용 재화로 상점에서 씁니다. 일반·정예 몬스터와 월정액 추가·면제 회차에서는 나오지 않습니다. 드랍 이벤트 배율이 붙지 않습니다.';
-/** 루비 드랍 한 줄: "루비 N% (a~b개)" */
-function rubyLine(source) {
-  const r = D.ruby.drops.find((d) => d.source === source);
-  return `<b>루비</b> ${pct(r.chance)} (${r.qty[0]}~${r.qty[1]}개) — 참가자마다 따로, 계정 공용 재화`;
+const RUBY_NOTE = '루비는 계정에 귀속되는 재화로 상점에서 씁니다. 편지·거래로 다른 계정에 보낼 수 없고, 친구 선물은 충전한 루비로만 보낼 수 있습니다.';
+/** 무료 루비 얻는 곳 한 줄(콘텐츠 굴림 · 선술집 의뢰 · 하루 상한) */
+function freeRubyText() {
+  const tiers = D.tavern.tiers;
+  return `사냥·보스·레이드·던전·결투장·채굴·낚시에서 확률로 · 선술집 의뢰 완료 때 난이도별 ${Math.min(...tiers.map((t) => t.ruby))}~${Math.max(...tiers.map((t) => t.ruby))}개 확정 — 계정 합산 하루(한국 시간) ${D.ruby.dailyCap}개까지`;
 }
 function skillIcon(s, size = '') {
   return s?.icon ? `<img class="ico ${size}" src="${esc(s.icon)}" alt="" loading="lazy" width="40" height="40">` : `<span class="ico ${size} ph">${icon('sparkles')}</span>`;
@@ -384,7 +384,6 @@ function pageDrops() {
   const inf = D.infinite;
   // 파티 베리 나눔 섬(처치 베리를 경험치처럼 인원 몫만 — 잠긴 섬은 D.islands에 없다)
   const goldSplit = D.islands.filter((isl) => isl.partyGoldSplit).map((isl) => islandLink(isl.id)).join(', ');
-  const m = c.market;
   const raidRows = D.raids.map((r) => {
     const set = D.raidSets.find((s) => s.raidId === r.id);
     return tr([islandLink(r.id), R(`Lv${r.minLevel}`), `${set ? `${esc(set.prefix)} 세트` : '보스 세트'} 1점 ${r.rewards.gearChance >= 1 ? '확정' : pct(r.rewards.gearChance)}${r.rewards.firstClearUnique ? ' · 캐릭터 첫 클리어 때 원하는 부위 1개를 유니크로' : ''}${r.dawn ? ` · ${itemLink(r.dawn)} 1명(파티장 지정 또는 무작위)` : ''}`, r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')]);
@@ -412,7 +411,7 @@ function pageDrops() {
     ])}
     <p class="muted small" style="margin-top:8px">같은 장비·같은 등급 세 개를 <a href="#/growth#merge">합성</a>하면 한 등급 위가 됩니다. 등급 개편 전의 전설·영웅·유니크 전용 장비는 가진 것은 그대로 쓰지만 더 이상 나오지 않습니다.</p>
     <h3 id="absolute"><span class="rar-absolute">${esc(g.absolute.name)}</span> 장비</h3>
-    <p>굴려서 나오는 등급 위에 따로 있는 최상위 장비입니다. 부위마다 지금 얻을 수 있는 가장 센 ${esc(rarName('unique'))} 장비(+0)의 <b>${g.absolute.overUnique}배</b> 수치에 모든 능력치 +${g.absolute.allStat}이 붙고, 착용 Lv${g.absolute.reqLevel}입니다. 귀속이라 거래·판매할 수 없고, 끼면 캐릭터에 붉은 금빛 불꽃이 둘러집니다(메뉴 › 설정 › 내 장비 후광으로 끕니다).</p>
+    <p>굴려서 나오는 등급 위에 따로 있는 최상위 장비입니다. 부위마다 지금 얻을 수 있는 가장 센 ${esc(rarName('unique'))} 장비(+0)의 <b>${g.absolute.overUnique}배</b> 수치에 모든 능력치 +${g.absolute.allStat}이 붙고, 착용 Lv${g.absolute.reqLevel}입니다. 귀속이 아니라 거래·거래소 등록·계정 창고 보관을 할 수 있고, 끼면 캐릭터에 붉은 금빛 불꽃이 둘러집니다(메뉴 › 설정 › 내 장비 후광으로 끕니다).</p>
     <p>${g.absolute.raids.map((r) => `${islandLink(r.raid)} <b>${pct(r.chance)}</b>`).join(' · ')} — 클리어마다 참가자 각자 그 확률로 자기 직업이 낄 수 있는 ${esc(g.absolute.name)} 장비 1점이 나옵니다(입문·어려움은 나오지 않음, 혼자 도전·이벤트 배율 없음, 나오면 서버 전체 공지). 후보: ${g.absolute.items.map((id) => itemLink(id)).join(' ')}</p>
     ${note(`처치 인정: 막타를 친 사람과 한 대라도 때린 사람, 그리고 그 파티원 중 같은 맵(같은 채널)에 있는 사람 모두입니다. 가상 유저(봇) 파티 덕에만 인정받은 경우 베리·경험치가 ${pct(c.botCarryShare)}로 줄어듭니다.`)}
 
@@ -432,19 +431,16 @@ function pageDrops() {
     <p class="muted small">섬마다 사냥터 곳곳과 마을 안에 있는 보물상자를 F로 엽니다. 상자는 정해진 자리가 없습니다 — 섬 안 무작위 자리에 나타나고 ${c.chestMoveSec[0]}~${c.chestMoveSec[1]}초마다 다른 자리로 옮깁니다(열 수 있는 사람이 곁에 있으면 조금 기다렸다 옮깁니다). 상자는 사람마다 따로라 남이 먼저 열어도 내 상자는 그대로이고, 내가 연 상자는 ${c.chestRespawnSec / 60}분 뒤 다시 열 수 있습니다(자리를 옮기거나 채널을 옮겨도 같은 상자는 기다려야 합니다). 그 섬 회복 물약 1~2개는 반드시 나오고, 장비는 그 섬 시작 레벨 티어(등급은 필드 표)입니다. 열 때마다 아주 드물게 ${itemLink('primal_sword')}이 나옵니다(확률은 아이템 페이지의 얻는 곳, 가방이 가득 차면 우편으로 옵니다).</p>
     ${table(['섬', { t: '베리', c: 'r' }, { t: '회복 물약', c: 'r' }, { t: '귀환 두루마리', c: 'r' }, { t: '장비(아무거나)', c: 'r' }, { t: '강화서', c: 'r' }], chestRows)}` : ''}
 
-    <h2>암거래상</h2>
-    <div class="card">
-      <h3>${esc(m.name)}</h3>
-      <ul class="plain small">
-        <li>서버가 켜지고 ${m.firstDelaySec[0] / 60}~${m.firstDelaySec[1] / 60}분 뒤 처음 나타나고, 그 뒤 ${m.intervalSec[0] / 60}~${m.intervalSec[1] / 60}분마다 다시 나타납니다.</li>
-        <li>사람이 있는 섬의 부두 근처에 ${m.staySec / 60}분 머뭅니다(서버 전체 공지).</li>
-        <li>재고: 등장마다 공용 부위(갑옷·목걸이·보조 4) 중 ${m.epicStock}종을 뽑아 영웅 등급으로 팝니다(값 ×${m.gradePriceMul.epic}). 티어는 사는 캐릭터 레벨 +${m.levelAhead}까지 낄 수 있는 가장 높은 티어라, 지금 또는 곧 낄 장비만 보입니다.</li>
-      </ul>
-    </div>
-
     <h2 id="ruby">루비</h2>
-    <p>${RUBY_NOTE} 1루비는 ${D.ruby.krw}원 기준이고, 아래는 한 번 굴릴 때(참가자마다 따로) 값입니다.</p>
-    ${table(['출처', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }, { t: '기대값', c: 'r' }], D.ruby.drops.map((r) => tr([esc(r.label), R(pct(r.chance)), R(`${r.qty[0]}~${r.qty[1]}개`), R(`약 ${fmt(r.chance * (r.qty[0] + r.qty[1]) / 2)}루비`)])))}
+    <p>${RUBY_NOTE} 1루비는 ${D.ruby.krw}원 기준입니다.</p>
+    <ul class="plain small">
+      <li><b>무료 루비</b>: ${freeRubyText()}. 같은 계정의 모든 캐릭터가 한 상한을 나눠 쓰고, 한국 시간 0시에 다시 채워집니다. 상점 루비 탭과 지갑 줄에 오늘 남은 양이 보입니다.</li>
+      <li>농사 말고 모든 콘텐츠에서 나옵니다. 몬스터 처치는 필드·레이드·던전 어디서나 굴리고, 봇이 대신 잡아 준 처치와 후원자 추가·면제 회차는 받지 않습니다. 충전·운영자 지급·출석 이벤트 루비는 상한과 따로입니다.</li>
+    </ul>
+    ${table(['출처', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }], [
+      ...D.ruby.drops.map((d) => tr([esc(d.label), R(d.chance >= 1 ? '확정' : pct(d.chance)), R(`${d.qty[0]}~${d.qty[1]}개`)])),
+      ...D.tavern.tiers.map((t) => tr([`선술집 의뢰 · ${esc(t.name)}`, R('확정'), R(`${t.ruby}개`)])),
+    ])}
     ${cashShopSection()}
     ${cosmeticsSection()}
 
@@ -508,7 +504,7 @@ function cashShopSection() {
   const passes = cs.passes.map((p) => `<details style="margin-top:12px"><summary>${esc(p.name)} 단계별 보상 (Lv${p.from}~${p.to} · ${p.steps.length}단계)</summary>${table([{ t: '단계', c: 'r' }, '무료 줄', '유료 줄'], p.steps.map((s) => tr([R(`Lv${s.level}`), `<span class="small">${s.free.map(rewardText).join('<br>')}</span>`, `<span class="small">${s.paid.map(rewardText).join('<br>')}</span>`])))}</details>`).join('');
   return `
     <h2 id="cash-shop">루비 상점</h2>
-    <p>메뉴(ESC) › <b>상점</b>에서 루비로 삽니다. 루비는 계정 공용이고 1루비는 ${D.ruby.krw}원 기준입니다. 꾸미기 상품은 아래 <a href="#/drops#cosmetics">꾸미기</a> 표에 있습니다.</p>
+    <p>메뉴(ESC) › <b>상점</b>에서 루비로 삽니다. 루비는 계정 공용(계정 귀속)이고 1루비는 ${D.ruby.krw}원 기준입니다. 무료 루비 얻는 곳은 <a href="#/drops#ruby">루비</a>를 보세요. 꾸미기 상품은 아래 <a href="#/drops#cosmetics">꾸미기</a> 표에 있습니다.</p>
     ${table(['상품', { t: '값', c: 'r' }, '구성'], rows)}
     <ul class="plain small" style="margin-top:12px">
       <li><b>모험가 월정액</b>: 계정의 모든 캐릭터에 ${sup.days}일 동안 혜택이 붙습니다. 쓰는 중에 또 사면 ${sup.days}일이 더해집니다(최대 ${sup.maxDays}일). 경험치 +${pct(sup.expBonus)}는 다른 경험치 보너스와 더합니다(<a href="#/growth#exp-bonus">경험치 배율</a>). 생활 경험치(채굴·낚시·농사) +${pct(sup.lifeExpBonus)}도 다른 생활 경험치 보너스와 더하고, 수확량·행운은 그대로입니다. 가방 뒤에 생활 아이템만 들어가는 <b>생활 가방 ${sup.lifeBagSlots}칸</b>이 붙고 생활 아이템은 이 칸부터 채웁니다(구독이 끝나면 꺼내기만 됩니다). 전용 오라·궤적과 밀짚모자·낚싯대 외형 꾸미기는 구독 중에만 장착합니다.</li>
@@ -516,7 +512,7 @@ function cashShopSection() {
       <li><b>서버 축복</b>: 받는 순간 서버 전체에 ${bl.minutes / 60}시간 동안 경험치 +${pct(bl.expBonus)}가 붙습니다. 축복 중에 또 받으면 시간이 늘어납니다(남은 시간 최대 ${bl.maxQueueMinutes / 60}시간). 계정당 하루 ${bl.perAccountPerDay}번까지 삽니다.</li>
       <li><b>레벨 패스</b>: 무료 줄은 누구나, 유료 줄은 패스를 산 계정만 받습니다. 캐릭터마다 그 단계 레벨에 닿으면 상점 창에서 각자 받고, 지난 단계도 받을 수 있습니다. 유료 줄 보상은 강화서 말고는 귀속입니다.</li>
       ${(() => { const sp = cs.passes.find((p) => p.line === 'style'); const prod = sp && cs.products.find((p) => p.id === sp.id); return sp && prod ? `<li><b>${esc(sp.name)}</b>: 꾸미기만 주는 패스로 값은 모험가 월정액과 같고(${fmt(prod.priceRuby)}루비) 계정당 한 번 삽니다. Lv${sp.from}~${sp.to} ${sp.steps.length}단계 모두 유료 줄에 꾸미기가 하나씩 있고, 마지막 Lv${sp.steps[sp.steps.length - 1].level}은 이 패스에서만 나오는 ${rewardText(sp.steps[sp.steps.length - 1].paid[0])}입니다. 무료 줄도 몇 단계는 꾸미기, 나머지는 물약입니다. 꾸미기는 계정 소유라 한 캐릭터가 받으면 모든 캐릭터가 쓰고 능력치 효과는 없습니다. 레벨 패스와 진행이 따로입니다.</li>` : ''; })()}
-      <li><b>친구 선물</b>: 루비로 산 상품을 <a href="#/world#friends">친구</a>에게 선물할 수 있습니다. 선물은 친구 우편함으로 가고 친구가 받는 캐릭터에서 열립니다. 구매 제한은 받는 계정 기준입니다.</li>
+      <li><b>친구 선물</b>: 충전한 루비로 산 상품을 <a href="#/world#friends">친구</a>에게 선물할 수 있습니다(게임에서 얻은 무료 루비는 계정 귀속이라 선물에 쓸 수 없습니다). 선물은 친구 우편함으로 가고 친구가 받는 캐릭터에서 열립니다. 구매 제한은 받는 계정 기준입니다.</li>
     </ul>
     ${passes}`;
 }
@@ -546,8 +542,9 @@ function attendanceSection() {
       <li>메뉴(ESC) › <b>이벤트</b> › <b>출석 이벤트</b> 탭(또는 왼쪽 아래 「이벤트」 칩)에서 받습니다. 계정마다 하루(한국 시간) 한 칸이고, 그날 처음 「받기」를 누른 캐릭터가 다음 칸 보상을 받습니다. 같은 계정의 다른 캐릭터는 그날 더 받을 수 없습니다.</li>
       <li>날마다 이어서 오지 않아도 됩니다. 출석 기간이 끝난 뒤에도 ${monthDay(a.claimUntil)}까지는 접속한 날마다 놓친 칸을 하나씩 채울 수 있습니다(모두 ${a.days}칸).</li>
       <li>아이템은 받는 캐릭터에 귀속되고, 베리는 받는 캐릭터에게, ${esc(D.gems.name)}은 계정에 들어옵니다. 가방이 모자라면 아무것도 받지 않으니, 가방을 비우고 그날 다시 받으면 됩니다.</li>
+      ${a.magnetDay ? `<li>${a.magnetDay}일째 칸에는 <b>${esc(a.magnetName)}</b>(${a.magnetDays}일 기간제)이 붙습니다. 이미 ${esc(a.magnetName)}을 영구로 가진 계정은 대신 루비 ${a.magnetRuby}개를 받습니다(하루 무료 루비 상한과 따로).</li>` : ''}
     </ul>
-    ${table([{ t: '칸', c: 'r' }, '보상'], a.rewards.map((list, i) => tr([R(`${i + 1}일째`), `<span class="small">${list.map(rewardText).join('<br>')}</span>`])))}`;
+    ${table([{ t: '칸', c: 'r' }, '보상'], a.rewards.map((list, i) => tr([R(`${i + 1}일째`), `<span class="small">${[...list.map(rewardText), ...(i + 1 === a.magnetDay ? [`${esc(a.magnetName)} ${a.magnetDays}일 (이미 있으면 루비 ${a.magnetRuby}개)`] : [])].join('<br>')}</span>`])))}`;
 }
 /** 접속 이벤트: 하루(한국 시간) 누적 접속 시간 단계 보상 — 상시 */
 function playtimeSection() {
@@ -784,7 +781,6 @@ const itemState = { group: 'all', rarity: 'all', cls: 'all', q: '', sort: 'defau
 const SRC_LABEL = { shop: '상점', mob: '몬스터', rare: '등급 드랍', chest: '보물상자', worldBoss: '필드 보스', quest: '퀘스트', questDrop: '퀘스트 수집', premium: '고급 상자', gemShop: '젬 상점', legacy: '옛 장비', grant: '운영자 지급', cash: '현금 상점', guildRank: '길드 랭킹', craft: '대장장이 제작', life: '생활' };
 function srcLabel(s) {
   if (s.type === 'raid') return s.raid === D.infinite.id ? '무한의 던전' : M.dungeons.has(s.raid) ? '일일 던전' : s.raid === D.dungeons.hidden.id ? '히든 던전' : '레이드';
-  if (s.type === 'market') return D.constants.market.name;
   return SRC_LABEL[s.type] ?? s.type;
 }
 const obtainable = (it) => it.sources.some((s) => s.type !== 'legacy' && s.type !== 'grant');
@@ -851,8 +847,6 @@ function sourceBlock(it) {
   if (quest.length) out.push(`<div class="card"><h3>퀘스트 보상</h3><ul class="plain">${quest.map((s) => `<li>${esc(M.quests.get(s.quest)?.name ?? s.quest)} ${s.note ? `— ${esc(s.note)}` : `×${s.qty}`}</li>`).join('')}</ul></div>`);
   const qdrop = by('questDrop');
   if (qdrop.length) out.push(`<div class="card"><h3>퀘스트 수집품</h3><ul class="plain">${qdrop.map((s) => `<li>${esc(M.quests.get(s.quest)?.name ?? s.quest)} 진행 중 ${mobLink(s.mob)}에게서 ${pct(s.chance)} (${s.n}개 필요)</li>`).join('')}</ul></div>`);
-  const market = by('market');
-  if (market.length) out.push(`<div class="card"><h3>${esc(D.constants.market.name)}</h3><ul class="plain">${market.map((s) => `<li>${esc(s.note)} · ${fmt(Math.round(it.price * D.constants.market.gradePriceMul.epic))} 베리</li>`).join('')}</ul></div>`);
   const gemShop = by('gemShop');
   if (gemShop.length) out.push(`<div class="card"><h3>${esc(npcNameOfRole('gem'))} (노을마을)</h3><ul class="plain">${gemShop.map((s) => `<li>${esc(D.gems.name)} ${s.gems}개</li>`).join('')}</ul></div>`);
   const premium = by('premium');
@@ -961,7 +955,6 @@ function pageMob(id) {
     ${raid ? `<p style="margin-top:12px">${islandLink(raid.id)}의 보스입니다. 보상은 레이드 클리어 보상으로 나옵니다.</p>${gimmickBlock(raid.gimmicks, raid.phases, true)}` : ''}
     ${wb ? `<p style="margin-top:12px">${islandLink(wb.islandId)}의 원정 필드 보스입니다. ${wb.periodSec / 60}분마다 ${wb.activeSec / 60}분 동안 나타나고, 기여(피해 + 지원 + 치유)한 사람 모두가 지분만큼 <a href="#/world#wb-${esc(wb.id)}">원정 보상</a>을 나눠 받습니다.</p>${gimmickBlock(wb.gimmicks, wb.phases, true)}` : ''}
     ${D.seaBoss?.mobId === m.id ? seaBossBlock(D.seaBoss) : ''}
-    ${m.kind === 'boss' ? `<p style="margin-top:12px">${rubyLine('island_boss')} <a href="#/drops#ruby">루비 드랍표</a></p>` : ''}
     <h2>드랍표 <span class="muted small">베리 ${fmt(m.loot.gold[0])}~${fmt(m.loot.gold[1])}</span></h2>
     ${table(['아이템', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }, { t: '', c: 'r' }], lootRows)}
     ${gearNote}
@@ -977,11 +970,28 @@ function seaBossBlock(s) {
     <ul class="plain">${s.gimmicks.map((g) => `<li><span class="chip">페이즈 ${g.phase}부터</span> <b>${esc(g.name)}</b> — ${esc(g.text)}</li>`).join('')}</ul>`;
 }
 
+/** 기믹 영상: 화면에 들어올 때 처음 불러 재생하고, 벗어나면 멈춘다(접힌 상자 안 영상은 크기가 0이라 펼칠 때 들어온다) */
+const clipObserver = 'IntersectionObserver' in window ? new IntersectionObserver((entries) => {
+  for (const { target: v, isIntersecting } of entries) {
+    if (isIntersecting) {
+      if (!v.src) v.src = v.dataset.src;
+      v.play().catch(() => {});
+    } else v.pause();
+  }
+}, { rootMargin: '120px' }) : null;
+function playClips(root) {
+  for (const v of root.querySelectorAll('video.gclip')) {
+    if (clipObserver) clipObserver.observe(v);
+    else { v.src = v.dataset.src; v.autoplay = true; }
+  }
+}
+
 /** 보스 기믹 접기 상자: 패턴 간격·순서 · 같은 기믹 연속 피격 감쇠 · 맵 기믹 · 페이즈별 기믹(페이즈 시작 · 즉사 · 맞으면 걸리는 약화) */
 function gimmickBlock(g, phases, open = false) {
   if (!g) return '';
   const rg = D.bossRules.repeatGuard;
-  const line = (x) => `<li><b>${esc(x.name)}</b>${x.start ? ' <span class="chip">페이즈 시작</span>' : ''}${x.lethal ? ' <span class="chip" style="color:var(--bad)">즉사</span>' : ''} — ${esc(x.text)}${x.debuff ? `<br><span class="muted">맞으면: ${esc(x.debuff)}</span>` : ''}</li>`;
+  const video = (x) => (x.clip ? `<video class="gclip" data-src="${esc(x.clip)}" muted loop playsinline preload="none" aria-label="${esc(x.name)} 화면 예시"></video>` : '');
+  const line = (x) => `<li class="${x.clip ? 'has-clip' : ''}">${video(x)}<div><b>${esc(x.name)}</b>${x.start ? ' <span class="chip">페이즈 시작</span>' : ''}${x.lethal ? ' <span class="chip" style="color:var(--bad)">즉사</span>' : ''} — ${esc(x.text)}${x.debuff ? `<br><span class="muted">맞으면: ${esc(x.debuff)}</span>` : ''}</div></li>`;
   const map = g.map.map((m) => `<li><b>${esc(m.name)}</b><ul class="plain">${m.stages.map((s) => `<li>페이즈 ${s.fromPhase}부터: ${esc(s.text)}</li>`).join('')}</ul></li>`).join('');
   const count = new Set(g.phases.flat().map((x) => x.name)).size + g.map.length;
   return `<details style="margin-top:12px"${open ? ' open' : ''}><summary>보스 기믹 ${count}가지 (페이즈별 패턴)</summary>
@@ -1049,7 +1059,6 @@ function pageWorld() {
         <li>경험치 ${fmt(r.rewards.exp)} · ${fmt(r.rewards.gold)} 베리 · ${r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')}${r.rewards.byLevel ? ` (입장 레벨 Lv${r.minLevel} 기준 — <b>받는 사람 레벨에 맞춰 늘어남</b>: 베리 ×(내 레벨 ÷ ${r.minLevel}), 아이템 ×(1 + 내 레벨 ÷ ${r.minLevel}) ÷ 2, 경험치는 내 레벨의 한 레벨 몫 비율만큼)` : ''}</li>
         ${r.rewards.gems ? `<li>${esc(D.gems.name)} <b>${r.rewards.gems[0]}~${r.rewards.gems[1]}개 확정</b>(클리어마다 전원, 레이드 공통 젬 확률과 별개)</li>` : ''}
         <li>${r.rewards.gearChance >= 1 ? '<b>반드시</b>' : `${pct(r.rewards.gearChance)} 확률로`} ${esc(D.raidSets.find((s) => s.raidId === r.id)?.prefix ?? '이 보스')} 세트 1점(${r.rewards.gearPool.length}종 중 내가 쓸 수 있는 것, 첫 클리어는 자기 직업 무기). 등급: ${esc(D.constants.grades.raidText)}</li>
-        <li>${rubyLine('raid')}</li>
         ${growthLine(r.growth, `입장 레벨(Lv${r.minLevel})`, '모든 레이드 합산, 혼자 도전해도 그대로')}
         ${r.rewards.firstClearUnique ? '<li><b>캐릭터마다 처음 깰 때 한 번</b>: 이 레이드 세트 중 내 직업 무기 + 직업 무관 부위에서 원하는 1개를 골라 <b>유니크 등급</b>으로 받습니다(귀속 아님). 가방이 차 있거나 창을 닫아도 다음에 접속할 때 다시 고를 수 있습니다. 서버 최초 칭호는 없습니다.</li>' : ''}
         ${r.dawn ? `<li><b>클리어마다 1명</b>: ${itemLink(r.dawn)}(<span class="rar-legendary">전설</span> 목걸이, 각성 상태로 받음)을 레이드 안 참가자 중 한 명이 받습니다. 파티장이 출발 전에 레이드 창 지옥 단계의 「황혼의 아침 받을 사람」에서 정할 수 있고, 정하지 않으면(또는 정한 사람이 클리어 때 레이드 안에 없으면) 무작위입니다. 받으면 레이드 참가자에게 알리고, 가방이 차 있으면 우편으로 갑니다. 귀속이라 거래·판매할 수 없습니다.</li>` : ''}
@@ -1085,7 +1094,6 @@ function pageWorld() {
       <ul class="plain small">
         <li>${fmt(inf.rewards.gold)} × ${inf.rewards.goldGrowth}^(웨이브−1) 베리 · 경험치(${levelShare(`${pct(inf.rewards.expPct)} × (1 + ${inf.rewards.expGrowth} × (웨이브−1))`)} — <b>높은 웨이브일수록 많이</b>) · 보스 웨이브는 ${itemLink(D.scrolls.id)}(${inf.bossEvery}웨이브마다 ${inf.rewards.scrollsPerBoss}장씩 늘어남)</li>
         <li>${esc(D.gems.name)}: 웨이브마다 ${pct(D.gems.drop.wave.chance)}, <b>${D.gems.drop.wave.highFromWave}웨이브부터 ${pct(D.gems.drop.wave.high)}</b>(보스 웨이브는 ×${D.gems.drop.wave.bossMul})</li>
-        <li>${rubyLine('infinite')}</li>
         <li>지역 재료: 웨이브마다 ${pct(inf.mat.wave)}, 보스 웨이브 ${pct(inf.mat.boss)} 확률로 ${inf.mat.qty[0]}~${inf.mat.qty[1]}개(보스 웨이브는 2배, 한 명마다 따로). 층 티어(${inf.gear.floorsPerTier}층마다 한 티어, 내 레벨 티어까지)에서 <b>아래로 ${inf.mat.spread}티어 사이</b> 무작위 티어의 지역 재료(대장장이 제련 재료)가 나옵니다.</li>
         <li>티어 장비: 웨이브마다 ${pct(inf.gear.chance.wave)}, 보스 웨이브 ${pct(inf.gear.chance.boss)} 확률로 1점(한 명마다 따로). <b>${inf.gear.floorsPerTier}층마다 한 티어씩</b> 올라갑니다: 1~${inf.gear.floorsPerTier}층은 T1(${esc(D.tiers[0].set)}), ${inf.gear.floorsPerTier + 1}~${inf.gear.floorsPerTier * 2}층은 T2(${esc(D.tiers[1].set)}) … T${D.tiers.length}까지. 다만 <b>내 레벨 티어를 넘지 않습니다</b>. 등급: ${esc(inf.gear.gradesText)}</li>
         <li>레이드 세트 장비: <b>${inf.gear.raidRoll.fromWave}웨이브부터</b> 웨이브 클리어마다 내가 입장할 수 있는 가장 높은 레이드 세트에서 ${rarName('legendary')} ${pct(inf.gear.raidRoll.legendary)} · ${rarName('unique')} ${pct(inf.gear.raidRoll.unique)}를 따로 굴립니다. <b>유니크는 10웨이브마다 ${pct(inf.gear.raidRoll.uniquePer10)}씩 오릅니다</b>(${inf.gear.raidRoll.fromWave + 10}웨이브 ${pct(inf.gear.raidRoll.unique + inf.gear.raidRoll.uniquePer10)} …).</li>
@@ -1204,7 +1212,8 @@ function pageWorld() {
         <li>한 의뢰는 교체 시간마다 한 번만 받을 수 있습니다. 받은 의뢰는 교체 뒤에도 남아 있어 천천히 깨도 되고, 포기하면 그 칸은 이번 시간대에 다시 받을 수 없습니다.</li>
         <li>목표를 채운 뒤 선술집에서 「완료」를 눌러야 보상이 들어옵니다.</li>
       </ul>
-      ${table(['난이도', { t: '등장 비율', c: 'r' }, { t: '경험치(보통 대비)', c: 'r' }, { t: esc(D.gems.name), c: 'r' }, '아이템'], tv.tiers.map((t) => tr([tvChip(t.id), R(pct(t.share)), R(`×${t.expMul}`), R(t.gems), tvItems(t)])))}
+      ${table(['난이도', { t: '등장 비율', c: 'r' }, { t: '경험치(보통 대비)', c: 'r' }, { t: esc(D.gems.name), c: 'r' }, { t: '루비', c: 'r' }, '아이템'], tv.tiers.map((t) => tr([tvChip(t.id), R(pct(t.share)), R(`×${t.expMul}`), R(t.gems), R(t.ruby), tvItems(t)])))}
+      <p class="muted small" style="margin-top:8px">루비는 난이도별 고정이고 <a href="#/drops#ruby">하루 무료 루비 상한</a>(계정 합산 ${D.ruby.dailyCap}개) 안에서 들어옵니다. 상한을 채운 뒤에는 루비 없이 나머지 보상만 받습니다.</p>
       <p class="muted small" style="margin-top:8px">보통 의뢰 한 장은 그 레벨 처음(0%)부터 아래 표의 레벨 수만큼 오르는 경험치를 줍니다(Lv150~170 2레벨 → Lv200 1레벨 → Lv280 0.2레벨). 물약은 내 레벨 사냥터 등급의 회복·마나 물약으로 나옵니다(위 표는 Lv1 기준 이름).</p>
       <h3>레벨별 보상 예시 (경험치 · 베리)</h3>
       ${table(['레벨 (사냥터)', { t: '보통 = 레벨', c: 'r' }, ...tv.tiers.map((t) => ({ t: tvChip(t.id), c: 'r' }))], tv.levels.map((l) => tr([`<b>Lv${l.level}</b><div class="muted small">${esc(l.island)}</div>`, R(`${Math.round(l.normalLevels * 100) / 100}레벨`), ...l.rewards.map((r) => R(tvReward(r)))])))}
@@ -1239,6 +1248,7 @@ function pageWorld() {
         <div class="card"><h3>낚시 <span class="chip">입질 ${lf.fishWaitSec[0]}~${lf.fishWaitSec[1]}초</span></h3>
           <p class="small">가방에 <b>낚싯대</b>가 있어야 합니다(가장 높은 단계가 저절로 쓰임). 물가 낚시 자리에서 F로 던지면 ${lf.fishWaitSec[0]}~${lf.fishWaitSec[1]}초(숙련으로 짧아짐) 뒤 <b>「!」</b>가 뜹니다(기다리는 동안 대기 범위가 보입니다). 그다음 <b>낚아채기</b>: 화면에 ${lf.fishSeq.keys.join('·')} 키 <b>${lf.fishSeq.len}개</b>가 키보드 모양으로 뜨면 왼쪽부터 순서대로 누릅니다(모바일은 화면 키를 누름). 순서는 매번 바뀌고, ${lf.fishSeq.ms / 1000}초 안에 다 누르면 물고기, 틀린 키를 누르거나 시간이 지나면 빈손입니다. 낚시 자리는 없어지지 않고, 물가·잔교 끝·바위 여울 어느 자리든 똑같습니다.</p>
           ${table(['낚시 자리', { t: '필요', c: 'r' }, { t: '일반', c: 'r' }, { t: '희귀', c: 'r' }, { t: '영웅', c: 'r' }, { t: 'EXP', c: 'r' }], lfNodes('fish'))}
+          <p class="small">낚시에 성공할 때마다 ${pct(D.ruby.fish.chance)} 확률로 <b>루비 ${D.ruby.fish.qty[0]}~${D.ruby.fish.qty[1]}개</b>가 계정에 들어옵니다(<a href="#/drops#ruby">하루 무료 루비 상한</a> 계정 합산 ${D.ruby.dailyCap}개 안에서).</p>
           <p class="small"><b>어물전 주인</b>이 물고기를 종류마다 다른 값에 사 줍니다. 등급을 굴린 뒤 그 등급 안에서 <b>낚시 레벨</b>로 열린 종류가 가중 추첨됩니다(표는 낡은 낚싯대·행운 0 기준, 1회 확률). 낚싯대도 팝니다 — 옵션은 <b>행운</b> 하나라 높은 단계일수록 좋은 물고기가 잘 뭅니다. 2단계부터는 그 종류 물고기를 <b>누적으로</b> 낚아야 살 수 있습니다(거대 물고기도 그 종류로 셉니다).</p>
           ${table(['물고기', '등급', ...lf.fishBands.map((n) => ({ t: n, c: 'r' })), { t: '매입가', c: 'r' }], lfFish())}
           ${table(['낚싯대', { t: '단계', c: 'r' }, { t: '행운', c: 'r' }, '살 조건(누적)', { t: '값', c: 'r' }], lfTools('fish'))}
@@ -1294,7 +1304,6 @@ function pageWorld() {
           <ul class="plain small">
             <li>경험치: 입장 레벨부터 <b>몇 레벨 오르는 만큼</b>을 줍니다(Lv100 위로는 한 레벨의 %, <b>Lv200부터는 하드캡</b>으로 크게 줄어듭니다). 구역마다 ${pct(dg.levelupWaveShare)}씩, 나머지는 최종 보스를 쓰러뜨릴 때 들어옵니다.</li>
             <li>최종 보스 처치 때 ${itemLink(D.scrolls.id)} ${lvDg.scrollsPerBoss}장.</li>
-            <li>${rubyLine('daily_dungeon')}</li>
             <li>몬스터 HP: 파티원 1명 늘 때마다 +${pct(lvDg.partyHpMul)}.</li>
           </ul>
           ${table([{ t: '입장 레벨', c: 'r' }, { t: '한 번에 오르는 양', c: 'r' }], dg.levelup.map((l) => tr([R(`Lv${l.level}`), R(esc(l.text))])))}
@@ -1306,7 +1315,6 @@ function pageWorld() {
             <li>던전 안은 레이드 규칙이라 물약이 절반만 듣고 HP가 저절로 차지 않습니다. 물약만으로는 저주를 따라잡지 못해 <b>힐러의 치유·보호막</b>이 있어야 완주합니다.</li>
             <li>보상은 <b>베리뿐</b>: 최종 보스가 아닌 구역마다 ${fmt(trDg.treasure.room)} 베리, 최종 보스 처치에 ${fmt(trDg.treasure.bossMin)}~${fmt(trDg.treasure.bossMax)} 베리 무작위(한 사람마다 따로) — 완주 합계 <b>${fmt(trDg.treasure.min)}~${fmt(trDg.treasure.max)} 베리</b>. 경험치·강화서는 없습니다.</li>
             <li>월정액 추가 입장은 레벨업 던전에만 쓰고, 보물 던전은 하루 ${trDg.dailyLimit}번 그대로입니다.</li>
-            <li>${rubyLine('daily_dungeon')}</li>
             <li>몬스터 HP: 파티원 1명 늘 때마다 +${pct(trDg.partyHpMul)}.</li>
           </ul>
         </div>` : ''}
@@ -1355,7 +1363,7 @@ function pageWorld() {
       <h2 style="margin-top:0">편지·우편함 <span class="chip">계정당 하루 ${lt.perDay}통</span> <span class="chip">첨부 ${lt.attachMax}칸 + 베리</span></h2>
       <p>메뉴(ESC) › <b>우편함</b>에서 캐릭터 이름으로 편지를 보냅니다. 친구가 아니어도, 상대가 접속해 있지 않아도 됩니다(내 계정 캐릭터에게는 보낼 수 없습니다). 제목은 ${lt.titleMax}자, 본문은 ${lt.bodyMax}자까지입니다.</p>
       <ul class="plain small">
-        <li>가방 아이템 ${lt.attachMax}칸과 베리(최대 ${fmt(lt.goldMax)})를 붙일 수 있습니다. 1:1 거래와 같은 규칙으로 귀속·잠금·장착 아이템은 안 되고, 강화 단계는 그대로 따라갑니다. 게임에서 얻은 루비도 보낼 수 있습니다(충전한 루비는 안 됩니다).</li>
+        <li>가방 아이템 ${lt.attachMax}칸과 베리(최대 ${fmt(lt.goldMax)})를 붙일 수 있습니다. 1:1 거래와 같은 규칙으로 귀속·잠금·장착 아이템은 안 되고, 강화 단계는 그대로 따라갑니다. 루비는 계정에 귀속되어 보낼 수 없습니다.</li>
         <li>우표값은 보내는 사람이 냅니다: ${fmt(lt.postageBase)} 베리 + 첨부 칸마다 ${fmt(lt.postagePerItem)} 베리 + 보내는 베리의 ${lt.feePct}%. 받는 사람은 보낸 베리를 그대로 받습니다.</li>
         <li>받지 않은 첨부 우편은 지워지지 않습니다. 첨부를 받은 우편과 첨부 없는 우편은 ${lt.keepDays}일 뒤 지워집니다.</li>
         <li>상점 상품·운영자 지급, 가방이 가득 차 못 받은 레이드·던전 보상도 우편으로 옵니다. 아이템은 「받기」를 누른 캐릭터 가방에 들어갑니다.</li>
@@ -1367,7 +1375,7 @@ function pageWorld() {
       <p>친구는 캐릭터가 아니라 계정끼리 맺습니다. 메뉴(ESC) › <b>친구</b>나 접속자 목록에서 요청하고 상대가 받아들이면 친구가 됩니다. 친구 목록에서는 친구의 지금 캐릭터(접속 중이 아니면 마지막으로 들어온 캐릭터)와 레벨·있는 곳·파티 상태를 봅니다.</p>
       <ul class="plain small">
         <li>요청은 ${fr.requestDays}일 뒤 사라지고, 받은 요청은 ${fr.requestInMax}개까지 쌓입니다.</li>
-        <li>친구에게는 <a href="#/drops#cash-shop">루비 상점</a> 상품을 선물할 수 있습니다.</li>
+        <li>친구에게는 <a href="#/drops#cash-shop">루비 상점</a> 상품을 충전한 루비로 선물할 수 있습니다.</li>
       </ul>
     </section>
     <section class="card" id="board">
@@ -1602,7 +1610,7 @@ function expBonusSection() {
       <li><b>붙는 보상</b>: 몬스터 처치 · 레이드 클리어 · 던전 웨이브(${esc(lvDg?.name ?? '레벨업 던전')} 제외) · 필드 보스 원정 경험치.</li>
       <li><b>붙지 않는 보상</b>: 퀘스트 보상 · 레이드·필드 보스 원정 성장 보너스 · ${esc(lvDg?.name ?? '레벨업 던전')} · <a href="#/world#tavern">선술집 의뢰</a>.</li>
       <li>고레벨 사냥터의 연속 처치·사냥터 폭주 보너스도 처치 경험치 배율에 더합니다.</li>
-      <li>운영자 확률 이벤트에는 경험치 말고도 ${ev.kinds.filter((k) => k.id !== 'exp').map((k) => esc(k.label)).join(' · ')} 배율이 있습니다. 확률은 배율만큼 곱하되 100%를 넘지 않고, 불운 보정(천장)은 곱하지 않습니다. 핫타임 드랍 배율은 운영자 드랍 이벤트와 곱하고, 전리품·장비 등급 말고도 루비·젬·유물·태초의 검 같은 드랍 확률에 모두 붙습니다(앱솔루트 장비 제외). 운영자 이벤트는 서버가 다시 켜지면 끝나고, 정각 이벤트·핫타임은 다시 켜진 서버가 그 시간대 안이면 남은 시간만큼 다시 켭니다.</li>
+      <li>운영자 확률 이벤트에는 경험치 말고도 ${ev.kinds.filter((k) => k.id !== 'exp').map((k) => esc(k.label)).join(' · ')} 배율이 있습니다. 확률은 배율만큼 곱하되 100%를 넘지 않고, 불운 보정(천장)은 곱하지 않습니다. 핫타임 드랍 배율은 운영자 드랍 이벤트와 곱하고, 전리품·장비 등급 말고도 젬·유물·태초의 검 같은 드랍 확률에 모두 붙습니다(앱솔루트 장비 제외 · 무료 루비는 배율 없음). 운영자 이벤트는 서버가 다시 켜지면 끝나고, 정각 이벤트·핫타임은 다시 켜진 서버가 그 시간대 안이면 남은 시간만큼 다시 켭니다.</li>
     </ul>`;
 }
 /** 칭호: 이름 장식(능력치 없음). 얻는 법은 build.ts가 정의에서 만든다 */
@@ -2238,6 +2246,7 @@ function render() {
   }
   main.innerHTML = html;
   after();
+  playClips(main);
   // 절이 3개 이상인 문서 페이지는 머리 아래에 절 바로가기를 단다(검색의 문서 결과도 같은 id로 연결된다)
   if (!id && page !== 'search') {
     const secs = sectionize(main).filter((s) => s.id);
