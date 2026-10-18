@@ -60,7 +60,7 @@ const RUBY_NOTE = '루비는 계정에 귀속되는 재화로 상점에서 씁�
 /** 무료 루비 얻는 곳 한 줄(콘텐츠 굴림 · 선술집 의뢰 · 하루 상한) */
 function freeRubyText() {
   const tiers = D.tavern.tiers;
-  return `사냥·보스·레이드·던전·결투장·채굴·낚시에서 확률로 · 선술집 의뢰 완료 때 난이도별 ${Math.min(...tiers.map((t) => t.ruby))}~${Math.max(...tiers.map((t) => t.ruby))}개 확정 — 계정 합산 하루(한국 시간) ${D.ruby.dailyCap}개까지`;
+  return `사냥·보스·레이드·던전·채굴·낚시에서 확률로 · 선술집 의뢰 완료 때 난이도별 ${Math.min(...tiers.map((t) => t.ruby))}~${Math.max(...tiers.map((t) => t.ruby))}개 확정 — 계정 합산 하루(한국 시간) ${D.ruby.dailyCap}개까지`;
 }
 function skillIcon(s, size = '') {
   return s?.icon ? `<img class="ico ${size}" src="${esc(s.icon)}" alt="" loading="lazy" width="40" height="40">` : `<span class="ico ${size} ph">${icon('sparkles')}</span>`;
@@ -485,7 +485,7 @@ function pageDrops() {
 
     <h2>필드 보스 원정 보상</h2>
     ${table(['전장', { t: '기여 지분', c: 'r' }, '장비', '고정 보상'], wbRows)}
-    <p class="muted small" style="margin-top:8px">기여(보스에게 넣은 피해 + 내 강화(전투의 노래·3차 동료 버프·받는 피해 증가)로 아군 피해가 늘어난 지원 몫 + 보스와 싸우는 동안 채운 치유량 × ${c.worldBossHealWeight})가 있는 사람 모두가 보상 풀을 지분만큼(최소 보장 몫까지) 나눠 받습니다. 시간이 다 되어 보스가 물러나면 깎은 HP 비율만큼만 받고, 전설 장비 · 성장 보너스 · 희귀 드랍은 처치 때만 나옵니다. 전장을 떠나 다른 곳에 있어도 받고, 접속을 끊었으면 그 캐릭터로 다음에 들어올 때 받습니다. 처치 경험치와 전리품은 없습니다.</p>`;
+    <p class="muted small" style="margin-top:8px">기여(보스에게 넣은 피해 + 지원·치유 점수)가 있는 사람 모두가 보상 풀을 지분만큼(최소 보장 몫까지) 나눠 받습니다. 지원은 내 강화(전투의 노래·3차 동료 버프·받는 피해 증가)로 아군 피해가 늘어난 몫 × ${c.worldBossSupWeight}, 치유는 보스와 싸우는 동안 다른 사람을 채운 양 × ${c.worldBossHealWeight}(자기 회복은 빼고)이며, 둘을 합쳐 가장 많이 때린 사람 피해의 ${Math.round(c.worldBossAssistCap * 100)}%까지만 셉니다. 시간이 다 되어 보스가 물러나면 깎은 HP 비율만큼만 받고, 전설 장비 · 성장 보너스 · 희귀 드랍은 처치 때만 나옵니다. 전장을 떠나 다른 곳에 있어도 받고, 접속을 끊었으면 그 캐릭터로 다음에 들어올 때 받습니다. 처치 경험치와 전리품은 없습니다.</p>`;
 }
 const CASH_KIND = { starter: '스타터 팩', subscription: '월정액', pass: '레벨 패스', pet: '펫', blessing: '서버 축복', bundle: '아이템', cosmetic: '꾸미기' };
 /** 루비 상점: 상품 표(꾸미기 상품은 꾸미기 표로) · 월정액·자석펫·축복·패스·선물 규칙 · 레벨 패스 단계별 보상 */
@@ -1015,7 +1015,7 @@ function objectiveText(o) {
 }
 /** 퀘스트 표(이름·NPC · 최소 레벨 · 목표 · 보상) — 섬 카드와 고양이 의뢰가 쓴다 */
 function questTable(quests) {
-  return table(['퀘스트', { t: 'Lv', c: 'r' }, '목표', '보상'], quests.map((q) => tr([`${esc(q.name)}${q.side ? ' <span class="chip">곁가지</span>' : ''}<div class="muted small">${esc(q.npc)}</div>`, R(q.minLevel), `<span class="small">${q.objectives.map(objectiveText).join('<br>')}</span>`, `<span class="small">경험치 ${fmt(q.rewards.exp)} · ${fmt(q.rewards.gold)} 베리${(q.rewards.items ?? []).map((i) => `<br>${esc(M.items.get(i.itemId)?.name ?? i.itemId)} ×${i.qty}`).join('')}${q.rewards.gear ? `<br>${questGearText(q.rewards.gear)}` : ''}</span>`])));
+  return table(['퀘스트', { t: 'Lv', c: 'r' }, '목표', '보상'], quests.map((q) => tr([`${esc(q.name)}${q.side ? ' <span class="chip">곁가지</span>' : ''}${q.cine ? ` <span class="chip accent" title="완료하면 컷신이 나옵니다">컷신 · ${esc(q.cine)}</span>` : ''}<div class="muted small">${esc(q.npc)}</div>`, R(q.minLevel), `<span class="small">${q.objectives.map(objectiveText).join('<br>')}</span>`, `<span class="small">경험치 ${fmt(q.rewards.exp)} · ${fmt(q.rewards.gold)} 베리${(q.rewards.items ?? []).map((i) => `<br>${esc(M.items.get(i.itemId)?.name ?? i.itemId)} ×${i.qty}`).join('')}${q.rewards.gear ? `<br>${questGearText(q.rewards.gear)}` : ''}</span>`])));
 }
 function pageWorld() {
   const islands = D.islands.map((isl) => {
@@ -1072,7 +1072,7 @@ function pageWorld() {
       ${table(['페이즈', { t: '보스 HP', c: 'r' }, '패턴'], w.phases.map((p) => tr([`${p.phase}`, R(`${p.fromHpPct}% 이하`), esc(p.label)])))}
       ${w.enrage ? `<p class="small" style="margin-top:8px">격노: 교전 ${w.enrage.afterSec / 60}분 뒤 보스 피해 ×${w.enrage.damageMultiplier}</p>` : ''}
       ${gimmickBlock(w.gimmicks, w.phases)}
-      <h3>보상 (기여한 사람 모두 — 기여 = 피해 + 지원 + 치유 × ${D.constants.worldBossHealWeight})</h3>
+      <h3>보상 (기여한 사람 모두 — 기여 = 피해 + min(지원 × ${D.constants.worldBossSupWeight} + 다른 사람 치유 × ${D.constants.worldBossHealWeight}, 1위 피해의 ${Math.round(D.constants.worldBossAssistCap * 100)}%))</h3>
       <p class="small">아래 보상 풀을 기여 지분만큼 나눠 받습니다. 한 번이라도 기여했으면 최소 ${w.floorSharePct}% 몫을 보장하고, 그만큼 모두의 몫을 다시 나눠 몫의 합이 보상 풀을 넘지 않습니다(내 몫 = max(내 지분, ${w.floorSharePct}%) ÷ 모두의 max(지분, ${w.floorSharePct}%) 합). 시간이 다 되어 물러나면 몫 × 깎은 HP 비율. 낱개 보상(강화서·젬)은 몫을 곱한 기대값으로 확률 반올림합니다.</p>
       <ul class="plain small">
         <li>보상 풀: ${fmt(w.rewards.gold)} 베리 · 경험치(${levelShare(pct(w.rewards.expLevelFrac))}) · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')} · 젬 ${w.rewards.gems[0]}~${w.rewards.gems[1]}개</li>
@@ -1228,7 +1228,7 @@ function pageWorld() {
     </section>`;
   const lf = D.life;
   const lfRecipe = (r) => `${r.inputs.map((i) => `${itemLink(i.itemId)} ×${i.qty}`).join(' + ')}${r.gold ? ` + ${fmt(r.gold)} 베리` : ''} → ${itemLink(r.output.itemId)} ×${r.output.qty}`;
-  const lfTools = (kind) => lf.tools.filter((t) => t.kind === kind).map((t) => tr([`<b>${itemLink(t.id)}</b>`, R(t.tier), R(t.luck > 0 ? `+${t.luck}` : '—'), t.req.length > 0 ? t.req.map((r) => `${itemLink(r.itemId)} ${fmt(r.n)}`).join(' + ') : '—', R(won(t.price))]));
+  const lfTools = (kind) => lf.tools.filter((t) => t.kind === kind).map((t) => tr([`<b>${itemLink(t.id)}</b>`, R(t.tier), R(t.luck > 0 ? `+${t.luck}` : '—'), R(t.timePct > 0 ? `−${t.timePct}%` : '—'), t.req.length > 0 ? t.req.map((r) => `${itemLink(r.itemId)} ${fmt(r.n)}`).join(' + ') : '—', R(won(t.price))]));
   const lfMerchant = (kind) => ['common', 'rare', 'epic'].map((g) => `${itemLink(lf.kinds.find((k) => k.id === kind).items[g])} ${won(lf.merchantPrice[g])}`).join(' · ');
   const GRADE_KO = { common: '일반', rare: '희귀', epic: '영웅' };
   const lfFish = () => lf.fish.map((f) => tr([`<b>${itemLink(f.id)}</b>`, `<span class="rar-${f.grade}">${GRADE_KO[f.grade]}</span>`, ...f.pct.map((p) => R(p > 0 ? `${Math.round(p * 100) / 100}%` : '—')), R(won(f.price))]));
@@ -1242,16 +1242,16 @@ function pageWorld() {
         <div class="card"><h3>광산 <span class="chip">곡괭이 ${lf.mineSec}초</span></h3>
           <p class="small">가방에 <b>곡괭이</b>가 있어야 캘 수 있습니다(가장 높은 단계가 저절로 쓰임). 광맥 곁에서 F. ${lf.mineSec}초 채널(숙련으로 짧아짐) 동안 자리를 지키면 광석이 들어오고 광맥은 사라졌다가 <b>${lf.mineRespawnSec}초</b> 뒤 같은 자리에 다시 생깁니다. 여럿이 같은 광맥을 캐면 먼저 끝낸 사람 것입니다.</p>
           ${table(['광맥', { t: '필요', c: 'r' }, { t: '일반', c: 'r' }, { t: '희귀', c: 'r' }, { t: '영웅', c: 'r' }, { t: 'EXP', c: 'r' }], lfNodes('mine'))}
-          <p class="small"><b>광부 반장</b>이 광석을 사 줍니다: ${lfMerchant('mine')}. 곡괭이 다섯 단계도 팝니다(2단계부터는 광석과 베리로 만들 수도 있습니다). 곡괭이 옵션은 <b>행운</b> 하나로, 생활 행운 포인트에 그대로 더해집니다(포인트 상한과 따로). 2단계부터는 그 등급 광석을 <b>누적으로</b> 캐 모아야 사거나 만들 수 있습니다(진행은 상인 창에 보입니다).</p>
-          ${table(['곡괭이', { t: '단계', c: 'r' }, { t: '행운', c: 'r' }, '살 조건(누적)', { t: '값', c: 'r' }], lfTools('mine'))}
+          <p class="small"><b>광부 반장</b>이 광석을 사 줍니다: ${lfMerchant('mine')}. 곡괭이 다섯 단계도 팝니다(2단계부터는 광석과 베리로 만들 수도 있습니다). 곡괭이 옵션은 <b>행운</b>(생활 행운 포인트에 그대로 더해집니다 — 포인트 상한과 따로)과 <b>채굴 시간 단축</b>(숙련과 곱해집니다)입니다. 2단계부터는 그 등급 광석을 <b>누적으로</b> 캐 모아야 사거나 만들 수 있습니다(진행은 상인 창에 보입니다).</p>
+          ${table(['곡괭이', { t: '단계', c: 'r' }, { t: '행운', c: 'r' }, { t: '채굴 시간', c: 'r' }, '살 조건(누적)', { t: '값', c: 'r' }], lfTools('mine'))}
         </div>
         <div class="card"><h3>낚시 <span class="chip">입질 ${lf.fishWaitSec[0]}~${lf.fishWaitSec[1]}초</span></h3>
           <p class="small">가방에 <b>낚싯대</b>가 있어야 합니다(가장 높은 단계가 저절로 쓰임). 물가 낚시 자리에서 F로 던지면 ${lf.fishWaitSec[0]}~${lf.fishWaitSec[1]}초(숙련으로 짧아짐) 뒤 <b>「!」</b>가 뜹니다(기다리는 동안 대기 범위가 보입니다). 그다음 <b>낚아채기</b>: 화면에 ${lf.fishSeq.keys.join('·')} 키 <b>${lf.fishSeq.len}개</b>가 키보드 모양으로 뜨면 왼쪽부터 순서대로 누릅니다(모바일은 화면 키를 누름). 순서는 매번 바뀌고, ${lf.fishSeq.ms / 1000}초 안에 다 누르면 물고기, 틀린 키를 누르거나 시간이 지나면 빈손입니다. 낚시 자리는 없어지지 않고, 물가·잔교 끝·바위 여울 어느 자리든 똑같습니다.</p>
           ${table(['낚시 자리', { t: '필요', c: 'r' }, { t: '일반', c: 'r' }, { t: '희귀', c: 'r' }, { t: '영웅', c: 'r' }, { t: 'EXP', c: 'r' }], lfNodes('fish'))}
           <p class="small">낚시에 성공할 때마다 ${pct(D.ruby.fish.chance)} 확률로 <b>루비 ${D.ruby.fish.qty[0]}~${D.ruby.fish.qty[1]}개</b>가 계정에 들어옵니다(<a href="#/drops#ruby">하루 무료 루비 상한</a> 계정 합산 ${D.ruby.dailyCap}개 안에서).</p>
-          <p class="small"><b>어물전 주인</b>이 물고기를 종류마다 다른 값에 사 줍니다. 등급을 굴린 뒤 그 등급 안에서 <b>낚시 레벨</b>로 열린 종류가 가중 추첨됩니다(표는 낡은 낚싯대·행운 0 기준, 1회 확률). 낚싯대도 팝니다 — 옵션은 <b>행운</b> 하나라 높은 단계일수록 좋은 물고기가 잘 뭅니다. 2단계부터는 그 종류 물고기를 <b>누적으로</b> 낚아야 살 수 있습니다(거대 물고기도 그 종류로 셉니다).</p>
+          <p class="small"><b>어물전 주인</b>이 물고기를 종류마다 다른 값에 사 줍니다. 등급을 굴린 뒤 그 등급 안에서 <b>낚시 레벨</b>로 열린 종류가 가중 추첨됩니다(표는 낡은 낚싯대·행운 0 기준, 1회 확률). 낚싯대도 팝니다 — 높은 단계일수록 <b>행운</b>이 커 좋은 물고기가 잘 물고, <b>입질 대기</b>도 짧아집니다. 2단계부터는 그 종류 물고기를 <b>누적으로</b> 낚아야 살 수 있습니다(거대 물고기도 그 종류로 셉니다).</p>
           ${table(['물고기', '등급', ...lf.fishBands.map((n) => ({ t: n, c: 'r' })), { t: '매입가', c: 'r' }], lfFish())}
-          ${table(['낚싯대', { t: '단계', c: 'r' }, { t: '행운', c: 'r' }, '살 조건(누적)', { t: '값', c: 'r' }], lfTools('fish'))}
+          ${table(['낚싯대', { t: '단계', c: 'r' }, { t: '행운', c: 'r' }, { t: '입질 대기', c: 'r' }, '살 조건(누적)', { t: '값', c: 'r' }], lfTools('fish'))}
         </div>
       </div>
       <h3>농사 <span class="chip">내 농장 · 부지 ${won(lf.farm.lotPrice)}</span> <span class="chip">풍작 ${lf.farm.bumperBase}% = 2배</span></h3>
@@ -1274,6 +1274,21 @@ function pageWorld() {
       <p class="small">요리사에게서는 물고기·작물로 음식(최종 공격력·최대 HP·경험치·베리를 한동안 올려 주는 버프, 같은 종류는 효과가 큰 쪽만)을, 광부 반장에게서는 광석과 베리로 다음 단계 곡괭이를 만듭니다.</p>
       ${table(['요리', '재료 → 결과', '효과'], lf.recipes.filter((r) => r.role === 'cook').map((r) => { const f = (D.items.find((it) => it.id === r.output.itemId) || {}).food || {}; return tr([`<b>${esc(r.name)}</b>`, lfRecipe(r), `${[f.atk ? `최종 공격력 +${f.atk}%` : '', f.hp ? `최대 HP +${f.hp}%` : '', f.exp ? `경험치 +${f.exp}%` : '', f.gold ? `베리 +${f.gold}%` : ''].filter(Boolean).join(' · ')} · ${f.min}분`]); }))}
       ${table(['곡괭이 제작', '재료 → 결과'], lf.recipes.filter((r) => r.role === 'smelter').map((r) => tr([`<b>${esc(r.name)}</b>`, lfRecipe(r)])))}
+    </section>`;
+  const pr = D.prologue;
+  const prologueCard = `
+    <section class="card" id="prologue">
+      <h2 style="margin-top:0">서막 — 황혼에 오른 자 <span class="chip accent">새 캐릭터 첫 입장</span> <span class="chip">${esc(pr.island)}</span> <span class="chip">건너뛸 수 있음</span></h2>
+      <p>새로 만든 캐릭터는 노을마을이 아니라 <b>${esc(pr.island)}</b>에서 시작합니다. 기억을 잃기 전의 자신 — <b>Lv${pr.level} · 3차 전직 · ${esc(pr.gear.setName)} 세트 에픽 +${pr.gear.enh}</b> — 으로 홀로 ${esc(pr.boss.name)}와 싸우고, 반드시 집니다. 패배 뒤에는 본래의 몸(Lv1)으로 노을마을 부두에서 깨어나 모험이 시작됩니다.</p>
+      <ul class="plain small">
+        <li>빌린 3차 전직: ${pr.branches.map((b) => `${esc(b.className)} ${esc(b.branch)}`).join(' · ')}</li>
+        <li>싸움은 보스 HP가 ${pr.defeatPct}% 아래로 떨어지거나 ${pr.fightSec}초가 지나면 끝나고 패배 컷신으로 넘어갑니다. 서막에서는 죽지 않고, 경험치·레벨 보상도 없습니다.</li>
+        <li>서막 중에는 전투·가방·채팅만 됩니다(상점·퀘스트·섬 이동 불가). 빌린 장비와 물약은 서막이 끝나면 사라지고, 얻은 베리는 남습니다.</li>
+        <li>도중에 접속이 끊기면 다음 입장 때 서막을 처음부터 다시 합니다. 화면 왼쪽 위 「서막 건너뛰기」로 언제든 건너뛸 수 있고, 건너뛴 서막은 다시 볼 수 없습니다.</li>
+      </ul>
+      <h3>스토리 컷신</h3>
+      <p class="small">컷신은 Esc로 건너뜁니다. 본편 컷신은 그 퀘스트를 완료하는 순간 나옵니다.</p>
+      ${table(['컷신', { t: '길이', c: 'r' }, '나오는 때'], pr.cutscenes.map((c) => tr([`<b>${esc(c.name)}</b>`, R(`${c.sec}초`), c.prologue ? '서막' : c.quest ? `${esc(M.quests.get(c.quest)?.name ?? c.quest)} 완료` : '—'])))}
     </section>`;
   const tg = D.training;
   const trainingCard = `
@@ -1323,14 +1338,15 @@ function pageWorld() {
   const hd = dg.hidden;
   const hiddenCard = `
     <section class="card" id="hidden">
-      <h2 style="margin-top:0">${esc(hd.name)} <span class="chip">Lv${hd.minLevel}+</span> <span class="chip">혼자~${hd.size}인</span> <span class="chip">제한 시간 ${hd.timeLimitMin}분</span> <span class="chip">하루 횟수 제한 없음</span></h2>
+      <h2 style="margin-top:0">${esc(hd.name)} <span class="chip">Lv${hd.minLevel}+</span> <span class="chip">인원 제한 없음</span> <span class="chip">제한 시간 ${hd.timeLimitMin}분</span> <span class="chip">하루 횟수 제한 없음</span></h2>
       <p>${hd.periodHours}시간에 한 번, 그 사이 무작위 때에 <b>필드 섬 어딘가</b>에 작은 입구(보랏빛 소용돌이 우물)가 열립니다. 서버 전체에 「히든 던전 입구가 열렸습니다」만 알리고 <b>자리는 알려 주지 않습니다</b> — 직접 찾아야 합니다. 마을·인스턴스 섬에는 열리지 않고, 채널마다 같은 자리에 섭니다.</p>
       <ul class="plain small">
-        <li>입구 곁에서 F(모바일은 「들어가기」) → 「히든 던전에 입장하시겠습니까?」에서 입장. 혼자면 바로 들어가고, 파티면 입구에서 ${hd.partyRadius}칸 안에 있는 파티원에게 준비 확인이 가서 <b>수락한 사람만</b> 함께 들어갑니다.</li>
-        <li><b>먼저 들어간 무리가 입구를 닫습니다</b>(한 번에 한 무리 — 닫히면 서버 전체에 알립니다). 아무도 들어가지 않으면 ${hd.lifetimeMin}분 뒤 사라집니다.</li>
-        <li>안: ${roomFlow(hd)} · 라이프 토큰 ${hd.lifeTokens}개 · 들어가고 ${hd.timeLimitMin}분이 지나면 보상 없이 나옵니다.</li>
-        <li>난이도는 <b>${hd.refRaid}급</b>으로 파티 레벨과 상관없이 고정입니다. 최종 보스는 HP ${fmt(hd.bossHp)}·공격력 ${fmt(hd.bossAtk)}(${hd.refRaid} 보스와 같고, 6명부터 인원마다 HP가 늘어납니다)이고, 앞 구역 몬스터와 중간 보스도 그에 맞춰 강합니다.</li>
-        <li>보상은 <b>최종 보스를 쓰러뜨릴 때만</b>(참가자마다 따로): 베리 레벨 × ${fmt(hd.goldPerLevel)} · ${hd.ores.map((o) => `${itemLink(o.itemId)} ${o.min === o.max ? o.min : `${o.min}~${o.max}`}개${o.chance < 1 ? `(${pct(o.chance)})` : ''}`).join(' · ')} · ${itemLink(hd.swordId)} <b>${pct(hd.swordChance)}</b>(${oneIn(hd.swordChance)}, 핫타임 드랍 배율 적용). 구역 보상·경험치·강화서·젬·루비는 없습니다.</li>
+        <li>입구는 <b>${hd.lifetimeMin}분 동안</b> 열려 있습니다. 그동안 Lv${hd.minLevel} 이상이면 <b>누구나</b> 입구 곁에서 F(모바일은 「들어가기」)로 들어갑니다 — 파티·준비 확인·인원 제한이 없고, <b>모두 같은 던전</b>에 모입니다. 늦게 온 사람도 진행 중인 도전에 합류합니다(한 사람이 들어올 때마다 남은 몬스터 HP가 인원만큼 늘어납니다).</li>
+        <li>한 캐릭터는 입구 하나에 한 번만 들어갑니다. ${hd.lifetimeMin}분이 지나거나 안의 도전이 끝나면(완주·전멸·모두 나감) 입구가 닫힙니다.</li>
+        <li>안은 허공에 뜬 <b>공허의 군도</b>입니다 — 다리로 이어진 섬 넷을 차례로 지나며, 섬마다 기믹이 있습니다. 라이프 토큰 ${hd.lifeTokens}개 · 들어가고 ${hd.timeLimitMin}분이 지나면 보상 없이 나옵니다.
+          <ol>${hd.rooms.map((r) => `<li><b>${esc(r.name)}</b> — ${esc(r.text)}</li>`).join('')}</ol></li>
+        <li>난이도는 <b>${hd.refRaid}급</b>으로 파티 레벨과 상관없이 고정입니다. 최종 보스는 HP ${fmt(hd.bossHp)}·공격력 ${fmt(hd.bossAtk)}(${hd.refRaid} 보스와 같고, 6명부터 인원마다 HP가 늘어납니다)이고, 앞 섬 몬스터와 중간 보스도 그에 맞춰 강합니다.</li>
+        <li>보상은 <b>최종 보스를 쓰러뜨릴 때만</b>: 참가자마다 베리 레벨 × ${fmt(hd.goldPerLevel)} · ${hd.ores.map((o) => `${itemLink(o.itemId)} ${o.min === o.max ? o.min : `${o.min}~${o.max}`}개${o.chance < 1 ? `(${pct(o.chance)})` : ''}`).join(' · ')}. ${itemLink(hd.swordId)}은 <b>한 판에 한 번 ${pct(hd.swordChance)}</b>(${oneIn(hd.swordChance)}, 핫타임 드랍 배율 적용)로 굴려, 당첨되면 그 판 참가자 중 <b>무작위 한 명</b>이 받습니다. 구역 보상·경험치·강화서·젬·루비는 없습니다.</li>
       </ul>
     </section>`;
   const so = D.social;
@@ -1408,7 +1424,7 @@ function pageWorld() {
       <p class="muted small" style="margin-top:8px">이름의 X는 금칙어를 가린 글자입니다.</p>
     </section>`;
   const index = `<nav class="isl-index" aria-label="지역 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>${isl.hub ? "모항" : `Lv${isl.levelRange[0]}~${isl.levelRange[1]}`}${isl.shopTiers.length ? ` · ${isl.shopTiers.map((t) => `T${t}`).join('·')}` : ''}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a></nav>`;
-  return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 모항입니다.')}<h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>히든 던전</h2><div class="stack">${hiddenCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>선술집 의뢰</h2><div class="stack">${tavernCard}${catCard}</div><h2>생활</h2><div class="stack">${lifeCard}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>길드</h2><div class="stack">${guildRankCard}${guildStorageCard}</div><h2>교류·편의</h2><div class="stack">${socialCards}</div>`;
+  return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 모항입니다.')}<h2>서막</h2><div class="stack">${prologueCard}</div><h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>히든 던전</h2><div class="stack">${hiddenCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>선술집 의뢰</h2><div class="stack">${tavernCard}${catCard}</div><h2>생활</h2><div class="stack">${lifeCard}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>길드</h2><div class="stack">${guildRankCard}${guildStorageCard}</div><h2>교류·편의</h2><div class="stack">${socialCards}</div>`;
 }
 
 // ── 페이지: 성장·강화 ──
@@ -1758,12 +1774,13 @@ function buildSearch() {
   for (const r of D.raids) add('레이드', r.name, `#/world#raid-${r.id}`, `레이드 · 입장 Lv${r.minLevel}`, ph('crown'), r.phases.map((p) => p.label).join(' · '), `레이드 ${gimmickWords(r.gimmicks)}`);
   add('레이드', D.infinite.name, `#/world#raid-${D.infinite.id}`, `웨이브 던전 · 입장 Lv${D.infinite.minLevel} · 혼자~${D.infinite.size}인`, ph('crown'), '무한 웨이브 랭킹 서버 최초 유니크', '레이드');
   for (const d of D.dungeons.list) add('레이드', d.name, '#/world#dungeons', `일일 던전 · ${d.minLevel > 1 ? `Lv${d.minLevel}+ · ` : ''}하루 ${d.dailyLimit}번 · 혼자~${d.size}인`, ph('crown'), d.kind === 'treasure' ? '보물 던전 베리 황금 저주 힐러' : '레벨업 던전 경험치 수련', '일일던전');
-  add('레이드', D.dungeons.hidden.name, '#/world#hidden', `히든 던전 · Lv${D.dungeons.hidden.minLevel}+ · ${D.dungeons.hidden.periodHours}시간마다 필드 어딘가 입구 · 혼자~${D.dungeons.hidden.size}인`, ph('crown'), `히든 던전 입구 포탈 봉인된 태초의 검 광석 ${D.dungeons.hidden.refRaid}`, '히든던전');
+  add('레이드', D.dungeons.hidden.name, '#/world#hidden', `히든 던전 · Lv${D.dungeons.hidden.minLevel}+ · ${D.dungeons.hidden.periodHours}시간마다 필드 어딘가 입구 · ${D.dungeons.hidden.lifetimeMin}분 동안 누구나`, ph('crown'), `히든 던전 입구 포탈 공허의 군도 노크투르 봉인된 태초의 검 광석 ${D.dungeons.hidden.refRaid}`, '히든던전');
   add('레이드', D.augment.name, `#/world#raid-${D.augment.id}`, `웨이브 던전 베타 · ${D.augment.every}웨이브마다 증강 카드`, ph('crown'), D.augment.list.map((a) => `${a.name} ${a.desc}`).join(' · '), '레이드 증강 베타 카드');
   for (const w of D.worldBosses) add('레이드', w.name, `#/world#wb-${w.id}`, `필드 보스 원정 · ${M.mobs.get(w.bossId)?.name ?? ''}`, ph('crown'), w.phases.map((p) => p.label).join(' · '), `필드보스 월드보스 원정 ${gimmickWords(w.gimmicks)}`);
   add('콘텐츠', D.duel.name, '#/world#duel', `PvP · ${D.duel.modes.map((m) => m.name).join(' · ')} · ${D.duel.rules.map((r) => `${r.name} Lv${r.minLevel}+`).join(' · ')}`, ph('swords'), `점수 매칭 ±${D.duel.matchRange} 결투 신청 친선 스펙 적용 동등 조건`, '결투장 PvP 대전 결투 점수 레이팅 동등결투');
   add('콘텐츠', '선술집 의뢰', '#/world#tavern', `노을마을 선술집 · ${D.tavern.rotateHours}시간마다 교체 · 개인 의뢰 ${D.tavern.personalCount}개`, ph('scroll-text'), D.tavern.tiers.map((t) => t.name).join(' · '), '선술집 의뢰 일퀘 일일 퀘스트 게시판 개인 마고');
   add('콘텐츠', '생활(농사·광산·낚시)', '#/world#life', `${D.life.islands.mine} · ${D.life.islands.cove} · ${D.life.islands.farm} · Lv${D.life.unlockLevel}부터 · 직접 채굴·낚시·농사 · 요리·제련`, ph('scroll-text'), D.life.kinds.map((k) => k.name).join(' · '), '생활 농사 광산 낚시 수확 채굴 요리 제련 음식 노을 광산 노을 해변 낚시터 농장 마을 내 농장 부지 풍요의 삼지창');
+  add('콘텐츠', '서막 — 황혼에 오른 자', '#/world#prologue', `새 캐릭터 첫 입장 · ${D.prologue.island} · Lv${D.prologue.level} 3차 전직으로 지는 싸움 · 컷신 ${D.prologue.cutscenes.length}편`, ph('scroll-text'), D.prologue.cutscenes.map((c) => c.name).join(' · '), '서막 프롤로그 튜토리얼 컷신 컷씬 시네마틱 베스페르 첫 입장 건너뛰기 스토리');
   const cq = D.catQuests;
   add('콘텐츠', '고양이 의뢰', '#/world#cat-quests', `${cq.hall} 곁가지 퀘스트 · ${cq.ids.length}개`, ph('scroll-text'), cq.npc, '고양이 의뢰 곁가지 퀘스트 선술집 김꼴꼴');
   add('NPC', cq.npc, '#/world#cat-quests', `${cq.hall} · 퀘스트`, ph('info'), '', 'npc퀘스트고양이');
