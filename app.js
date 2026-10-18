@@ -151,35 +151,112 @@ const kstToday = () => new Date(Date.now() + 9 * 3_600_000).toISOString().slice(
 const monthDay = (d) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
 
 // ── 페이지: 홈 ──
+/** 홈 타일: [경로, 게임 메뉴 아이콘(img/menu), 제목, 설명] */
+function homeTiles() {
+  return [
+    ['guide', 'quest', '모험 길잡이', '레벨마다 갈 사냥터 · 열리는 콘텐츠 · 다음 목표'],
+    ['classes', 'character_select', '직업·전직', `직업 ${D.classes.length - 1}개 · 히든 직업 2개 · 전직 ${D.branches.length}갈래 · 3차 전직`],
+    ['skills', 'skills', '스킬 도감', `스킬 ${D.skills.length}개 · 계수 · 재사용 대기`],
+    ['damage', 'relic_atk', '데미지 공식', '피해식과 직접 넣어 보는 계산기'],
+    ['items', 'inventory', '아이템 도감', `아이템 ${D.items.length}개 · 얻는 곳`],
+    ['mobs', 'duel', '몬스터 도감', `몬스터 ${D.mobs.length}종 · 드랍표`],
+    ['drops', 'cashshop', '드랍률·상점', '등급 · 장비 · 루비 상점 · 치장 뽑기 · 젬 · 출석'],
+    ['world', 'attendance', '지역·레이드', `지역 ${D.islands.length}곳 · 레이드 ${D.raids.length}개 · 던전 · 생활 · 결투장`],
+    ['growth', 'stats', '성장·강화', '레벨 해금 · 강화 · 초월 · 유물 · 펫 · 항해 등급'],
+    ['world#village', 'friends', `${D.village.name} 놀거리`, '밤 폭죽놀이 · 체스 · 오목'],
+    ['news', 'patch', '업데이트 소식', `최근 패치노트 ${D.news.length}개`],
+    ['feedback', 'feedback', '피드백 게시판', '버그 제보 · 건의 · 위키 오류를 익명으로'],
+  ];
+}
 function pageHome() {
   const c = D.constants;
-  const tiles = [
-    ['damage', 'calculator', '#6ea8ff', '데미지 공식', '피해식과 직접 넣어 보는 계산기'],
-    ['drops', 'dices', '#ffb547', '드랍률', '등급 · 티어 장비 · 레이드 세트 · 합성 · 루비 상점 · 출석 · 접속 이벤트'],
-    ['classes', 'git-branch', '#c29bff', '직업·전직', `직업 ${D.classes.length}개 · 전직 ${D.branches.length}갈래 · 각성`],
-    ['skills', 'sparkles', '#3fd08a', '스킬 도감', `스킬 ${D.skills.length}개 · 계수 · 쿨다운`],
-    ['items', 'backpack', '#ff8a4c', '아이템 도감', `아이템 ${D.items.length}개 · 얻는 곳`],
-    ['mobs', 'skull', '#ff6b6b', '몬스터 도감', `몬스터 ${D.mobs.length}종 · 드랍표`],
-    ['world', 'map', '#2dd4bf', '지역·레이드', `지역 ${D.islands.length}곳 · 레이드 ${D.raids.length}개 · 일일 던전 ${D.dungeons.list.length}개 · 필드 보스 원정 ${D.worldBosses.length}곳 · 퀘스트 ${D.quests.length}개`],
-    ['growth', 'trending-up', '#f472b6', '성장·강화', '레벨 해금 · 경험치 표 · 경험치 배율 · 강화 · 각성 · 초월 · 합성 · 칭호 · 보물 사냥 · 항해 등급'],
-  ];
-  const tries = ['합성', '강화서', '강화 성공률', '치명타', '크라켄', 'ㅎㄱㅅ'];
+  const tries = ['방랑자', '치장 뽑기', '강화 성공률', '합성', '크라켄', 'ㅎㄱㅅ'];
   const kv = [
     ['만렙', `Lv ${D.meta.maxLevel}`], ['1차 전직', `Lv ${c.advanceLevel}`], ['각성', `Lv ${c.awakenLevel}`], ['치명타 배율', `×${c.critMul}`],
     ['강화 한계', `+${c.enhanceMax}`], ['장비 티어', `T1~T${D.tiers.length}`], ['필드 장비 드랍', `${pct(c.gearDrop.field)} (T1 ${pct(c.gearDrop.fieldT1)})`], ['사망 후 부활', `${c.respawnSec}초`],
   ];
+  const news = D.news.slice(0, 3);
   return `
     <section class="hero" style="background-image:url('${esc(D.meta.hero ?? '')}')">
       <div class="hero-in">
+        <img class="hero-logo" src="${esc(D.meta.logo ?? 'img/brand/logo.webp')}" alt="FEIVEN" width="210" height="116">
         <h1>${esc(D.meta.game)} 위키</h1>
-        <p>공식·확률·도감을 실서버 게임 값 그대로 담았습니다.</p>
+        <p>모험에 필요한 공식·확률·도감을 실서버 게임 값 그대로 담았습니다.</p>
         <div class="search" role="search">${icon('search')}<input id="hq" type="search" placeholder="아이템, 스킬, 몬스터, 공식 검색" autocomplete="off" spellcheck="false" aria-label="위키 검색" role="combobox" aria-autocomplete="list" aria-controls="hq-results" aria-expanded="false"><div id="hq-results" class="search-results" role="listbox" hidden></div></div>
         <div class="chips hero-try"><span>이렇게 찾아보세요</span>${tries.map((t) => `<a class="chip" href="${searchHref(t)}">${esc(t)}</a>`).join('')}</div>
       </div>
     </section>
-    <div class="grid tiles">${tiles.map(([r, i, color, t, s]) => `<a class="tile" href="#/${r}" style="--tc:${color}"><span class="ti">${icon(i)}</span><div><b>${t}</b><span>${s}</span></div></a>`).join('')}</div>
-    <h2>핵심 수치</h2>
+    <div class="home-sec"><h2>처음이라면</h2></div>
+    <div class="path">
+      <a href="#/guide"><b>모험 길잡이</b><span>레벨마다 어느 섬에서 사냥하고 무엇이 열리는지 차례대로 봅니다.</span></a>
+      <a href="#/classes"><b>직업 고르기</b><span>직업 ${D.classes.length - 1}개의 역할과 전직 갈래를 견줘 봅니다.</span></a>
+      <a href="#/growth#unlocks"><b>레벨 해금</b><span>펫·선술집 의뢰·전직처럼 레벨마다 열리는 시스템 ${D.unlocks.length}개.</span></a>
+    </div>
+    <div class="home-sec"><h2>둘러보기</h2></div>
+    <div class="grid tiles">${homeTiles().map(([r, img, t, s]) => `<a class="tile" href="#/${r}"><span class="ti"><img src="img/menu/${img}.png" alt="" width="44" height="44"></span><div><b>${esc(t)}</b><span>${esc(s)}</span></div></a>`).join('')}</div>
+    ${news.length ? `<div class="home-sec"><h2>최근 업데이트</h2><a href="#/news">모두 보기</a></div>
+    <div class="news-list">${news.map((n) => `<a class="news-item" href="#/news#${esc(n.id)}"><span class="ver">${esc(n.version)}</span><div><b>${esc(n.title)}</b><span class="date">${esc(n.date)}</span></div><ul>${n.summary.slice(0, 4).map((l) => `<li>${esc(l)}</li>`).join('')}</ul></a>`).join('')}</div>` : ''}
+    <div class="home-sec"><h2>핵심 수치</h2></div>
     <dl class="kv">${kv.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>`;
+}
+
+// ── 페이지: 업데이트 소식(실서버에 나간 패치노트, build.ts news) ──
+function pageNews() {
+  const list = D.news;
+  return `${head('업데이트 소식', `실서버에 나간 패치노트 최근 ${list.length}개입니다. 게임 안 패치노트와 같은 내용입니다.`)}
+    <nav class="chips" aria-label="버전 바로가기">${list.map((n) => `<a class="chip" href="#/news#${esc(n.id)}">${esc(n.version || n.date)}</a>`).join('')}</nav>
+    <div class="stack" style="margin-top:16px">${list.map((n) => `
+      <section class="card patch" id="${esc(n.id)}">
+        <div class="patch-head"><span class="chip accent">${esc(n.version)}</span><h2>${esc(n.title)}</h2><span class="muted small">${esc(n.date)}</span></div>
+        ${n.summary.length ? `<ul class="small" style="margin:0 0 14px">${n.summary.map((l) => `<li><b>${esc(l)}</b></li>`).join('')}</ul>` : ''}
+        ${n.sections.map((s) => `<div class="patch-sec"><h3>${esc(s.head)}</h3><ul>${s.items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul></div>`).join('')}
+      </section>`).join('')}</div>`;
+}
+
+// ── 페이지: 모험 길잡이 ──
+/** 레벨 해금 id → 그 콘텐츠 문서 */
+function unlockHref(id) {
+  const raid = D.raids.find((r) => !r.guild);
+  const guildRaid = D.raids.find((r) => r.guild);
+  const map = {
+    pets: '#/growth#pets', tavernJobs: '#/world#tavern', duel: '#/world#duel', exchange: '#/world#exchange', guild: '#/world#guild-rank',
+    advance1: '#/classes', advance2: '#/classes', advance3: '#/classes', raid: raid ? `#/world#raid-${raid.id}` : '#/world', life: '#/world#life',
+    infinite: `#/world#raid-${D.infinite.id}`, worldboss: D.worldBosses[0] ? `#/world#wb-${D.worldBosses[0].id}` : '#/world', guildRaid: guildRaid ? `#/world#raid-${guildRaid.id}` : '#/world',
+    relics: '#/growth#relics', codex: '#/growth#codex', treasureDungeon: '#/world#dungeons', transcend: '#/growth#transcend', voyage: '#/growth#voyage',
+  };
+  return map[id] ?? '#/growth#unlocks';
+}
+/** 사냥터(필드 섬) 레벨 구간마다 그 구간에 열리는 시스템·레이드·퀘스트 줄기를 모은다 */
+function pageGuide() {
+  const max = D.meta.maxLevel;
+  const field = D.islands.filter((i) => !i.hub);
+  const events = [];
+  const push = (lv, html) => events.push({ lv, html });
+  for (const u of D.unlocks) push(u.level, `<a href="${unlockHref(u.id)}"><b>${esc(u.name)}</b></a> — ${esc(u.desc)}`);
+  push(D.constants.awakenLevel, '<a href="#/classes"><b>각성</b></a> — 선택 없이 4번 스킬이 강해집니다.');
+  for (const r of D.raids) if (!r.ladder && !r.guild) push(r.minLevel, `레이드 <a href="#/world#raid-${esc(r.id)}"><b>${esc(r.name)}</b></a> 입장 · ${r.minParty === 1 ? '혼자' : r.minParty}~${r.size}인`);
+  const hd = D.dungeons.hidden;
+  push(hd.minLevel, `<a href="#/world#hidden"><b>${esc(hd.name)}</b></a> — ${hd.periodHours}시간에 한 번 필드 어딘가에 입구가 열립니다.`);
+  const call = M.quests.get(D.questLines.raidCall);
+  if (call) push(call.minLevel, `곁가지 퀘스트 <a href="#/world#quest-lines"><b>${esc(call.name)}</b></a> — 첫 레이드로 이끄는 의뢰`);
+  const bounty = M.quests.get(D.questLines.bountyRaid[0]);
+  if (bounty) push(bounty.minLevel, `<a href="#/world#quest-lines"><b>성역 토벌 의뢰</b></a> — ${esc(bounty.npc)}의 레이드·사냥 의뢰 줄기`);
+  const within = (a, b) => events.filter((e) => e.lv >= a && e.lv < b).sort((x, y) => x.lv - y.lv);
+  const evList = (list) => (list.length ? `<ul class="plain small">${list.map((e) => `<li><span class="chip">Lv${e.lv}</span> ${e.html}</li>`).join('')}</ul>` : '');
+  const hub = D.islands.find((i) => i.hub);
+  const ladder = D.raids.filter((r) => r.ladder);
+  const steps = [
+    `<div class="card road-step" id="step-start"><span class="lv">시작</span><h3><a href="#/world#prologue">서막 — ${esc(D.prologue.island)}</a></h3><p class="small">새 캐릭터는 서막(건너뛸 수 있음)을 치른 뒤 Lv1로 <a href="#/world#isl-${esc(hub?.id ?? '')}">${esc(D.village.name)}</a> 부두에서 깨어납니다. ${esc(D.village.name)}은 모든 항로가 모이는 모항으로, 대장간·잡화점·창고·젬 상점이 있고 레이드·일일 던전·필드 보스 원정은 선술집 주인에게서 출발합니다. 섬 사이는 뱃사공의 배로 옮겨 다닙니다.</p></div>`,
+    ...field.map((isl, i) => {
+      const [a, b] = isl.levelRange;
+      const mobs = isl.mobs.map((id) => M.mobs.get(id)).filter((m) => m?.kind === 'field');
+      const boss = isl.bossId ? M.mobs.get(isl.bossId) : null;
+      return `<div class="card road-step" id="step-${esc(isl.id)}"><span class="lv">Lv ${a} ~ ${b}</span><h3><a href="#/world#isl-${esc(isl.id)}">${esc(isl.name)}</a> <span class="chip">입장 Lv${isl.minLevel}</span></h3><p class="small muted">사냥터 · 몬스터 ${mobs.length}종${boss ? ` · 섬 보스 ${esc(boss.name)}` : ''} · 퀘스트 ${isl.quests.length}개 · 상점 ${isl.shopTiers.map((t) => `T${t}`).join('·')}</p>${evList(within(i === 0 ? 0 : a, i === field.length - 1 ? max : b))}</div>`;
+    }),
+    `<div class="card road-step" id="step-max"><span class="lv">Lv ${max} · 만렙</span><h3>만렙 뒤에도</h3>${evList(within(max, Infinity))}<ul class="plain small">${ladder.length ? `<li><a href="#/world#raid-${esc(ladder[0].id)}"><b>${esc(ladder[0].name.replace(/\s*\(.*\)$/, ''))}</b></a> — 만렙 레이드 사다리 ${ladder.length}단계(${ladder.map((r) => esc(r.ladder.stepName)).join(' → ')}), 단계마다 권장 전투력이 오릅니다.</li>` : ''}<li><a href="#/growth#season"><b>보물 사냥</b></a> — 주간 시즌 보물과 교환소</li></ul></div>`,
+  ];
+  return `${head('모험 길잡이', '레벨에 맞는 사냥터와 그때 열리는 콘텐츠를 차례대로 모았습니다. 이름을 누르면 자세한 문서로 갑니다.')}
+    <div class="road">${steps.join('')}</div>`;
 }
 
 // ── 페이지: 데미지 ──
@@ -435,13 +512,14 @@ function pageDrops() {
     <p>${RUBY_NOTE} 1루비는 ${D.ruby.krw}원 기준입니다.</p>
     <ul class="plain small">
       <li><b>무료 루비</b>: ${freeRubyText()}. 같은 계정의 모든 캐릭터가 한 상한을 나눠 쓰고, 한국 시간 0시에 다시 채워집니다. 상점 루비 탭과 지갑 줄에 오늘 남은 양이 보입니다.</li>
-      <li>농사 말고 모든 콘텐츠에서 나옵니다. 몬스터 처치는 필드·레이드·던전 어디서나 굴리고, 봇이 대신 잡아 준 처치와 후원자 추가·면제 회차는 받지 않습니다. 충전·운영자 지급·출석 이벤트 루비는 상한과 따로입니다.</li>
+      <li>농사·결투장 정식 경기 말고 모든 콘텐츠에서 나옵니다. 몬스터 처치는 필드·레이드·던전 어디서나 굴리고, 봇이 대신 잡아 준 처치와 후원자 추가·면제 회차는 받지 않습니다. 충전·운영자 지급·출석 이벤트 루비는 상한과 따로입니다.</li>
     </ul>
     ${table(['출처', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }], [
       ...D.ruby.drops.map((d) => tr([esc(d.label), R(d.chance >= 1 ? '확정' : pct(d.chance)), R(`${d.qty[0]}~${d.qty[1]}개`)])),
       ...D.tavern.tiers.map((t) => tr([`선술집 의뢰 · ${esc(t.name)}`, R('확정'), R(`${t.ruby}개`)])),
     ])}
     ${cashShopSection()}
+    ${cosGachaSection()}
     ${cosmeticsSection()}
 
     <h2 id="gems">${esc(D.gems.name)} · 고급 상자</h2>
@@ -461,6 +539,7 @@ function pageDrops() {
         <h3 style="margin-top:12px">젬 상점</h3>
         ${table(['물건', { t: '젬', c: 'r' }, '효과'], D.gems.shop.map((e) => tr([itemLink(e.itemId), R(`<span style="white-space:nowrap">${e.gems}</span>`), `<span class="small">${esc(M.items.get(e.itemId)?.desc ?? '')}</span>`])))}
         <p class="muted small" style="margin-top:8px">가방 확장권 1장 = 가방 +${D.gems.bag.step}칸(제한 없이 계속, 캐릭터마다). 계정 창고는 누구나 기본 ${D.gems.storage.base}칸을 쓰고, 창고 구매권 1장마다 +${D.gems.storage.step}칸(구매분 최대 ${D.gems.storage.max}칸) 늘어납니다. 창고는 노을마을 ${esc(npcNameOfRole("storage"))}에게서 열며 같은 계정의 모든 캐릭터(부캐릭터 포함)가 아이템과 베리를 함께 씁니다. 귀속 아이템은 넣을 수 없습니다.</p>
+        <p class="muted small">캐릭터 칸: 계정마다 기본 ${D.charSlots.base}칸이고, 캐릭터 선택 화면의 「칸 늘리기」에서 ${esc(D.gems.name)} ${D.charSlots.gems}개로 1칸씩 최대 ${D.charSlots.buyMax}번 늘립니다(늘린 칸은 계정에 영구히 남습니다).</p>
       </div>
       <div class="card">
         <h3>${itemLink('premium_box')}</h3>
@@ -530,6 +609,31 @@ function cosmeticsSection() {
     <p>꾸미기는 능력치 효과 없이 모양만 바꿉니다. 계정이 가지며, 캐릭터마다 ${cm.slots.map((s) => esc(s.name)).join(' · ')} 칸에 하나씩 장착합니다. 장착한 꾸미기는 주변 사람에게도 보입니다.</p>
     ${table(['꾸미기', '칸', '얻는 곳'], rows)}`;
 }
+/** 치장 뽑기: 회차별 상품표 · 값 · 천장 · 뽑기권 얻는 곳 */
+function cosGachaSection() {
+  const G = D.cosGacha;
+  const now = Date.now();
+  const kst = (ms) => new Date(ms + 9 * 3_600_000).toISOString().slice(0, 10).replace(/-/g, '.');
+  const prize = (p) => (p.cosmeticId ? `꾸미기 <a href="#/drops#cosmetics"><b>${esc(p.name)}</b></a>` : p.itemId ? `${itemLink(p.itemId)} ×${p.qty}` : `${fmt(p.gold)} 베리`);
+  const seasonTable = (s) => table(['등급', '상품', { t: '확률', c: 'r' }], s.prizes.map((p) => tr([`<span class="rar-${p.grade}">${esc(rarName(p.grade))}</span>`, prize(p), R(`${p.rate}%`)])));
+  const seasonHead = (s) => `<h3>${esc(s.name)} ${now < s.start ? '<span class="chip">예정</span>' : now < s.end ? '<span class="chip accent">진행 중</span>' : ''} <span class="chip">${kst(s.start)} ~ ${esc(s.endText)}</span></h3>`;
+  const seasons = [...G.seasons].sort((a, b) => b.start - a.start);
+  const live = seasons.filter((s) => now < s.end);
+  const past = seasons.filter((s) => now >= s.end);
+  const tk = G.tickets;
+  const raidName = (id) => esc(M.raids.get(id)?.name ?? id);
+  return `
+    <h2 id="cos-gacha">치장 뽑기</h2>
+    <p>상점의 「치장 뽑기」에서 회차마다 바뀌는 <b>뽑기 전용 꾸미기</b>를 뽑습니다. 1회에 ${itemLink(G.ticketId)} 1장을 쓰고, 모자란 회차는 루비로 냅니다: <b>1회 ${G.ruby.one}루비 · ${G.multi}회 ${G.ruby.multi}루비</b>(10회는 회당 ${G.ruby.multi / G.multi}루비).</p>
+    <ul class="plain small">
+      <li><b>가진 꾸미기는 나오지 않습니다.</b> 그 몫은 같은 등급의 아직 없는 꾸미기가 나눠 갖고, 한 등급을 모두 가졌으면 남은 등급이 원래 비율대로 나눕니다. 그 회차 꾸미기를 모두 가지면 더 뽑을 수 없습니다.</li>
+      <li><b>천장</b>: 전설 없이 ${G.pity - 1}번을 뽑으면 ${G.pity}번째는 <b>아직 없는 전설 꾸미기</b>가 확정입니다. 전설이 나오면 처음부터 다시 셉니다. 뽑기권·루비 회차를 모두 세고, 회차가 바뀌어도 이어서 셉니다.</li>
+      <li>회차가 끝나면 그 회차 꾸미기는 더 얻을 수 없습니다. 회차 사이에는 뽑을 수 없고, 뽑기권은 계속 모아 다음 회차에 씁니다.</li>
+      <li><b>뽑기권 얻는 곳</b>: <a href="#/world#tavern">선술집 의뢰</a> 매우 어려움 ${tk.requestVeryHard}장 · 지옥 ${tk.requestHell}장 · ${raidName('twilight_spire')} ${tk.twilight}장 · ${raidName('twilight_spire_hard')} ${tk.twilightHard}장 · ${raidName('twilight_spire_hell')} ${tk.twilightHell}장(클리어) · 필드 사냥 ${pct(G.huntChance)}(${oneIn(G.huntChance)}, 레이드·던전·봇 처치 제외)</li>
+    </ul>
+    ${live.map((s) => `${seasonHead(s)}${seasonTable(s)}`).join('')}
+    ${past.length ? `<details style="margin-top:12px"><summary>지난 회차 ${past.length}개</summary>${past.map((s) => `${seasonHead(s)}${seasonTable(s)}`).join('')}</details>` : ''}`;
+}
 /** 출석 이벤트: 기간 · 규칙 · 칸별 보상(진행 단계는 보는 날 기준) */
 function attendanceSection() {
   const a = D.attendance;
@@ -569,13 +673,18 @@ function passiveText(p) {
 }
 function pageClasses() {
   return `
-    ${head('직업·전직', `직업 ${D.classes.length - 1}개와 히든 직업 1개, 전직 갈래 ${D.branches.length}개, 2차 전직 ${D.branches.length}개, 3차 전직 ${D.branches.filter((b) => b.third).length}개`)}
+    ${head('직업·전직', `기본 직업 ${D.classes.length - 1}개와 히든 직업 2개(${esc(classOf(D.blacksmith.id)?.name ?? '')} · ${esc(D.wanderer.name)}), 전직 갈래 ${D.branches.length}개, 2차 전직 ${D.branches.length}개, 3차 전직 ${D.branches.filter((b) => b.third).length}개`)}
     <div class="grid g3">${D.classes.map((k) => `
       <a class="card class-card" href="#/classes/${k.id}" style="--c:${k.color}">
         ${k.icon ? `<img class="ico lg" src="${esc(k.icon)}" alt="" style="width:64px;height:64px">` : ''}
         <div><b style="font-size:18px;color:var(--text)">${esc(k.name)}</b><div class="muted small">${esc(k.role)}</div>
         <div class="chips" style="margin-top:6px"><span class="chip">${DMG[k.dmgType]}</span>${k.id === D.blacksmith.id ? '<span class="chip accent">히든 직업</span>' : `<span class="chip">갈래 ${D.branches.filter((b) => b.classId === k.id).length}개</span>`}</div></div>
       </a>`).join('')}
+      <a class="card class-card" href="#/classes/${esc(D.wanderer.id)}" style="--c:${esc(D.wanderer.color)}">
+        <span class="ico lg ph" style="width:64px;height:64px">${icon('map')}</span>
+        <div><b style="font-size:18px;color:var(--text)">${esc(D.wanderer.name)}</b><div class="muted small">3차 전직 기술 조합</div>
+        <div class="chips" style="margin-top:6px"><span class="chip">원래 직업 따름</span><span class="chip accent">히든 직업</span></div></div>
+      </a>
     </div>
     <h2>전직 흐름</h2>
     <div class="steps">
@@ -600,6 +709,7 @@ function skillRow(s, compareTo) {
   return `<div class="skill-row" id="sk-${esc(s.id)}">${skillIcon(s)}<div><b>${esc(s.name)}</b> <span class="slot" title="슬롯">${s.slot}</span>${base}<div class="meta">${chips.join('')}</div><div class="small">${esc(s.desc)}</div><ul>${s.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></div></div>`;
 }
 function pageClass(id) {
+  if (id === D.wanderer.id) return pageWanderer();
   const k = classOf(id);
   if (!k) return notFound();
   if (id === D.blacksmith.id) return pageBlacksmith(k);
@@ -675,6 +785,35 @@ function pageBlacksmith(k) {
     <h2 id="augments">증강</h2>
     <p class="muted small">벼리기와 걸작은 무한 웨이브의 증강 카드 표를 씁니다. 카드 ${B.aug.choices}장 중 하나를 고르고, ${B.aug.pickSec}초 안에 고르지 않으면 가장 높은 등급이 자동으로 골라집니다. 증강은 레이드·던전을 나갈 때까지, 필드에서는 ${Math.round(B.aug.fieldSec / 60)}분 동안 남습니다. 한 사람이 같은 증강을 두 번 받을 수 없고, 무한 웨이브 증강 칸과는 따로입니다. 한 파티에는 대장장이 한 명의 증강만 적용됩니다. 망치질은 ${B.vuln.sec}초 동안 받는 피해를 ${B.vuln.pct}% 늘립니다.</p>
     <p class="muted small">대장장이는 거래소에서 살 수는 있지만 올릴 수는 없습니다. 베리는 자유롭게 오갑니다.</p>`;
+}
+/** 히든 직업 방랑자: 직업마다 다른 3차 전직 기술 넷 + 대궁극기 하나를 골라 섞는다. 되는 방법은 싣지 않는다 */
+function pageWanderer() {
+  const W = D.wanderer;
+  const cls = D.classes.filter((k) => W.dmgMul[k.id] !== undefined);
+  const skill = (id, cdMul) => `${M.skills.has(id) ? `<a href="#/skills/${esc(id)}">${esc(M.skills.get(id).name)}</a>` : esc(id)}${cdMul !== 1 ? ` <span class="chip">재사용 ×${cdMul}</span>` : ''}`;
+  const job = (j) => `<a href="#/classes/${esc(j.classId)}#br3-${esc(j.branch)}" style="color:${esc(j.color)}">${esc(j.name)}</a>`;
+  return `
+    ${crumb('#/classes', '직업 목록')}
+    <div class="detail-head"><span class="ico lg ph">${icon('map')}</span><div><h1 style="color:${esc(W.color)}">${esc(W.name)}</h1>
+      <div class="chips"><span class="chip accent">히든 직업</span><span class="chip">원래 직업의 무기·기본 공격 그대로</span><span class="chip">최대 HP +${W.maxHpPct}%</span></div></div></div>
+    <p>한 갈래를 고르지 않고 모든 길을 걷는 모험가입니다. ${cls.length}개 직업의 3차 전직 기술 가운데 넷과 대궁극기 하나를 골라 자기만의 조합을 만듭니다.</p>
+    <div class="grid g2">
+      <div class="card"><h3>규칙</h3><ul class="plain small">
+        <li><b>1~4번 칸</b>: 3차 전직 ${W.jobs.length}종의 1~4번 스킬 가운데 넷을 고릅니다. 네 기술은 <b>모두 다른 직업</b>이어야 하고, 어느 칸에 넣을지는 자유입니다.</li>
+        <li><b>5번 칸</b>: 3차 전직 대궁극기 ${W.ults.length}종 가운데 하나(직업 제한 없음, 변신 궁극기 제외).</li>
+        <li>기술은 <b>촌장 앞에서 언제든 무료로</b> 다시 고릅니다.</li>
+        <li>직업·무기·기본 공격·직업 계수·피해 종류(물리/마법)는 원래 직업 그대로라, 다른 직업 기술도 내 공격력으로 칩니다. 치유·보호막은 내 마법 공격력으로, 노래는 3차 바드와 같은 값으로 들어갑니다.</li>
+        <li>갈래 패시브·3차 기본 공격·3차 직업 기믹은 없습니다. 다른 칸 스킬을 건드리는 효과(사냥 본능의 2번 재사용 대기 절반, 암살자 처치 보상의 1번 재사용 대기 초기화)도 붙지 않습니다.</li>
+        <li>몇몇 기술은 방랑자가 쓰면 재사용 대기가 달라집니다(아래 표의 「재사용 ×」).</li>
+      </ul></div>
+      <div class="card"><h3>직업별 피해 배율</h3><p class="muted small">주는 피해(스킬·기본 공격·소환수)에 곱합니다. 치유·보호막에는 붙지 않습니다. 동등 조건 결투(Lv180·2차 기준)에서는 따로 정한 배율을 쓰고 5번 칸이 비어 있습니다.</p>
+        ${table(['원래 직업', { t: '배율', c: 'r' }, { t: '동등 조건 결투', c: 'r' }], cls.map((k) => tr([`<a href="#/classes/${esc(k.id)}" style="color:${esc(k.color)}">${esc(k.name)}</a>`, R(`×${W.dmgMul[k.id]}`), R(`×${W.duelEqMul[k.id]}`)])))}</div>
+    </div>
+    <h2 id="pool">고를 수 있는 기술</h2>
+    <p class="muted small">3차 전직마다 1~4번 스킬입니다. 한 직업의 두 3차 전직 가운데서는 기술 하나만 고를 수 있습니다.</p>
+    ${table(['직업', '3차 전직', '1번', '2번', '3번', '4번'], W.jobs.map((j) => tr([esc(classOf(j.classId)?.name ?? j.classId), job(j), ...j.skills.map((s) => skill(s.id, s.cdMul))])))}
+    <h2 id="ults">대궁극기 (5번 칸)</h2>
+    ${table(['대궁극기', '3차 전직', '직업'], W.ults.map((u) => tr([skill(u.id, u.cdMul), `<a href="#/classes/${esc(u.classId)}#br3-${esc(u.branch)}">${esc(u.job)}</a>`, esc(classOf(u.classId)?.name ?? u.classId)])))}`;
 }
 /** 네크로맨서: 소환수 표와 공통 규칙 */
 function summonSection() {
@@ -1027,7 +1166,7 @@ function pageWorld() {
         <h2 style="margin-top:0">${esc(isl.name)} ${isl.hub ? '<span class="chip accent">모항 · 시작 마을</span> <span class="chip">사냥터 없음</span>' : `<span class="chip">Lv${isl.levelRange[0]}~${isl.levelRange[1]}</span> <span class="chip">입장 Lv${isl.minLevel}</span>`}${isl.partyGoldSplit ? ' <a class="chip" href="#/drops">파티 베리 나눔</a>' : ''} <span class="chip">상점 ${isl.shopTiers.map((t) => `T${t}`).join('·')}</span></h2>
         <div class="grid g2">
           <div>
-            ${isl.hub ? `<p class="small">새 캐릭터가 처음 서는 마을입니다. 대장간·잡화점·창고·젬 상점이 모여 있고, 레이드·일일 던전·필드 보스 원정은 모두 <b>선술집 주인</b>에게서 출발합니다. 귀환 두루마리를 쓰면 이 마을 부두로 돌아옵니다. 광장 모닥불가에 둘러앉을 수 있고, 음유시인은 류트 연주를 할 수 있습니다.</p>` : `<h3>몬스터</h3>
+            ${isl.hub ? `<p class="small">새 캐릭터가 처음 서는 마을입니다. 대장간·잡화점·창고·젬 상점이 모여 있고, 레이드·일일 던전·필드 보스 원정은 모두 <b>선술집 주인</b>에게서 출발합니다. 귀환 두루마리를 쓰면 이 마을 부두로 돌아옵니다. 광장 모닥불가에 둘러앉을 수 있고, 음유시인은 류트 연주를 할 수 있습니다. 매일 밤 ${D.village.fireworks.hourKst}시 폭죽놀이와 체스·오목은 <a href="#/world#village">${esc(D.village.name)} 놀거리</a>를 보세요.</p>` : `<h3>몬스터</h3>
             <ul class="plain">${normal.map((m) => `<li>${mobLink(m.id)}</li>`).join('')}
               ${elite ? `<li><span class="chip">정예</span> ${mobLink(elite.id)} · ${D.constants.elite.respawnSec / 60}분마다</li>` : ''}
               ${isl.bossId ? `<li><span class="chip accent">필드 보스</span> ${mobLink(isl.bossId)} · ${D.constants.bossRespawnSec}초마다</li>` : ''}</ul>`}
@@ -1139,6 +1278,7 @@ function pageWorld() {
       <h3>직업별 결투장 피해 보정</h3>
       <p class="small">결투장에서 플레이어에게 주는 피해(스킬·기본 공격·소환수·장판·중독)에 위 피해 비율과 함께 곱합니다. 기술 묶음 단계(1차·각성, 2차, 3차)마다 따로이고, ${esc(eq.name)}은 모두 2차 값을 씁니다. 전직 전(견습)은 ×1입니다.</p>
       ${table(['갈래', '2차 직업', { t: '1차·각성', c: 'r' }, { t: '2차', c: 'r' }, { t: '3차', c: 'r' }], du.branchMuls.map((b) => tr([esc(b.name), esc(b.second), mulCell(b.first), mulCell(b.secondMul), mulCell(b.third)])))}
+      <p class="small" style="margin-top:8px">히든 직업 <a href="#/classes/${esc(D.wanderer.id)}">${esc(D.wanderer.name)}</a>에게는 직업별 방랑자 피해 배율이 붙고, ${esc(eq.name)}에서는 그 대신 따로 정한 배율(×${Math.min(...Object.values(D.wanderer.duelEqMul))}~×${Math.max(...Object.values(D.wanderer.duelEqMul))})을 쓰며 5번 칸이 비어 있습니다.</p>
     </section>`;
   const gr = D.guildRank;
   const sc = gr.score;
@@ -1214,7 +1354,7 @@ function pageWorld() {
       </ul>
       ${table(['난이도', { t: '등장 비율', c: 'r' }, { t: '경험치(보통 대비)', c: 'r' }, { t: esc(D.gems.name), c: 'r' }, { t: '루비', c: 'r' }, '아이템'], tv.tiers.map((t) => tr([tvChip(t.id), R(pct(t.share)), R(`×${t.expMul}`), R(t.gems), R(t.ruby), tvItems(t)])))}
       <p class="muted small" style="margin-top:8px">루비는 난이도별 고정이고 <a href="#/drops#ruby">하루 무료 루비 상한</a>(계정 합산 ${D.ruby.dailyCap}개) 안에서 들어옵니다. 상한을 채운 뒤에는 루비 없이 나머지 보상만 받습니다.</p>
-      <p class="muted small" style="margin-top:8px">보통 의뢰 한 장은 그 레벨 처음(0%)부터 아래 표의 레벨 수만큼 오르는 경험치를 줍니다(Lv150~170 2레벨 → Lv200 1레벨 → Lv280 0.2레벨). 물약은 내 레벨 사냥터 등급의 회복·마나 물약으로 나옵니다(위 표는 Lv1 기준 이름).</p>
+      <p class="muted small" style="margin-top:8px">보통 의뢰 한 장은 그 레벨 처음(0%)부터 아래 표의 레벨 수만큼 오르는 경험치를 줍니다. 물약은 내 레벨 사냥터 등급의 회복·마나 물약으로 나옵니다(위 표는 Lv1 기준 이름).</p>
       <h3>레벨별 보상 예시 (경험치 · 베리)</h3>
       ${table(['레벨 (사냥터)', { t: '보통 = 레벨', c: 'r' }, ...tv.tiers.map((t) => ({ t: tvChip(t.id), c: 'r' }))], tv.levels.map((l) => tr([`<b>Lv${l.level}</b><div class="muted small">${esc(l.island)}</div>`, R(`${Math.round(l.normalLevels * 100) / 100}레벨`), ...l.rewards.map((r) => R(tvReward(r)))])))}
     </section>`;
@@ -1225,6 +1365,25 @@ function pageWorld() {
       <h2 style="margin-top:0">고양이 의뢰 <span class="chip">${esc(cq.hall)} · ${esc(cq.npc)}</span> <span class="chip">Lv${catQuests[0]?.minLevel ?? 1}부터</span> <span class="chip">곁가지 ${catQuests.length}개 · 한 번씩</span></h2>
       <p>${esc(cq.hall)} 술대 위에 앉은 <b>${esc(cq.npc)}</b>가 주는 곁가지 퀘스트입니다. 앞 의뢰를 끝내야 다음 의뢰를 받고, 하나씩 한 번만 할 수 있습니다.</p>
       ${questTable(catQuests)}
+    </section>`;
+  const ql = D.questLines;
+  const qs = (ids) => ids.map((id) => M.quests.get(id)).filter(Boolean);
+  const bRaid = qs(ql.bountyRaid);
+  const bHunt = qs(ql.bountyHunt);
+  const bAll = [...bRaid, ...bHunt];
+  const call = M.quests.get(ql.raidCall);
+  const callBoss = call?.objectives.find((o) => o.k === 'killBoss')?.mobId;
+  const callRaid = D.raids.find((r) => r.bossId === callBoss);
+  const questLineCard = `
+    <section class="card" id="quest-lines">
+      <h2 style="margin-top:0">레이드로 이끄는 곁가지 퀘스트</h2>
+      ${call ? `<h3>${esc(call.name)} <span class="chip">${esc(islandName(call.island))} · ${esc(call.npc)}</span> <span class="chip">Lv${call.minLevel}부터</span></h3>
+      <p class="small">첫 레이드에 들 만한 때 받는 곁가지 퀘스트입니다. ${esc(D.village.name)}으로 돌아가 ${callRaid ? `레이드 <a href="#/world#raid-${esc(callRaid.id)}">${esc(callRaid.name)}</a>의 보스 ` : ''}${mobLink(callBoss)}를 쓰러뜨리면 완료됩니다.</p>
+      ${questTable([call])}` : ''}
+      ${bAll.length ? `<h3 style="margin-top:14px">성역 토벌 의뢰 <span class="chip">${esc(islandName(bAll[0].island))} · ${esc(bAll[0].npc)}</span> <span class="chip">Lv${Math.min(...bAll.map((q) => q.minLevel))}~${Math.max(...bAll.map((q) => q.minLevel))}</span></h3>
+      <p class="small">레이드 줄기 ${bRaid.length}개(레이드 보스 토벌 · 파티로)와 사냥 줄기 ${bHunt.length}개(혼자도 됨)가 따로 이어집니다. 앞 의뢰를 끝내야 다음 의뢰를 받습니다.</p>
+      <details><summary>레이드 줄기 ${bRaid.length}개</summary>${questTable(bRaid)}</details>
+      <details style="margin-top:8px"><summary>사냥 줄기 ${bHunt.length}개</summary>${questTable(bHunt)}</details>` : ''}
     </section>`;
   const lf = D.life;
   const lfRecipe = (r) => `${r.inputs.map((i) => `${itemLink(i.itemId)} ×${i.qty}`).join(' + ')}${r.gold ? ` + ${fmt(r.gold)} 베리` : ''} → ${itemLink(r.output.itemId)} ×${r.output.qty}`;
@@ -1261,6 +1420,7 @@ function pageWorld() {
         <li><b>밭 넓히기</b>: ${lf.farm.sizes.map((s, i) => `${s}×${s}${i < lf.farm.sizePrices.length ? ` → ${won(lf.farm.sizePrices[i])}` : ''}`).join(' · ')}</li>
         <li><b>토양 개량</b>(단계당 성장 +${lf.farm.soilPct}%): ${lf.farm.soilPrices.map(won).join(' · ')}</li>
         <li><b>허수아비</b>(단계당 수확량 +${lf.farm.scarePct}%): ${lf.farm.scarePrices.map(won).join(' · ')}</li>
+        <li><b>${itemLink(D.tractor.id)}</b>(농장 관리인 ${won(D.tractor.price)}): 가방에 있으면 내 농장 밭 옆에 세워 두고 F로 탑니다. 타면 이동 속도 ×${D.tractor.speedMul}, 지나가는 길의 다 자란 작물을 바로 거둡니다(거두기 한 번과 보상이 같음). ${D.tractor.villages.map(esc).join('·')}으로 몰고 나가 돌아다닐 수 있고, 마을에서는 다른 한 사람이 뒷자리에 함께 탑니다(내 농장 안은 혼자). 운전석에서 경적을 울릴 수 있습니다.</li>
       </ul>
       <h3>포인트 <span class="chip">생활 레벨 − 1 · 만렙 ${lf.pointsAtMax}점</span> <span class="chip">스탯마다 ${lf.statMax}까지</span></h3>
       <ul class="plain small">
@@ -1287,7 +1447,7 @@ function pageWorld() {
         <li>도중에 접속이 끊기면 다음 입장 때 서막을 처음부터 다시 합니다. 화면 왼쪽 위 「서막 건너뛰기」로 언제든 건너뛸 수 있고, 건너뛴 서막은 다시 볼 수 없습니다.</li>
       </ul>
       <h3>스토리 컷신</h3>
-      <p class="small">컷신은 Esc로 건너뜁니다. 본편 컷신은 그 퀘스트를 완료하는 순간 나옵니다.</p>
+      <p class="small">컷신은 Esc 또는 Space 두 번으로 건너뜁니다. 본편 컷신은 그 퀘스트를 완료하는 순간 나옵니다.</p>
       ${table(['컷신', { t: '길이', c: 'r' }, '나오는 때'], pr.cutscenes.map((c) => tr([`<b>${esc(c.name)}</b>`, R(`${c.sec}초`), c.prologue ? '서막' : c.quest ? `${esc(M.quests.get(c.quest)?.name ?? c.quest)} 완료` : '—'])))}
     </section>`;
   const tg = D.training;
@@ -1423,8 +1583,33 @@ function pageWorld() {
       ${table([{ t: '순위', c: 'r' }, ...Object.keys(hof.lv300.ranks).map((id) => `<a href="#/classes/${esc(id)}">${esc(classOf(id)?.name ?? id)}</a>`)], Array.from({ length: 10 }, (_, i) => tr([R(`${i + 1}위`), ...Object.values(hof.lv300.ranks).map((rows) => rows[i] ? `<b>${esc(rows[i].name)}</b> <span class="muted small">Lv${rows[i].level}</span>` : '—')])))}
       <p class="muted small" style="margin-top:8px">이름의 X는 금칙어를 가린 글자입니다.</p>
     </section>`;
-  const index = `<nav class="isl-index" aria-label="지역 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>${isl.hub ? "모항" : `Lv${isl.levelRange[0]}~${isl.levelRange[1]}`}${isl.shopTiers.length ? ` · ${isl.shopTiers.map((t) => `T${t}`).join('·')}` : ''}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a></nav>`;
-  return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 모항입니다.')}<h2>서막</h2><div class="stack">${prologueCard}</div><h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>히든 던전</h2><div class="stack">${hiddenCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>선술집 의뢰</h2><div class="stack">${tavernCard}${catCard}</div><h2>생활</h2><div class="stack">${lifeCard}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>길드</h2><div class="stack">${guildRankCard}${guildStorageCard}</div><h2>교류·편의</h2><div class="stack">${socialCards}</div>`;
+  const vg = D.village;
+  const fw = vg.fireworks;
+  const villageCard = `
+    <section class="card" id="village">
+      <h2 style="margin-top:0">${esc(vg.name)} 놀거리 <span class="chip">누구나</span> <span class="chip">레벨 제한 없음</span></h2>
+      <div class="grid g3">
+        <div class="card"><h3>폭죽놀이 <span class="chip">매일 ${fw.hourKst}시</span></h3>
+          <p class="small">매일 밤 ${fw.hourKst}시(한국 시간)에 ${esc(fw.island)} 해변 앞바다 하늘에서 ${fw.durationMin}분 동안 폭죽이 터집니다. ${fw.leadMin}분 전부터 하늘이 밤으로 저물고 「곧 시작」 알림이 뜹니다. 늦게 들어와도 모두와 같은 폭죽을 남은 부분부터 봅니다.</p>
+          <p class="small">쇼 동안 해변 관람 자리에서 F <b>「폭죽놀이 보기」</b>(모바일 「폭죽 보기」)를 누르면 캐릭터 어깨 뒤에서 바다 위 하늘을 올려다봅니다. 다시 누르면 그만 봅니다.</p></div>
+        <div class="card"><h3>체스 <span class="chip">탁자 ${vg.chess.tables}개</span></h3>
+          <ul class="plain small">
+            <li>탁자 곁에서 F 「체스」로 체스 창을 엽니다.</li>
+            <li><b>모험가와 대국</b>: 각자 ${vg.chess.clockMin}분 + 한 수마다 ${vg.chess.incSec}초. 첫 수를 ${vg.chess.firstMoveSec}초 안에 두지 않으면 대국이 무효가 됩니다. 무승부를 제안할 수 있습니다.</li>
+            <li><b>컴퓨터와 대국</b>: 쉬움·보통·어려움, 시간 제한 없음, 한 수 무르기.</li>
+            <li>곁에 있는 사람은 관전하며 훈수 채팅을 할 수 있습니다. 전적은 남지만 보상은 없습니다.</li>
+          </ul></div>
+        <div class="card"><h3>오목 <span class="chip">${vg.omok.size}×${vg.omok.size}</span></h3>
+          <ul class="plain small">
+            <li>오목판 곁에서 F 「오목」으로 오목 창을 엽니다.</li>
+            <li>흑이 먼저 둡니다. <b>정확히 다섯</b>을 이으면 이깁니다(여섯 이상은 승리가 아님).</li>
+            <li>흑만 삼삼(3-3)이 금지입니다.</li>
+            <li>한 수 ${vg.omok.turnSec}초.</li>
+          </ul></div>
+      </div>
+    </section>`;
+  const index = `<nav class="isl-index" aria-label="지역 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>${isl.hub ? "모항" : `Lv${isl.levelRange[0]}~${isl.levelRange[1]}`}${isl.shopTiers.length ? ` · ${isl.shopTiers.map((t) => `T${t}`).join('·')}` : ''}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a><a href="#/world#village"><b>${esc(vg.name)} 놀거리</b><span>폭죽 · 체스 · 오목</span></a></nav>`;
+  return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 모항입니다.')}<h2>서막</h2><div class="stack">${prologueCard}</div><h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}${questLineCard}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>히든 던전</h2><div class="stack">${hiddenCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>선술집 의뢰</h2><div class="stack">${tavernCard}${catCard}</div><h2>생활</h2><div class="stack">${lifeCard}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>길드</h2><div class="stack">${guildRankCard}${guildStorageCard}</div><h2>${esc(vg.name)} 놀거리</h2><div class="stack">${villageCard}</div><h2>교류·편의</h2><div class="stack">${socialCards}</div>`;
 }
 
 // ── 페이지: 성장·강화 ──
@@ -1576,7 +1761,7 @@ function pageGrowth() {
       <li>소환: 소라고둥 1개 = 1회(${D.pets.drawCounts.join(' · ')}회). 소라고둥이 모자란 회차는 젬 ${D.pets.drawGems}개로 대신 소환합니다(소라고둥 먼저, 확률 같음). 등급은 소환 레벨 확률표, 같은 등급 안의 펫은 모두 같은 확률입니다. 누적 소환 횟수로 소환 레벨이 오르고(최대 Lv${D.pets.summonMax}, ${fmt(D.pets.summonAt[D.pets.summonMax - 1])}회), 레벨 보상으로 선택권을 받습니다: ${D.pets.milestones.map((m) => `Lv${m.level} ${esc(m.grade)}`).join(' · ')}.</li>
       <li>${esc(D.pets.pityText)}</li>
       <li>레벨: 펫 간식으로 올립니다(최대 Lv${D.pets.maxLevel}, Lv1→${D.pets.maxLevel} 합 ${fmt(D.pets.snackTotal)}개). Lv${D.pets.breakLevels.join(' · Lv')}에서 다음 레벨로 갈 때는 그 펫 조각(돌파)이 듭니다. 돌파에 더 필요 없는 조각은 등급별 펫 간식으로 바뀝니다.</li>
-      <li>매일 보급(계정 하루 한 번): 소라고둥 ${D.pets.daily.shells}개 · 펫 간식 ${D.pets.daily.snacks}개. 접속 이벤트와 보물 사냥 교환소에서도 받습니다. 과금 없이 약 1년이면 소환 Lv${D.pets.summonMax}과 ${D.pets.slots}칸 모두 최고 등급 펫으로 채우는 것이 목표입니다.</li>
+      <li>매일 보급(계정 하루 한 번): 소라고둥 ${D.pets.daily.shells}개 · 펫 간식 ${D.pets.daily.snacks}개. 접속 이벤트와 보물 사냥 교환소에서도 받습니다.</li>
     </ul>
     ${table(['등급', { t: '최종 공격력', c: 'r' }, { t: '돌파 조각', c: 'r' }, { t: '남는 조각 → 간식', c: 'r' }], D.pets.grades.map((g) => tr([`<b class="rar-${g.id}">${esc(g.name)}</b>`, R(`+${g.atk[0]}% → +${g.atk[1]}%`), R(g.breakFrags.join(' · ')), R(fmt(g.extraSnacks))])))}
     ${table(['소환 Lv', ...D.pets.grades.map((g) => ({ t: esc(g.name), c: 'r' }))], D.pets.rates.map((row, i) => tr([`Lv${i + 1}<span class="muted small"> · ${fmt(D.pets.summonAt[i])}회</span>`, ...row.map((v) => R(`${v}%`))])))}
@@ -1736,17 +1921,30 @@ function textOf(root) {
   return s;
 }
 
-const GROUPS = ['문서', '직업', '대장장이', '숙련도', '제련 옵션', '전직', '스킬', '소환수', '노래', '아이템', '몬스터', '지역', '레이드', '퀘스트', 'NPC', '콘텐츠'];
+const GROUPS = ['문서', '직업', '대장장이', '숙련도', '제련 옵션', '전직', '스킬', '소환수', '노래', '아이템', '몬스터', '지역', '레이드', '퀘스트', 'NPC', '콘텐츠', '업데이트'];
 let searchIndex = [];
 function buildSearch() {
   const ph = (name) => `<span class="ico sm ph">${icon(name)}</span>`;
   const entries = [];
   const add = (group, name, href, kind, iconHtml, text = '', keys = '', cls = '') => entries.push({ group, name, href, kind, icon: iconHtml, text, cls, keys: fold(keys).t, nameF: fold(name), nameC: fold(name, true), textF: fold(text) });
-  for (const [page, fn] of [['damage', pageDamage], ['drops', pageDrops], ['growth', pageGrowth], ['classes', pageClasses]]) {
+  for (const [page, fn] of [['damage', pageDamage], ['drops', pageDrops], ['growth', pageGrowth], ['classes', pageClasses], ['world', pageWorld]]) {
     const body = new DOMParser().parseFromString(`<body>${fn()}</body>`, 'text/html').body;
     for (const s of sectionize(body)) add('문서', s.title || TITLES[page], s.id ? `#/${page}#${s.id}` : `#/${page}`, TITLES[page], ph('scroll-text'), s.text, TITLES[page]);
   }
   add('문서', TITLES.feedback, '#/feedback', '익명 의견 남기기', ph('message-square'), '버그 제보 건의 밸런스 의견 위키 오류', '피드백 게시판 건의 버그 제보 문의');
+  add('문서', TITLES.guide, '#/guide', '레벨마다 갈 사냥터 · 열리는 콘텐츠', ph('map'), D.unlocks.map((u) => `Lv${u.level} ${u.name}`).join(' · '), '길잡이 가이드 공략 초보 뉴비 처음 육성 순서 사냥터 레벨업 어디서');
+  add('문서', TITLES.news, '#/news', `최근 패치노트 ${D.news.length}개`, ph('scroll-text'), D.news.map((n) => `${n.version} ${n.title}`).join(' · '), '업데이트 패치 패치노트 소식 공지 새소식');
+  for (const n of D.news) add('업데이트', `${n.version} ${n.title}`, `#/news#${n.id}`, `패치노트 · ${n.date}`, ph('scroll-text'), [...n.summary, ...n.sections.flatMap((s) => s.items)].join(' · '), '업데이트 패치 패치노트');
+  const W = D.wanderer;
+  add('직업', W.name, `#/classes/${W.id}`, '히든 직업 · 3차 전직 기술 조합', ph('map'), W.jobs.map((j) => j.name).join(' · '), '방랑자 히든직업 wanderer 조합 섞기');
+  const vg = D.village;
+  add('콘텐츠', '폭죽놀이', '#/world#village', `${vg.name} · 매일 ${vg.fireworks.hourKst}시(한국 시간) · ${vg.fireworks.durationMin}분`, ph('flame'), '해변 앞바다 폭죽놀이 보기', '폭죽 불꽃놀이 불꽃 fireworks 밤 해변 11시');
+  add('콘텐츠', '체스', '#/world#village', `${vg.name} · 탁자 ${vg.chess.tables}개 · ${vg.chess.clockMin}분 + 한 수 ${vg.chess.incSec}초`, ph('gamepad-2'), '모험가와 대국 컴퓨터와 대국 관전 훈수', '체스 chess 보드게임 미니게임 탁자 훈수');
+  add('콘텐츠', '오목', '#/world#village', `${vg.name} · ${vg.omok.size}×${vg.omok.size} · 한 수 ${vg.omok.turnSec}초`, ph('gamepad-2'), '정확히 다섯 흑 삼삼 금지', '오목 omok 바둑 보드게임 미니게임');
+  add('콘텐츠', '치장 뽑기', '#/drops#cos-gacha', `1회 ${D.cosGacha.ruby.one}루비 · ${D.cosGacha.multi}회 ${D.cosGacha.ruby.multi}루비 · 천장 ${D.cosGacha.pity}회`, ph('gem'), D.cosGacha.seasons.map((s) => `${s.name} ${s.prizes.filter((p) => p.cosmeticId).map((p) => p.name).join(' ')}`).join(' · '), '치장 뽑기 가챠 gacha 뽑기권 꾸미기 천장 코스튬 확률');
+  add('콘텐츠', '캐릭터 칸 늘리기', '#/drops#gems', `기본 ${D.charSlots.base}칸 · ${D.gems.name} ${D.charSlots.gems}개로 1칸 · 최대 ${D.charSlots.buyMax}번`, ph('gem'), '캐릭터 선택 화면 칸 늘리기', '캐릭터 슬롯 칸 추가 부캐 캐릭터 생성 자리');
+  add('콘텐츠', '농장 트랙터', '#/world#life', `${fmt(D.tractor.price)} 베리 · 이동 속도 ×${D.tractor.speedMul} · 지나가며 수확`, ph('sparkles'), D.tractor.villages.join(' · '), '트랙터 tractor 농장 탈것 경적 뒷자리');
+  add('콘텐츠', '레이드로 이끄는 곁가지 퀘스트', '#/world#quest-lines', '심연의 원정대 · 성역 토벌 의뢰', ph('scroll-text'), [D.questLines.raidCall, ...D.questLines.bountyRaid, ...D.questLines.bountyHunt].map((id) => M.quests.get(id)?.name ?? '').join(' · '), '성역 토벌 의뢰 현상금 레이드 줄기 사냥 줄기 원정대 곁가지');
   for (const c of D.classes) {
     const hidden = c.id === D.blacksmith.id;
     add(hidden ? '대장장이' : '직업', c.name, `#/classes/${c.id}`, hidden ? `히든 직업 · ${c.role}` : `직업 · ${c.role}`, c.icon ? `<img class="ico sm" src="${esc(c.icon)}" alt="">` : ph('shield'), '', hidden ? '대장장이히든직업제련증강' : '직업');
@@ -1837,36 +2035,94 @@ function search(raw) {
     else continue;
     hits.push({ e, name: sp, snip, score });
   }
+  // 맞는 것이 하나도 없으면 비슷한 이름(한 글자 틀림 · 몇 글자 빠뜨림)을 보여 준다
+  if (!hits.length && !cho && q.length >= 2) {
+    for (const e of searchIndex) {
+      const t = e.nameF.t;
+      const score = q.length >= 3 && oneOff(t, q) ? 7 : looseSubseq(t, q) ? 5 : 0;
+      if (score) hits.push({ e, name: null, snip: null, score, near: true });
+    }
+  }
   return hits.sort((a, b) => b.score - a.score || GROUPS.indexOf(a.e.group) - GROUPS.indexOf(b.e.group) || a.e.name.length - b.e.name.length);
+}
+/** t 안에 q와 같은 길이로 한 글자만 다른 구간이 있는가(오타 하나) */
+function oneOff(t, q) {
+  for (let i = 0; i + q.length <= t.length; i++) {
+    let miss = 0;
+    for (let j = 0; j < q.length && miss <= 1; j++) if (t[i + j] !== q[j]) miss++;
+    if (miss <= 1) return true;
+  }
+  return false;
+}
+/** q의 글자가 t에 차례대로, 너무 흩어지지 않고(구간 길이 ≤ 질의 길이 × 2) 들어 있는가(글자 빠뜨림) */
+function looseSubseq(t, q) {
+  for (let s = t.indexOf(q[0]); s >= 0; s = t.indexOf(q[0], s + 1)) {
+    let j = 1;
+    let i = s + 1;
+    for (; i < t.length && j < q.length; i++) if (t[i] === q[j]) j++;
+    if (j === q.length && i - s <= q.length * 2) return true;
+  }
+  return false;
 }
 function hitBody(h) {
   return `${h.e.icon}<span class="sr-main"><span class="nm ${h.e.cls}">${hl(h.e.name, h.name)}</span>${h.snip ? `<span class="snip">${snippet(h.e.text, h.snip)}</span>` : ''}</span><span class="kind">${esc(h.e.kind)}</span>`;
 }
 const searchHref = (q) => `#/search/${encodeURIComponent(q.trim())}`;
 
-/** 검색창 하나(상단·홈)에 자동완성 목록을 붙인다 */
-function attachSearch(input, box) {
+// 최근 검색(이 브라우저에만 남는다)과 많이 찾는 낱말: 검색창이 비어 있을 때 보여 준다
+const RECENT_KEY = 'feiven-wiki-recent';
+const RECENT_MAX = 8;
+const POPULAR = ['방랑자', '치장 뽑기', '강화 성공률', '합성', '폭죽놀이', '황혼의 첨탑', '크라켄', 'ㅎㄱㅅ'];
+function recentSearches() {
+  try {
+    const v = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]');
+    return Array.isArray(v) ? v.filter((x) => typeof x === 'string').slice(0, RECENT_MAX) : [];
+  } catch { return []; }
+}
+function rememberSearch(raw) {
+  const q = raw.trim();
+  if (!q) return;
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify([q, ...recentSearches().filter((x) => x !== q)].slice(0, RECENT_MAX))); } catch { /* 저장소를 못 쓰면 기억하지 않는다 */ }
+}
+function idleResults(id) {
+  const rec = recentSearches();
+  return `${rec.length ? `<div class="sr-head"><span>최근 검색</span><button type="button" data-clear-recent>모두 지우기</button></div>${rec.map((r, i) => `<a role="option" id="${id}-r${i}" href="${searchHref(r)}">${icon('history')}<span class="sr-main"><span class="nm">${esc(r)}</span></span></a>`).join('')}` : ''}<div class="sr-head"><span>많이 찾는 낱말</span></div><div class="sr-chips">${POPULAR.map((p) => `<a class="chip" href="${searchHref(p)}">${esc(p)}</a>`).join('')}</div>`;
+}
+
+/** 검색창 하나(팔레트·홈)에 자동완성 목록을 붙인다. always = 목록을 늘 보인다(팔레트), idle = 비어 있을 때 최근 검색·많이 찾는 낱말, onGo = 결과를 고른 뒤 */
+function attachSearch(input, box, { always = false, idle = false, onGo = null } = {}) {
   let sel = -1;
   let links = [];
-  const close = () => { box.hidden = true; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); sel = -1; };
+  const show = (on) => {
+    if (!always) box.hidden = !on;
+    input.setAttribute('aria-expanded', String(on));
+  };
+  const close = () => { show(false); input.removeAttribute('aria-activedescendant'); sel = -1; };
   const paint = () => {
     links.forEach((a, i) => a.setAttribute('aria-selected', String(i === sel)));
     if (sel >= 0) input.setAttribute('aria-activedescendant', links[sel].id);
+    else input.removeAttribute('aria-activedescendant');
   };
-  const go = (href) => { location.hash = href; input.value = ''; close(); input.blur(); };
-  input.addEventListener('input', () => {
+  const finish = () => { input.value = ''; close(); if (onGo) onGo(); else input.blur(); };
+  const go = (href) => { rememberSearch(input.value); location.hash = href; finish(); };
+  const fill = () => {
     const q = input.value.trim();
-    if (!q) return close();
-    const hits = search(q);
-    box.innerHTML = hits.length
-      ? `${hits.slice(0, 8).map((h, i) => `<a role="option" id="${box.id}-${i}" href="${h.e.href}">${hitBody(h)}</a>`).join('')}<a role="option" id="${box.id}-all" class="more" href="${searchHref(q)}">${icon('search')}<span class="sr-main"><span class="nm">‘${esc(q)}’ 전체 결과 보기</span></span><span class="kind">${hits.length}개</span></a>`
-      : `<div class="empty">‘${esc(q)}’에 맞는 결과가 없습니다. 초성(예: ㅋㄹㅋ)이나 다른 낱말로 찾아보세요.</div>`;
-    links = [...box.querySelectorAll('a')];
-    box.hidden = false;
-    input.setAttribute('aria-expanded', 'true');
-    sel = links.length ? 0 : -1;
+    if (!q) {
+      if (!always && !idle) return close();
+      box.innerHTML = idleResults(box.id);
+    } else {
+      const hits = search(q);
+      box.innerHTML = hits.length
+        ? `${hits[0].near ? `<div class="sr-head"><span>‘${esc(q)}’과 똑같은 이름이 없어 비슷한 결과를 보여 드립니다</span></div>` : ''}${hits.slice(0, 8).map((h, i) => `<a role="option" id="${box.id}-${i}" href="${h.e.href}">${hitBody(h)}</a>`).join('')}<a role="option" id="${box.id}-all" class="more" href="${searchHref(q)}">${icon('search')}<span class="sr-main"><span class="nm">‘${esc(q)}’ 전체 결과 보기</span></span><span class="kind">${hits.length}개</span></a>`
+        : `<div class="empty">‘${esc(q)}’에 맞는 결과가 없습니다. 초성(예: ㅋㄹㅋ)이나 다른 낱말로 찾아보세요.</div>`;
+    }
+    links = [...box.querySelectorAll('a[role="option"]')];
+    show(true);
+    sel = q && links.length ? 0 : -1;
     paint();
-  });
+  };
+  input.addEventListener('input', fill);
+  if (idle) input.addEventListener('focus', () => { if (!input.value.trim()) fill(); });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       if (box.hidden || !links.length) return;
@@ -1879,18 +2135,42 @@ function attachSearch(input, box) {
       if (!box.hidden && sel >= 0) go(links[sel].getAttribute('href'));
       else if (input.value.trim()) go(searchHref(input.value));
     } else if (e.key === 'Escape') {
-      close();
-      input.blur();
+      e.preventDefault();
+      if (onGo) onGo();
+      else { close(); input.blur(); }
     }
   });
-  box.addEventListener('click', (e) => { if (e.target.closest('a')) { input.value = ''; close(); } });
+  box.addEventListener('click', (e) => {
+    if (e.target.closest('[data-clear-recent]')) {
+      try { localStorage.removeItem(RECENT_KEY); } catch { /* 없음 */ }
+      fill();
+      input.focus();
+      return;
+    }
+    if (e.target.closest('a')) { rememberSearch(input.value); finish(); }
+  });
+  return fill;
 }
+/** 상단 검색 단추 · / · Ctrl(⌘)+K로 여는 검색 팔레트 */
 function initSearch() {
+  const pal = document.getElementById('palette');
   const input = document.getElementById('q');
-  attachSearch(input, document.getElementById('q-results'));
-  // 검색창 밖을 누르면 열린 자동완성 목록을 닫는다(홈 검색창도 같은 규칙)
+  const shut = () => { if (pal.open) pal.close(); };
+  const refill = attachSearch(input, document.getElementById('q-results'), { always: true, onGo: shut });
+  const open = () => {
+    if (!pal.open) pal.showModal();
+    input.value = '';
+    refill();
+    input.focus();
+  };
+  document.getElementById('q-open').addEventListener('click', open);
+  pal.querySelector('.pal-close').addEventListener('click', shut);
+  // 팔레트 바깥(뒤 막)을 누르면 닫는다 — 상자가 대화 상자를 꽉 채우므로 대화 상자 자신이 눌린 것은 뒤 막뿐이다
+  pal.addEventListener('click', (e) => { if (e.target === pal) shut(); });
+  window.addEventListener('hashchange', shut);
+  // 홈 검색창 밖을 누르면 열린 자동완성 목록을 닫는다
   document.addEventListener('click', (e) => {
-    for (const box of document.querySelectorAll('.search-results:not([hidden])')) {
+    for (const box of document.querySelectorAll('.search-results:not([hidden]):not(.pal-results)')) {
       if (box.parentElement.contains(e.target)) continue;
       box.hidden = true;
       box.parentElement.querySelector('input')?.setAttribute('aria-expanded', 'false');
@@ -1900,7 +2180,7 @@ function initSearch() {
     const typing = ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName);
     if ((e.key === '/' && !typing) || (e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey))) {
       e.preventDefault();
-      (document.getElementById('hq') ?? input).focus();
+      open();
     }
   });
 }
@@ -1925,10 +2205,10 @@ function renderSearch() {
     ? `<div class="seg" role="group" aria-label="분류"><button type="button" data-g="all" aria-pressed="${searchState.group === 'all'}">전체<span class="n">${hits.length}</span></button>${GROUPS.filter((g) => counts.has(g)).map((g) => `<button type="button" data-g="${g}" aria-pressed="${searchState.group === g}">${g}<span class="n">${counts.get(g)}</span></button>`).join('')}</div>`
     : '';
   document.getElementById('sr-list').innerHTML = !fold(q).t
-    ? '<div class="empty-state">찾을 낱말을 입력하세요. 예: 크라켄, 합성, 강화서, ㅎㄱㅅ</div>'
+    ? `<div class="empty-state">찾을 낱말을 입력하세요. 예: 크라켄, 합성, 강화서, ㅎㄱㅅ</div>${recentSearches().length ? `<p class="sr-near" style="margin-top:16px">최근 검색</p><div class="chips">${recentSearches().map((r) => `<a class="chip" href="${searchHref(r)}">${esc(r)}</a>`).join('')}</div>` : ''}`
     : shown.length
-      ? `<ul class="sr-list">${shown.slice(0, 200).map((h) => `<li><a class="sr-row" href="${h.e.href}">${hitBody(h)}</a></li>`).join('')}</ul>`
-      : `<div class="empty-state">‘${esc(q)}’에 맞는 결과가 없습니다.</div>`;
+      ? `${hits[0].near ? `<p class="sr-near">‘${esc(q)}’과 똑같은 이름이 없어 비슷한 결과를 보여 드립니다.</p>` : ''}<ul class="sr-list">${shown.slice(0, 200).map((h) => `<li><a class="sr-row" href="${h.e.href}">${hitBody(h)}</a></li>`).join('')}</ul>`
+      : `<div class="empty-state">‘${esc(q)}’에 맞는 결과가 없습니다. 초성(예: ㅋㄹㅋ)이나 다른 낱말로 찾아보세요.</div>`;
 }
 function bindSearch() {
   const input = document.getElementById('sq');
@@ -2210,7 +2490,7 @@ function parseHash() {
   const [page = '', id] = path.split('/').map(decodeURIComponent);
   return { page, id, anchor: anchor && decodeURIComponent(anchor) };
 }
-const TITLES = { '': '홈', damage: '데미지 공식', drops: '드랍률', classes: '직업·전직', skills: '스킬 도감', items: '아이템 도감', mobs: '몬스터 도감', world: '지역·레이드', growth: '성장·강화', search: '검색', feedback: '피드백 게시판' };
+const TITLES = { '': '홈', guide: '모험 길잡이', news: '업데이트 소식', damage: '데미지 공식', drops: '드랍률·상점', classes: '직업·전직', skills: '스킬 도감', items: '아이템 도감', mobs: '몬스터 도감', world: '지역·레이드', growth: '성장·강화', search: '검색', feedback: '피드백 게시판' };
 let lastPath = null;
 /** 바로 전에 보던 해시(피드백 글에 '보던 페이지'로 붙인다) */
 let lastHash = '';
@@ -2243,11 +2523,13 @@ function render() {
   let after = () => {};
   let title = TITLES[page];
   switch (page) {
-    case '': html = pageHome(); after = () => attachSearch(document.getElementById('hq'), document.getElementById('hq-results')); break;
-    case 'search': html = pageSearch(id); after = bindSearch; title = id ? `‘${id}’ 검색` : '검색'; break;
+    case '': html = pageHome(); after = () => attachSearch(document.getElementById('hq'), document.getElementById('hq-results'), { idle: true }); break;
+    case 'guide': html = pageGuide(); break;
+    case 'news': html = pageNews(); break;
+    case 'search': html = pageSearch(id); after = bindSearch; title = id ? `‘${id}’ 검색` : '검색'; if (id) rememberSearch(id); break;
     case 'damage': html = pageDamage(); after = bindCalc; break;
     case 'drops': html = pageDrops(); break;
-    case 'classes': html = id ? pageClass(id) : pageClasses(); if (id) title = classOf(id)?.name; break;
+    case 'classes': html = id ? pageClass(id) : pageClasses(); if (id) title = id === D.wanderer.id ? D.wanderer.name : classOf(id)?.name; break;
     case 'skills': html = pageSkills(id); after = () => bindSkills(id); if (id) title = M.skills.get(id)?.name; break;
     case 'items': html = id ? pageItem(id) : pageItems(); if (!id) after = bindItems; else title = M.items.get(id)?.name; break;
     case 'mobs': html = id ? pageMob(id) : pageMobs(); if (!id) after = bindMobs; else title = M.mobs.get(id)?.name; break;
@@ -2270,6 +2552,8 @@ function render() {
     if (secs.length >= 3) main.querySelector('.page-head')?.insertAdjacentHTML('afterend', `<nav class="toc" aria-label="이 페이지 목차">${secs.map((s) => `<a href="#/${page}#${s.id}" data-sec="${s.id}">${esc(s.title)}</a>`).join('')}</nav>`);
     spyToc();
   }
+  // 절 제목마다 링크 복사 단추(주소에 #/페이지#절 — 카톡·디스코드에 바로 붙여 넣는다)
+  for (const h of main.querySelectorAll(':scope > h2[id]')) h.insertAdjacentHTML('beforeend', `<button type="button" class="anchor" data-anchor="${esc(h.id)}" aria-label="이 절 링크 복사" title="이 절 링크 복사">${icon('link')}</button>`);
   document.title = `${title ? `${title} · ` : ''}${D.meta.title}`;
   document.querySelectorAll('.nav a').forEach((a) => {
     if (a.dataset.route === page) a.setAttribute('aria-current', 'page');
@@ -2280,6 +2564,19 @@ function render() {
   if (path !== lastPath && page !== 'search') main.focus({ preventScroll: true });
   lastPath = path;
   lastHash = location.hash;
+}
+function toast(msg) {
+  let t = document.querySelector('.toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.className = 'toast';
+    t.setAttribute('role', 'status');
+    document.body.append(t);
+  }
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => { t.hidden = true; }, 1800);
 }
 
 async function start() {
@@ -2304,18 +2601,32 @@ async function start() {
   window.addEventListener('hashchange', render);
   // 표가 그려질 때마다(목록 거르기 포함) 칸 이름을 단다. data-* 속성만 바꾸므로 다시 불리지 않는다
   new MutationObserver(() => labelTables(main)).observe(main, { childList: true, subtree: true });
+  const toTop = document.querySelector('.to-top');
+  const smooth = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
   let spyQueued = false;
   window.addEventListener('scroll', () => {
     if (spyQueued) return;
     spyQueued = true;
-    requestAnimationFrame(() => { spyQueued = false; spyToc(); });
+    requestAnimationFrame(() => { spyQueued = false; spyToc(); toTop.hidden = scrollY < 600; });
   }, { passive: true });
-  // 목차 칩은 페이지를 다시 그리지 않고 그 절로 부드럽게 옮긴다(주소만 바꾼다)
+  // 맨 위로 · 본문으로 건너뛰기: 해시 라우터라 #main으로 주소를 바꾸지 않고 옮긴다
+  toTop.addEventListener('click', (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: smooth() }); main.focus({ preventScroll: true }); });
+  document.querySelector('.skip')?.addEventListener('click', (e) => { e.preventDefault(); main.focus(); });
   main.addEventListener('click', (e) => {
+    // 절 링크 복사
+    const b = e.target.closest('button.anchor');
+    if (b) {
+      const hash = `#/${parseHash().page}#${b.dataset.anchor}`;
+      history.replaceState(null, '', hash);
+      const url = `${location.origin}${location.pathname}${hash}`;
+      (navigator.clipboard?.writeText(url) ?? Promise.reject(new Error('no clipboard'))).then(() => toast('이 절 링크를 복사했습니다'), () => toast('주소창의 링크를 복사해 쓰세요'));
+      return;
+    }
+    // 목차 칩은 페이지를 다시 그리지 않고 그 절로 부드럽게 옮긴다(주소만 바꾼다)
     const a = e.target.closest('.toc a[data-sec]');
     if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return;
     e.preventDefault();
-    document.getElementById(a.dataset.sec)?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    document.getElementById(a.dataset.sec)?.scrollIntoView({ behavior: smooth() });
     history.replaceState(null, '', a.getAttribute('href'));
   });
   render();
