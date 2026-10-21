@@ -1129,6 +1129,7 @@ function pageMob(id) {
     ${wb ? `<p style="margin-top:12px">${islandLink(wb.islandId)}의 원정 필드 보스입니다. ${wb.periodSec / 60}분마다 ${wb.activeSec / 60}분 동안 나타나고, 기여(피해 + 지원 + 치유)한 사람 모두가 지분만큼 <a href="#/world#wb-${esc(wb.id)}">원정 보상</a>을 나눠 받습니다.</p>${gimmickBlock(wb.gimmicks, wb.phases, true)}` : ''}
     ${D.seaBoss?.mobId === m.id ? seaBossBlock(D.seaBoss) : ''}
     ${D.charybdis?.mobId === m.id ? charybdisBlock(D.charybdis) : ''}
+    ${D.jormungandr?.mobId === m.id ? jormungandrBlock(D.jormungandr) : ''}
     <h2>드랍표 <span class="muted small">베리 ${fmt(m.loot.gold[0])}~${fmt(m.loot.gold[1])}</span></h2>
     ${table(['아이템', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }, { t: '', c: 'r' }], lootRows)}
     ${gearNote}
@@ -1150,6 +1151,14 @@ function charybdisBlock(s) {
     <ul class="plain">${s.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
     <h3 style="margin-top:12px">기믹</h3>
     <ul class="plain">${s.gimmicks.map((g) => `<li><b>${esc(g.name)}</b> — ${esc(g.text)}</li>`).join('')}</ul>`;
+}
+
+/** 항해사 바다 레이드 보스(세계뱀 요르문간드, 2026-10-21): 부르는 법 · 레벨·HP 보정 · 선체 · 함께 싸우기 · 보상 · 페이즈별 기믹. 그 전 커밋 데이터에는 없다 */
+function jormungandrBlock(s) {
+  return `<p style="margin-top:12px">항해사 바다 레이드 보스입니다. 위 레벨·HP·공격력·베리는 기본값이고, 나올 때(배가 더 붙으면 다시) 선원에 맞춰 정해집니다.</p>
+    <ul class="plain">${s.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
+    <h3 style="margin-top:12px">기믹</h3>
+    <ul class="plain">${s.gimmicks.map((g) => `<li><span class="chip">페이즈 ${g.phase}부터</span> <b>${esc(g.name)}</b> — ${esc(g.text)}</li>`).join('')}</ul>`;
 }
 
 /** 바다 이벤트(2026-10-20): 깊은 바다가 열린 동안 배 곁에 생기는 이벤트 · 보상 · 항해사 이점 · 해역. 그 전 커밋 데이터에는 없다(빈 문자열) */
@@ -2036,6 +2045,7 @@ function buildSearch() {
   add('콘텐츠', '캐릭터 칸 늘리기', '#/drops#gems', `기본 ${D.charSlots.base}칸 · ${D.gems.name} ${D.charSlots.gems}개로 1칸 · 최대 ${D.charSlots.buyMax}번`, ph('gem'), '캐릭터 선택 화면 칸 늘리기', '캐릭터 슬롯 칸 추가 부캐 캐릭터 생성 자리');
   add('콘텐츠', '농장 트랙터', '#/world#life', `${fmt(D.tractor.price)} 베리 · 이동 속도 ×${D.tractor.speedMul} · 지나가며 수확`, ph('sparkles'), D.tractor.villages.join(' · '), '트랙터 tractor 농장 탈것 경적 뒷자리');
   add('콘텐츠', '레이드로 이끄는 곁가지 퀘스트', '#/world#quest-lines', '심연의 원정대 · 성역 토벌 의뢰', ph('scroll-text'), [D.questLines.raidCall, ...D.questLines.bountyRaid, ...D.questLines.bountyHunt].map((id) => M.quests.get(id)?.name ?? '').join(' · '), '성역 토벌 의뢰 현상금 레이드 줄기 사냥 줄기 원정대 곁가지');
+  if (D.jormungandr) add('콘텐츠', '세계뱀 요르문간드', `#/mobs/${D.jormungandr.mobId}`, '항해사 바다 레이드 · 크라켄 진주로 부른다', ph('crown'), D.jormungandr.gimmicks.map((g) => g.name).join(' · '), '요르문간드 세계뱀 바다 레이드 항해사 크라켄 진주 소환 똬리');
   for (const c of D.classes) {
     const hidden = c.id === D.blacksmith.id || c.id === D.alchemist.id;
     const keys = c.id === D.blacksmith.id ? '대장장이히든직업제련증강' : c.id === D.alchemist.id ? '연금술사히든직업물약제조플라스크엘릭서' : '직업';
