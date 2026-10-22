@@ -20,7 +20,7 @@ const KIND = { weapon: '무기', helmet: '투구', armor: '갑옷', gloves: '장
 const EQUIP = ['weapon', 'helmet', 'armor', 'gloves', 'boots', 'accessory', 'ring'];
 const ROLE = { chief: '촌장(전직)', quest: '퀘스트', shop: '상인', smith: '대장장이(강화)', sailor: '뱃사공(이동)', raid: '선술집(레이드·던전·원정)', gem: '젬 상인', storage: '창고', tavern: '의뢰 중개인', cook: '요리사(생활)', smelter: '광부 반장(생활)', fishmonger: '어물전 주인(생활)', farmer: '농장 관리인(생활)', shipwright: '선주(배낚시 배)', flavor: '주민' };
 const MOB_KIND = { field: '일반', elite: '정예', boss: '필드 보스', raid: '레이드 보스', raidAdd: '레이드 소환수', worldBoss: '원정 필드 보스', worldBossAdd: '원정 소환수' };
-const PASSIVE = { patkPct: ['물리 공격력', '%'], matkPct: ['마법 공격력', '%'], maxHpPct: ['최대 HP', '%'], maxMpPct: ['최대 MP', '%'], critPct: ['치명타 확률', '%p'] };
+const PASSIVE = { patkPct: ['물리 공격력', '%'], matkPct: ['마법 공격력', '%'], maxHpPct: ['최대 HP', '%'], maxMpPct: ['최대 MP', '%'], critPct: ['치명타 확률', '%p'], bossPct: ['보스에게 주는 피해', '%'] };
 const DMG = { phys: '물리', magic: '마법' };
 const RARITIES = ['common', 'rare', 'saga', 'epic', 'legendary', 'unique', 'absolute'];
 
@@ -776,7 +776,7 @@ function pageBlacksmith(k) {
     <p class="muted small" style="margin-top:8px">제련 의뢰: 1:1 거래 거리 안에서 의뢰인이 장비 하나를 골라 신청하면, 대장장이가 회당 수고비와 최대 횟수를 먼저 제시하고 의뢰인이 받아들여야 시작됩니다. 신청 창과 제시 카드에서 그 대장장이가 붙일 수 있는 옵션과 값의 최소~최대를 볼 수 있습니다. 제련비·강화서·재료는 대장장이가 내고(한 번 할 만큼은 있어야 제시할 수 있습니다), 의뢰인은 실제로 제련한 횟수만큼 수고비만 냅니다(수고비에는 거래 수수료가 붙습니다). 장비는 의뢰인 가방에 잠긴 채로 남습니다. 의뢰가 시작되면 의뢰인과 대장장이가 같은 제련 창(의뢰인은 보기만)과 오른쪽 1:1 채팅을 씁니다. 횟수를 다 쓰면 장비 잠금이 풀리고, 어느 쪽이든 창을 닫을 때 의뢰가 끝나며 상대에게 알림이 갑니다. 대장장이가 한 의뢰를 시작하면 그 대장장이를 기다리던 다른 신청은 닫히고 알림이 갑니다. 제련한 장비는 거래소에 올릴 수 있고 옵션이 툴팁·살펴보기·매물에 보입니다.</p>
     <h2 id="craft">명장 제작</h2>
     <p class="muted small">노을마을 대장장이 NPC의 「명장 제작」에서 만들 무기의 직업을 고르고, 레이드 보스 재료 9종과 강화서·광석·베리를 들여 「명장의 무기」를 벼립니다. 성공 확률은 ${C.rate}%이고, 성공하면 늘 유니크 등급이 나옵니다. 실패하면 보스 재료는 그대로 남고 강화서·광석·베리만 사라집니다. 성공하든 실패하든 숙련도가 ${C.score} 오릅니다. 이름은 「명장 대장장이 이름의 무기 종류」가 됩니다(예: 「명장 철수의 대검」). 공격력은 같은 직업 폭풍신 무기 유니크의 ${Math.round(C.atkPct * 100)}%이고, 다시 강화·제련할 수 있으며 귀속되지 않습니다. 초월할 때는 같은 직업 폭풍신 무기와 같은 무기로 칩니다.</p>
-    <p class="muted small">보스 재료는 각 레이드를 클리어할 때 한 사람마다 ${pct(C.drop)} 확률로 1개 떨어지고 귀속되지 않습니다. 예전 「무기 제작」으로 만든 무기(「철수의 대검」 등)는 그대로 쓸 수 있습니다.</p>
+    <p class="muted small">보스 재료는 각 레이드를 클리어할 때 한 사람마다 ${pct(C.drop)} 확률로 1개 떨어지고(혼자 도전·핫타임·드랍 이벤트 배율 없음) 귀속되지 않습니다. 예전 「무기 제작」으로 만든 무기(「철수의 대검」 등)는 그대로 쓸 수 있습니다.</p>
     ${table(['재료', { t: '개수', c: 'r' }, '실패하면'], [...lineRows, tr(['베리', R(fmt(C.gold)), '사라짐'])])}
     <h3>직업별 명장 무기(유니크 +0)</h3>
     ${table(['직업', '무기', { t: '공격력', c: 'r' }, { t: '폭풍신 유니크', c: 'r' }], weaponRows, { scroll: true })}
@@ -816,28 +816,38 @@ function pageAlchemist(k) {
       return tr([itemLink(r.id), `<span class="small">${fx}</span>`, esc(A.ranks[r.rank].name), `<span class="small">${r.inputs.map((x) => `${itemLink(x.itemId)} ${fmt(x.qty)}`).join(' · ')}</span>`, R(fmt(r.gold)), R(fmt(r.score)), ...r.rates.map((p) => R(p ? `${p}%` : '—'))]);
     }), { scroll: true })}`;
 }
-/** 히든 직업 방랑자: 직업마다 다른 3차 전직 기술 넷 + 대궁극기 하나를 골라 섞는다. 되는 방법은 싣지 않는다 */
+/** 히든 직업 방랑자: 직업마다 다른 3차 전직 기술 넷 + 대궁극기 하나를 골라 섞는다. 몸(능력치·근접 기본 공격)·피해 배율은 원래 직업과 상관없이 하나. 되는 방법은 싣지 않는다 */
 function pageWanderer() {
   const W = D.wanderer;
-  const cls = D.classes.filter((k) => W.dmgMul[k.id] !== undefined);
+  const B = W.body;
+  const classCount = new Set(W.jobs.map((j) => j.classId)).size;
   const skill = (id, cdMul) => `${M.skills.has(id) ? `<a href="#/skills/${esc(id)}">${esc(M.skills.get(id).name)}</a>` : esc(id)}${cdMul !== 1 ? ` <span class="chip">재사용 ×${cdMul}</span>` : ''}`;
   const job = (j) => `<a href="#/classes/${esc(j.classId)}#br3-${esc(j.branch)}" style="color:${esc(j.color)}">${esc(j.name)}</a>`;
   return `
     ${crumb('#/classes', '직업 목록')}
     <div class="detail-head"><span class="ico lg ph">${icon('map')}</span><div><h1 style="color:${esc(W.color)}">${esc(W.name)}</h1>
-      <div class="chips"><span class="chip accent">히든 직업</span><span class="chip">원래 직업의 무기·기본 공격 그대로</span><span class="chip">최대 HP +${W.maxHpPct}%</span></div></div></div>
-    <p>한 갈래를 고르지 않고 모든 길을 걷는 모험가입니다. ${cls.length}개 직업의 3차 전직 기술 가운데 넷과 대궁극기 하나를 골라 자기만의 조합을 만듭니다.</p>
+      <div class="chips"><span class="chip accent">히든 직업</span><span class="chip">능력치·기본 공격은 원래 직업과 상관없이 같음</span><span class="chip">최대 HP +${W.maxHpPct}%</span><span class="chip">주는 피해 ×${W.dmgMul}</span></div></div></div>
+    <p>한 갈래를 고르지 않고 모든 길을 걷는 모험가입니다. ${classCount}개 직업의 3차 전직 기술 가운데 넷과 대궁극기 하나를 골라 자기만의 조합을 만듭니다.</p>
     <div class="grid g2">
       <div class="card"><h3>규칙</h3><ul class="plain small">
         <li><b>1~4번 칸</b>: 3차 전직 ${W.jobs.length}종의 1~4번 스킬 가운데 넷을 고릅니다. 네 기술은 <b>모두 다른 직업</b>이어야 하고, 어느 칸에 넣을지는 자유입니다.</li>
         <li><b>5번 칸</b>: 3차 전직 대궁극기 ${W.ults.length}종 가운데 하나(직업 제한 없음, 변신 궁극기 제외).</li>
         <li>기술은 <b>촌장 앞에서 언제든 무료로</b> 다시 고릅니다.</li>
-        <li>직업·무기·기본 공격·직업 계수·피해 종류(물리/마법)는 원래 직업 그대로라, 다른 직업 기술도 내 공격력으로 칩니다. 치유·보호막은 내 마법 공격력으로, 노래는 3차 바드와 같은 값으로 들어갑니다.</li>
-        <li>갈래 패시브·3차 기본 공격·3차 직업 기믹은 없습니다. 다른 칸 스킬을 건드리는 효과(사냥 본능의 2번 재사용 대기 절반, 암살자 처치 보상의 1번 재사용 대기 초기화)도 붙지 않습니다.</li>
+        <li>능력치(HP·공격력·MP·치명타)와 기본 공격은 원래 직업과 상관없이 <b>모든 방랑자가 같습니다</b>(직업 계수 ×1, 직업별 몬스터 대상 배율 없음). 원래 직업에서 남는 것은 무기와 겉모습뿐입니다.</li>
+        <li>물리·마법 공격력이 같아 다른 직업 기술도 같은 공격력으로 칩니다. 치유·보호막은 내 마법 공격력으로, 노래는 3차 바드와 같은 값으로 들어갑니다. 지점을 찍는 기술의 사거리와 관통 직선 속도는 그 기술 원래 직업의 기본 공격을 따릅니다.</li>
+        <li>갈래 패시브·3차 기본 공격·3차 직업 기믹은 없습니다. 다른 칸 스킬을 건드리는 효과(사냥 본능의 2번 재사용 대기 절반, 암살자 처치 보상의 1번 재사용 대기 초기화)와 레이드의 서포터 피해 보정·힐러 치유 보정도 붙지 않습니다.</li>
         <li>몇몇 기술은 방랑자가 쓰면 재사용 대기가 달라집니다(아래 표의 「재사용 ×」).</li>
       </ul></div>
-      <div class="card"><h3>직업별 피해 배율</h3><p class="muted small">주는 피해(스킬·기본 공격·소환수)에 곱합니다. 치유·보호막에는 붙지 않습니다. 동등 조건 결투(Lv180·2차 기준)에서는 따로 정한 배율을 쓰고 5번 칸이 비어 있습니다.</p>
-        ${table(['원래 직업', { t: '배율', c: 'r' }, { t: '동등 조건 결투', c: 'r' }], cls.map((k) => tr([`<a href="#/classes/${esc(k.id)}" style="color:${esc(k.color)}">${esc(k.name)}</a>`, R(`×${W.dmgMul[k.id]}`), R(`×${W.duelEqMul[k.id]}`)])))}</div>
+      <div class="card"><h3>몸과 피해 배율</h3><p class="muted small">원래 직업과 상관없이 모든 방랑자가 같습니다.</p>
+        ${table(['항목', { t: '값', c: 'r' }], [
+          tr(['기본 공격', R(`근접 ${B.basic.arc}° · 사거리 ${B.basic.range} · ${B.basic.cdSec}초마다 · 계수 ${Math.round(B.basic.coef * 100)}%`)]),
+          tr(['레벨마다', R(`HP +${B.hpPerLevel} · 공격력 +${B.atkPerLevel} · MP +${B.mpPerLevel}`)]),
+          tr(['치명타 확률', R(`${B.critPct}%`)]),
+          tr([`Lv${B.max.level} (T${B.max.tier} 일반 장비 7칸)`, R(`공격력 ${fmt(B.max.atk)} · 최대 HP ${fmt(Math.round(B.max.maxHp * (1 + W.maxHpPct / 100)))} · 최대 MP ${fmt(B.max.maxMp)}`)]),
+          tr(['주는 피해 배율', R(`×${W.dmgMul}`)]),
+          tr(['동등 조건 결투 배율', R(`×${W.duelEqMul}`)]),
+        ])}
+        <p class="muted small">피해 배율은 주는 피해(스킬·기본 공격·소환수)에 곱하고 치유·보호막에는 붙지 않습니다. 동등 조건 결투(Lv180·2차 기준)에서는 결투 배율을 쓰고 5번 칸이 비어 있습니다. 만렙 최대 HP는 +${W.maxHpPct}%를 더한 값입니다(강화·등급 제외).</p></div>
     </div>
     <h2 id="pool">고를 수 있는 기술</h2>
     <p class="muted small">3차 전직마다 1~4번 스킬입니다. 한 직업의 두 3차 전직 가운데서는 기술 하나만 고를 수 있습니다.</p>
@@ -1071,6 +1081,7 @@ function pageItem(id) {
     ${crumb('#/items', '아이템 도감')}
     <div class="detail-head">${itemIcon(it, 'lg')}<div><h1 class="rar-${it.rarity}">${esc(it.name)}</h1><div class="chips">${chips.join('')}</div></div></div>
     <p>${esc(it.desc)}</p>
+    ${it.namesake ? `<p class="muted small" style="margin-top:-8px;text-align:right">— ${esc(it.namesake)}</p>` : ''}
     ${stats.length ? `<dl class="stats">${stats.map(([k, v]) => `<div class="stat"><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>` : ''}
     <h2>얻는 곳</h2>
     <div class="grid g3 src-grid">${sourceBlock(it)}</div>
@@ -1264,7 +1275,7 @@ function pageWorld() {
       <p>보스: ${mobLink(r.bossId)} · HP ${fmt(M.mobs.get(r.bossId)?.hp ?? 0)}${r.bossHpScale ? ` × (${r.bossHpScale.base} + ${r.bossHpScale.perExtra} × (입장 인원 − ${r.bossHpScale.from ?? 1}${(r.bossHpScale.from ?? 1) > 1 ? ', 0 미만이면 0' : ''}))` : ''}${r.guideIsland ? ` · ${islandLink(r.guideIsland)}의 레이드 안내인에게서 출발` : ''}</p>
       ${r.ladder ? `<p><b>만렙 사다리 ${r.ladder.step}단계(${esc(r.ladder.stepName)})</b> · <b>권장 전투력 ${fmt(r.ladder.power)}</b>(레이드 창에서 내 전투력과 비교). 입문 → 보통 → 어려움 → 매우 어려움 → 지옥 순서로 페이즈와 기믹이 늘어나고 보스가 세집니다.</p>` : ''}
       ${r.guild ? '<p class="small">길드장·부길드장이 출발을 요청하면 접속한 길드원 전원(입장 레벨 이상·재입장 대기 아님)에게 준비 확인이 갑니다. 어느 섬에 있든 준비 완료를 누르면 바로 들어가고, 끝나면 각자 있던 섬으로 돌아옵니다. 보스는 뛰어올라 내리꽂고(도약) 직선으로 돌진하며, 보스 품이 안전한 고리(도넛) 패턴이 있습니다.</p>' : '<p class="small">레이드 창의 <b>레이드 파티</b>에서 이 레이드를 함께 갈 사람을 따로 모으거나(모집 글) 다른 사람의 레이드 파티에 참가할 수 있습니다. 레이드 파티에 있으면 출발할 때 필드 파티 대신 레이드 파티로 가고, 필드 파티는 그대로 남습니다. 레이드 파티가 없으면 필드 파티(없으면 혼자)로 출발합니다. 일일 던전·무한의 던전도 같습니다.</p>'}
-      <p class="small">혼자 입장해 클리어하면 보상(베리·경험치·아이템 수량·장비/희귀/유니크 확률)이 ×${r.soloMul}입니다. 2명 이상이면 그대로입니다.</p>
+      <p class="small">혼자 입장해 클리어하면 보상(베리·경험치·아이템 수량·장비/희귀/유니크 확률)이 ×${r.soloMul}입니다. 2명 이상이면 그대로입니다. 같은 네트워크(IP)로 접속한 캐릭터 둘은 함께 들어갈 수 없습니다.</p>
       ${table(['페이즈', { t: '보스 HP', c: 'r' }, '패턴'], r.phases.map((p) => tr([`${p.phase}`, R(`${p.fromHpPct}% 이하`), esc(p.label) + (p.lethal ? ' <span class="small">· 즉사 패턴</span>' : '') + (p.debuffs?.length ? `<br><span class="small">맞으면: ${p.debuffs.map(esc).join(' · ')}</span>` : '')])))}
       ${r.enrage ? `<p class="small" style="margin-top:8px">격노: 시작 ${r.enrage.afterSec / 60}분 뒤 보스 피해 ×${r.enrage.damageMultiplier}</p>` : ''}
       ${r.lastStand ? `<p class="small">발악 「${esc(r.lastStand.name)}」: 보스 HP ${r.lastStand.hpPct}% 이하에서 한 번 — ${r.lastStand.freezeSec}초 동안 시간이 멈춘 뒤 참가자 전원의 HP가 1이 되고, 이어 보스가 ${r.lastStand.recoverSec}초 동안 지쳐 있습니다</p>` : ''}
@@ -1276,7 +1287,7 @@ function pageWorld() {
         <li>${r.rewards.gearChance >= 1 ? '<b>반드시</b>' : `${pct(r.rewards.gearChance)} 확률로`} ${esc(D.raidSets.find((s) => s.raidId === r.id)?.prefix ?? '이 보스')} 세트 1점(${r.rewards.gearPool.length}종 중 내가 쓸 수 있는 것, 첫 클리어는 자기 직업 무기). 등급: ${esc(D.constants.grades.raidText)}</li>
         ${growthLine(r.growth, `입장 레벨(Lv${r.minLevel})`, '모든 레이드 합산, 혼자 도전해도 그대로')}
         ${r.rewards.firstClearUnique ? '<li><b>캐릭터마다 처음 깰 때 한 번</b>: 이 레이드 세트 중 내 직업 무기 + 직업 무관 부위에서 원하는 1개를 골라 <b>유니크 등급</b>으로 받습니다(귀속 아님). 가방이 차 있거나 창을 닫아도 다음에 접속할 때 다시 고를 수 있습니다. 서버 최초 칭호는 없습니다.</li>' : ''}
-        ${r.dawn ? `<li><b>클리어마다 1명</b>: ${itemLink(r.dawn)}(<span class="rar-legendary">전설</span> 목걸이, 각성 상태로 받음)을 레이드 안 참가자 중 한 명이 받습니다. 파티장이 출발 전에 레이드 창 지옥 단계의 「황혼의 아침 받을 사람」에서 정할 수 있고, 정하지 않으면(또는 정한 사람이 클리어 때 레이드 안에 없으면) 무작위입니다. 받으면 레이드 참가자에게 알리고, 가방이 차 있으면 우편으로 갑니다. 귀속이라 거래·판매할 수 없습니다.</li>` : ''}
+        ${r.dawn ? `<li><b>클리어마다 1명</b>: ${itemLink(r.dawn)}(<span class="rar-legendary">전설</span> 목걸이, 각성 상태로 받음)을 레이드 안 참가자 중 한 명이 받습니다. 파티장이 출발 전에 레이드 창 지옥 단계의 「황혼의 아침 받을 사람」에서 정할 수 있고, 정하지 않으면(또는 정한 사람이 클리어 때 레이드 안에 없으면) 무작위입니다. 받으면 레이드 참가자에게 알리고, 가방이 차 있으면 우편으로 갑니다. 귀속이라 거래할 수 없지만 상점에 팔거나 버릴 수 있습니다.</li>` : ''}
       </ul>
     </section>`).join('');
   const worldBosses = D.worldBosses.map((w) => `
@@ -1315,7 +1326,7 @@ function pageWorld() {
         <li><b>서버 최초로 ${inf.firstClearWave}웨이브를 넘긴 파티 전원</b>에게 내 레벨 티어 장비 부위 1점을 유니크 등급으로(한 번뿐)</li>
         ${inf.completeTitle ? `<li><b>서버 최초로 ${inf.maxWave}웨이브를 완주한 파티 전원</b>에게 칭호 <b style="color:${esc(inf.completeTitle.color)}">「${esc(inf.completeTitle.name)}」</b>(한 번뿐 · 랭킹에 최초 완주 기록이 남습니다)</li>` : ''}
         <li>라이프 토큰 ${inf.lifeTokens}개 · 투기장 안 전원이 한꺼번에 쓰러지면 도전이 끝납니다. 웨이브 보상과 기록은 웨이브마다 바로 남습니다.</li>
-        <li>웨이브 보상·기록은 <b>그 웨이브에 몬스터를 공격했거나, 다른 사람을 치유했거나, 강화로 아군 피해를 늘린 사람</b>만 받습니다(쓰러져 있어도 그 전에 싸웠으면 받음). 같은 네트워크(IP)로 접속한 캐릭터 둘은 같은 던전에 함께 들어갈 수 없습니다(일일·히든 던전도 같음).</li>
+        <li>웨이브 보상·기록은 <b>그 웨이브에 몬스터를 공격했거나, 다른 사람을 치유했거나, 강화로 아군 피해를 늘린 사람</b>만 받습니다(쓰러져 있어도 그 전에 싸웠으면 받음). 같은 네트워크(IP)로 접속한 캐릭터 둘은 같은 던전에 함께 들어갈 수 없습니다(일일·히든 던전·레이드도 같음).</li>
         <li>싸우다 접속이 끊겨도 ${Math.round(inf.rejoinSec / 60)}분 안에 다시 들어오면 그 던전으로 돌아갑니다(남은 토큰·증강·보상 합계 그대로, 레이드도 같습니다).</li>
         <li>랭킹: 메뉴 › 랭킹 › 무한의 던전 — 같은 파티 구성마다 최고 기록(웨이브 → 걸린 시간 순)</li>
       </ul>
@@ -1355,7 +1366,7 @@ function pageWorld() {
       <h3>직업별 결투장 피해 보정</h3>
       <p class="small">결투장에서 플레이어에게 주는 피해(스킬·기본 공격·소환수·장판·중독)에 위 피해 비율과 함께 곱합니다. 기술 묶음 단계(1차·각성, 2차, 3차)마다 따로이고, ${esc(eq.name)}은 모두 2차 값을 씁니다. 전직 전(견습)은 ×1입니다.</p>
       ${table(['갈래', '2차 직업', { t: '1차·각성', c: 'r' }, { t: '2차', c: 'r' }, { t: '3차', c: 'r' }], du.branchMuls.map((b) => tr([esc(b.name), esc(b.second), mulCell(b.first), mulCell(b.secondMul), mulCell(b.third)])))}
-      <p class="small" style="margin-top:8px">히든 직업 <a href="#/classes/${esc(D.wanderer.id)}">${esc(D.wanderer.name)}</a>에게는 직업별 방랑자 피해 배율이 붙고, ${esc(eq.name)}에서는 그 대신 따로 정한 배율(×${Math.min(...Object.values(D.wanderer.duelEqMul))}~×${Math.max(...Object.values(D.wanderer.duelEqMul))})을 쓰며 5번 칸이 비어 있습니다.</p>
+      <p class="small" style="margin-top:8px">히든 직업 <a href="#/classes/${esc(D.wanderer.id)}">${esc(D.wanderer.name)}</a>에게는 방랑자 피해 배율(×${D.wanderer.dmgMul})이 붙고, ${esc(eq.name)}에서는 그 대신 ×${D.wanderer.duelEqMul}을 쓰며 5번 칸이 비어 있습니다.</p>
     </section>`;
   const gr = D.guildRank;
   const sc = gr.score;
@@ -1896,7 +1907,7 @@ function expBonusSection() {
   const ev = x.rateEvents;
   const rows = [
     tr(['<b>정각 이벤트</b>', R(`+${pct(x.hourly.mul - 1)}`), `매시 정각부터 ${x.hourly.minutes}분(한국 시간), 서버 전체. 시작·5분 전·끝에 공지가 나옵니다.`]),
-    tr(['<b>핫타임</b>', R(`+${pct(x.hot.expMul - 1)}`), `평일 ${x.hot.weekdayFrom}~${x.hot.weekdayTo}시, 주말(토·일) 하루 종일(한국 시간), 서버 전체. 같은 시간 동안 드랍 확률도 ${fmt(x.hot.dropMul)}배(앱솔루트 장비 제외)입니다.`]),
+    tr(['<b>핫타임</b>', R(`+${pct(x.hot.expMul - 1)}`), `평일 ${x.hot.weekdayFrom}~${x.hot.weekdayTo}시, 주말(토·일) 하루 종일(한국 시간), 서버 전체. 같은 시간 동안 드랍 확률도 ${fmt(x.hot.dropMul)}배(앱솔루트 장비·레이드 보스 재료 제외)입니다.`]),
     tr(['<b>운영자 경험치 이벤트</b>', R(`+(배율 − 1), 최대 ×${ev.mulMax}`), `운영자가 여는 기간 이벤트(최대 ${ev.minutesMax / 60}시간), 서버 전체. 정각 이벤트와 겹치면 둘 다 더합니다.`]),
     tr([itemLink(x.feed.id), R(`+${pct(x.feed.mul - 1)}`), `1개에 ${x.feed.minutes}분, 겹쳐 쓰면 시간이 더해집니다(최대 ${x.feed.maxMinutes / 60}시간). 캐릭터마다 따로이고, 접속해 있는 동안만 줄며 쓰러져도 남습니다.`]),
     tr(['<b>모험가 월정액</b>', R(`+${pct(x.supporter)}`), '구독 중인 계정의 모든 캐릭터(<a href="#/drops#cash-shop">루비 상점</a>)']),
@@ -1913,7 +1924,7 @@ function expBonusSection() {
       <li><b>붙는 보상</b>: 몬스터 처치 · 레이드 클리어 · 던전 웨이브(${esc(lvDg?.name ?? '레벨업 던전')} 제외) · 필드 보스 원정 경험치.</li>
       <li><b>붙지 않는 보상</b>: 퀘스트 보상 · 레이드·필드 보스 원정 성장 보너스 · ${esc(lvDg?.name ?? '레벨업 던전')} · <a href="#/world#tavern">선술집 의뢰</a>.</li>
       <li>고레벨 사냥터의 연속 처치·사냥터 폭주 보너스도 처치 경험치 배율에 더합니다.</li>
-      <li>운영자 확률 이벤트에는 경험치 말고도 ${ev.kinds.filter((k) => k.id !== 'exp').map((k) => esc(k.label)).join(' · ')} 배율이 있습니다. 확률은 배율만큼 곱하되 100%를 넘지 않고, 불운 보정(천장)은 곱하지 않습니다. 핫타임 드랍 배율은 운영자 드랍 이벤트와 곱하고, 전리품·장비 등급 말고도 젬·유물·태초의 검 같은 드랍 확률에 모두 붙습니다(앱솔루트 장비 제외 · 무료 루비는 배율 없음). 운영자 이벤트는 서버가 다시 켜지면 끝나고, 정각 이벤트·핫타임은 다시 켜진 서버가 그 시간대 안이면 남은 시간만큼 다시 켭니다.</li>
+      <li>운영자 확률 이벤트에는 경험치 말고도 ${ev.kinds.filter((k) => k.id !== 'exp').map((k) => esc(k.label)).join(' · ')} 배율이 있습니다. 확률은 배율만큼 곱하되 100%를 넘지 않고, 불운 보정(천장)은 곱하지 않습니다. 핫타임 드랍 배율은 운영자 드랍 이벤트와 곱하고, 전리품·장비 등급 말고도 젬·유물·태초의 검 같은 드랍 확률에 모두 붙습니다(앱솔루트 장비·레이드 보스 재료 제외 · 무료 루비는 배율 없음). 운영자 이벤트는 서버가 다시 켜지면 끝나고, 정각 이벤트·핫타임은 다시 켜진 서버가 그 시간대 안이면 남은 시간만큼 다시 켭니다.</li>
     </ul>`;
 }
 /** 칭호: 이름 장식(능력치 없음). 얻는 법은 build.ts가 정의에서 만든다 */
