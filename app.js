@@ -1305,7 +1305,7 @@ function pageWorld() {
       <p class="small">몬스터 수치는 웨이브마다 곱으로 커집니다: HP ${fmt(inf.scaling.hp)} × ${inf.scaling.hpGrowth}^(웨이브−1), 공격력 ${inf.scaling.atk} × ${inf.scaling.atkGrowth}^(웨이브−1). 보스 = HP ×${inf.scaling.bossHpMul} · 공격력 ×${inf.scaling.bossAtkMul}. 처치 경험치·처치 드랍은 없습니다(보상은 웨이브 클리어 때).</p>
       ${inf.bossTimeSec ? `<p class="small"><b>보스 웨이브 제한 시간 ${Math.round(inf.bossTimeSec / 60)}분</b>: 보스가 나온 순간부터 화면 위 웨이브 표시에 남은 시간이 흐릅니다. 그 안에 웨이브를 정리하지 못하면 남은 몬스터가 사라지고 도전이 끝납니다(그 보스 웨이브는 기록·보상에 들지 않고, 앞 웨이브까지의 보상·기록은 그대로).${inf.finalBoss ? ` 마지막 ${inf.maxWave}웨이브 보스는 천공의 왕좌의 ${mobLink(inf.finalBoss)}(같은 패턴, 수치는 웨이브 공식)입니다.` : ''}</p>` : ''}
       ${table([{ t: '웨이브', c: 'r' }, { t: '몬스터', c: 'r' }, { t: 'HP', c: 'r' }, { t: '공격력', c: 'r' }, '보스', { t: '클리어 베리', c: 'r' }, { t: '경험치', c: 'r' }, { t: '강화서', c: 'r' }, { t: esc(D.gems.name), c: 'r' }], inf.waves.map((w) => tr([R(w.wave), R(w.count), R(fmt(w.mob.hp)), R(fmt(w.mob.atk)), w.bossId ? `${mobLink(w.bossId)} <span class="muted small">HP ${fmt(w.bossStats.hp)} · 공격력 ${fmt(w.bossStats.atk)}</span>` : '', R(fmt(w.gold)), R(pct(w.expPct)), R(w.scrolls || ''), R(pct(w.gem.chance))])), { scroll: true })}
-      <h3>보상 (웨이브를 넘길 때마다 투기장 안 전원)</h3>
+      <h3>보상 (웨이브를 넘길 때마다 그 웨이브에 싸운 사람)</h3>
       <ul class="plain small">
         <li>${fmt(inf.rewards.gold)} × ${inf.rewards.goldGrowth}^(웨이브−1) 베리 · 경험치(${levelShare(`${pct(inf.rewards.expPct)} × (1 + ${inf.rewards.expGrowth} × (웨이브−1))`)} — <b>높은 웨이브일수록 많이</b>) · 보스 웨이브는 ${itemLink(D.scrolls.id)}(${inf.bossEvery}웨이브마다 ${inf.rewards.scrollsPerBoss}장씩 늘어남)</li>
         <li>${esc(D.gems.name)}: 웨이브마다 ${pct(D.gems.drop.wave.chance)}, <b>${D.gems.drop.wave.highFromWave}웨이브부터 ${pct(D.gems.drop.wave.high)}</b>(보스 웨이브는 ×${D.gems.drop.wave.bossMul})</li>
@@ -1315,6 +1315,7 @@ function pageWorld() {
         <li><b>서버 최초로 ${inf.firstClearWave}웨이브를 넘긴 파티 전원</b>에게 내 레벨 티어 장비 부위 1점을 유니크 등급으로(한 번뿐)</li>
         ${inf.completeTitle ? `<li><b>서버 최초로 ${inf.maxWave}웨이브를 완주한 파티 전원</b>에게 칭호 <b style="color:${esc(inf.completeTitle.color)}">「${esc(inf.completeTitle.name)}」</b>(한 번뿐 · 랭킹에 최초 완주 기록이 남습니다)</li>` : ''}
         <li>라이프 토큰 ${inf.lifeTokens}개 · 투기장 안 전원이 한꺼번에 쓰러지면 도전이 끝납니다. 웨이브 보상과 기록은 웨이브마다 바로 남습니다.</li>
+        <li>웨이브 보상·기록은 <b>그 웨이브에 몬스터를 공격했거나, 다른 사람을 치유했거나, 강화로 아군 피해를 늘린 사람</b>만 받습니다(쓰러져 있어도 그 전에 싸웠으면 받음). 같은 네트워크(IP)로 접속한 캐릭터 둘은 같은 던전에 함께 들어갈 수 없습니다(일일·히든 던전도 같음).</li>
         <li>싸우다 접속이 끊겨도 ${Math.round(inf.rejoinSec / 60)}분 안에 다시 들어오면 그 던전으로 돌아갑니다(남은 토큰·증강·보상 합계 그대로, 레이드도 같습니다).</li>
         <li>랭킹: 메뉴 › 랭킹 › 무한의 던전 — 같은 파티 구성마다 최고 기록(웨이브 → 걸린 시간 순)</li>
       </ul>
@@ -1375,9 +1376,10 @@ function pageWorld() {
         ['무한의 던전 보스 웨이브', fmt(sc.infiniteBoss)],
         ['파티 레이드 클리어', `${lv(sc.raid)} (레이드 입장 레벨)`],
         ['길드 레이드 클리어', fmt(sc.guildRaid)],
+        ['생활 행동 1회(채굴 · 낚시 성공 · 작물 거두기 한 칸)', `${lv(sc.life)} (그 생활 레벨)`],
       ].map(([a, b]) => tr([a, b])))}
       <ul class="plain small" style="margin-top:12px">
-        <li>한 사람이 하루(한국 시간)에 쌓는 점수는 <b>${fmt(sc.dailyCap)}점</b>까지, 그중 사냥(일반·정예·섬 보스) 몫은 <b>${fmt(sc.huntDailyCap)}점</b>까지입니다.</li>
+        <li>한 사람이 하루(한국 시간)에 쌓는 점수는 <b>${fmt(sc.dailyCap)}점</b>까지, 그중 사냥(일반·정예·섬 보스) 몫은 <b>${fmt(sc.huntDailyCap)}점</b>, 생활(채굴·낚시·농사) 몫은 <b>${fmt(sc.lifeDailyCap)}점</b>까지입니다.</li>
         <li>내 레벨보다 ${sc.greyGap}레벨 넘게 낮은 몬스터, 봇 파티원이 대신 잡은 처치, 훈련장·결투장은 점수가 없습니다.</li>
         <li>점수 <b>${sc.scorePerCoin}점마다 ${esc(gr.coinName)} 1개</b>가 길드 금고에 들어옵니다. 주화는 0시에 초기화되지 않습니다(길드가 해체되면 사라집니다).</li>
         <li>길드를 탈퇴하거나 추방되면 <b>${gr.rejoinHours}시간</b> 동안 어느 길드에도 들어갈 수 없습니다(새 길드를 만드는 것은 됩니다).</li>
