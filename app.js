@@ -163,7 +163,7 @@ function homeTiles() {
     ['drops', 'cashshop', '드랍률·상점', '등급 · 장비 · 루비 상점 · 치장 뽑기 · 젬 · 출석'],
     ['world', 'attendance', '지역·레이드', `지역 ${D.islands.length}곳 · 레이드 ${D.raids.length}개 · 던전 · 생활 · 결투장`],
     ['growth', 'stats', '성장·강화', '레벨 해금 · 강화 · 초월 · 유물 · 펫 · 항해 등급'],
-    ['world#village', 'friends', `${D.village.name} 놀거리`, '밤 폭죽놀이 · 체스 · 오목'],
+    ['world#village', 'friends', `${D.village.name} 놀거리`, '밤 폭죽놀이 · 체스 · 오목 · 날씨'],
     ['news', 'patch', '업데이트 소식', `최근 패치노트 ${D.news.length}개`],
     ['feedback', 'feedback', '피드백 게시판', '버그 제보 · 건의 · 위키 오류를 익명으로'],
   ];
@@ -1266,7 +1266,7 @@ function pageWorld() {
         <h2 style="margin-top:0">${esc(isl.name)} ${isl.hub ? '<span class="chip accent">모항 · 시작 마을</span> <span class="chip">사냥터 없음</span>' : `<span class="chip">Lv${isl.levelRange[0]}~${isl.levelRange[1]}</span> <span class="chip">입장 Lv${isl.minLevel}</span>`}${isl.partyGoldSplit ? ' <a class="chip" href="#/drops">파티 베리 나눔</a>' : ''} <span class="chip">상점 ${isl.shopTiers.map((t) => `T${t}`).join('·')}</span></h2>
         <div class="grid g2">
           <div>
-            ${isl.hub ? `<p class="small">새 캐릭터가 처음 서는 마을입니다. 대장간·잡화점·창고·젬 상점이 모여 있고, 레이드·일일 던전·필드 보스 원정은 모두 <b>선술집 주인</b>에게서 출발합니다. 귀환 두루마리를 쓰면 이 마을 부두로 돌아옵니다. 광장 모닥불가에 둘러앉을 수 있고, 음유시인은 류트 연주를 할 수 있습니다. 매일 밤 ${D.village.fireworks.hourKst}시 폭죽놀이와 체스·오목은 <a href="#/world#village">${esc(D.village.name)} 놀거리</a>를 보세요.</p>` : `<h3>몬스터</h3>
+            ${isl.hub ? `<p class="small">새 캐릭터가 처음 서는 마을입니다. 대장간·잡화점·창고·젬 상점이 모여 있고, 레이드·일일 던전·필드 보스 원정은 모두 <b>선술집 주인</b>에게서 출발합니다. 귀환 두루마리를 쓰면 이 마을 부두로 돌아옵니다. 광장 모닥불가에 둘러앉을 수 있고, 음유시인은 류트 연주를 할 수 있습니다. 매일 밤 ${D.village.fireworks.hourKst}시 폭죽놀이, 체스·오목, 날씨(눈·꽃비·풍등 밤)는 <a href="#/world#village">${esc(D.village.name)} 놀거리</a>를 보세요.</p>` : `<h3>몬스터</h3>
             <ul class="plain">${normal.map((m) => `<li>${mobLink(m.id)}</li>`).join('')}
               ${elite ? `<li><span class="chip">정예</span> ${mobLink(elite.id)} · ${D.constants.elite.respawnSec / 60}분마다</li>` : ''}
               ${isl.bossId ? `<li><span class="chip accent">필드 보스</span> ${mobLink(isl.bossId)} · ${D.constants.bossRespawnSec}초마다</li>` : ''}</ul>`}
@@ -1563,6 +1563,7 @@ function pageWorld() {
       <ul class="plain small" style="margin-top:12px">
         <li>허수아비를 때리면 화면 위쪽에 <b>DPS 측정판</b>이 뜹니다: DPS · 총 피해 · 시간 · 타격 수 · 치명타 비율 · 최고 한 방 · 최고 DPS.</li>
         <li>마지막으로 때린 뒤 ${tg.resetSec}초가 지나면 한 판이 끝나고 허수아비 HP가 다시 가득 찹니다. 다시 때리면 새 판이 시작됩니다.</li>
+        <li>허수아비끼리 ${tg.gap}칸씩 떨어져 있어 광역기·튕기는 기술이 다른 허수아비에 같이 맞지 않습니다.</li>
         <li>내 공격이 실제로 얼마나 아픈지 순수 피해량을 잽니다(<a href="#/damage">데미지 공식</a>).</li>
       </ul>
     </section>`;
@@ -1689,12 +1690,14 @@ function pageWorld() {
     </section>`;
   const vg = D.village;
   const fw = vg.fireworks;
+  const wx = vg.weather;
   const villageCard = `
     <section class="card" id="village">
       <h2 style="margin-top:0">${esc(vg.name)} 놀거리 <span class="chip">누구나</span> <span class="chip">레벨 제한 없음</span></h2>
       <div class="grid g3">
         <div class="card"><h3>폭죽놀이 <span class="chip">매일 ${fw.hourKst}시</span></h3>
           <p class="small">매일 밤 ${fw.hourKst}시(한국 시간)에 ${esc(fw.island)} 해변 앞바다 하늘에서 ${fw.durationMin}분 동안 폭죽이 터집니다. ${fw.leadMin}분 전부터 하늘이 밤으로 저물고 「곧 시작」 알림이 뜹니다. 늦게 들어와도 모두와 같은 폭죽을 남은 부분부터 봅니다.</p>
+          <p class="small">순서: 오프닝 → 무지개 물결 → 황금 커튼(물 위 분수) → 「연인의 하늘」(하트·별·나비·꽃·토성 모양) → 피날레(9줄 수상 분수·엇갈려 솟는 은빛 혜성·황금 왕관). 국화·버들·가무로 말고도 비단·색 바뀜·물고기 떼·천 송이·물 위 혜성 같은 폭죽이 터집니다.</p>
           <p class="small">쇼 동안 해변 관람 자리에서 F <b>「폭죽놀이 보기」</b>(모바일 「폭죽 보기」)를 누르면 캐릭터 어깨 뒤에서 바다 위 하늘을 올려다봅니다. 다시 누르면 그만 봅니다.</p></div>
         <div class="card"><h3>체스 <span class="chip">탁자 ${vg.chess.tables}개</span></h3>
           <ul class="plain small">
@@ -1710,9 +1713,17 @@ function pageWorld() {
             <li>흑만 삼삼(3-3)이 금지입니다.</li>
             <li>한 수 ${vg.omok.turnSec}초.</li>
           </ul></div>
+        <div class="card" id="village-weather"><h3>날씨 · 밤하늘 <span class="chip">${wx.slotMin}분마다</span></h3>
+          <p class="small">${esc(wx.island)} 날씨는 ${wx.slotMin}분마다 ${wx.kinds.map((k) => `${esc(k.name)}(${k.pct}%)`).join(' · ')} 가운데 하나로 바뀝니다. 서버 시각으로 정해져 모두가 같은 날씨를 봅니다.</p>
+          <ul class="plain small">
+            <li><b>눈</b>: 하늘과 햇빛이 흐려지고 땅에 눈이 천천히 쌓입니다. 그치면 몇 분에 걸쳐 녹습니다.</li>
+            <li><b>꽃비</b>: 꽃잎이 흩날리고 땅에 깔립니다.</li>
+            <li><b>풍등 밤</b>: 밤의 ${wx.lanternPct}%쯤은 해 질 녘부터 새벽까지 풍등이 떠올라 바다 쪽으로 흘러갑니다. 날씨와 따로 정해져 눈·꽃비가 오는 밤에도 오릅니다.</li>
+            <li><b>밤하늘</b>: 별·은하수·달·별똥별이 뜹니다. 폭죽놀이 보기나 사진 모드(기본 H)로 하늘을 올려다보면 보이고, 눈 오는 밤에는 별이 구름에 가려 흐려집니다.</li>
+          </ul></div>
       </div>
     </section>`;
-  const index = `<nav class="isl-index" aria-label="지역 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>${isl.hub ? "모항" : `Lv${isl.levelRange[0]}~${isl.levelRange[1]}`}${isl.shopTiers.length ? ` · ${isl.shopTiers.map((t) => `T${t}`).join('·')}` : ''}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a><a href="#/world#village"><b>${esc(vg.name)} 놀거리</b><span>폭죽 · 체스 · 오목</span></a></nav>`;
+  const index = `<nav class="isl-index" aria-label="지역 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>${isl.hub ? "모항" : `Lv${isl.levelRange[0]}~${isl.levelRange[1]}`}${isl.shopTiers.length ? ` · ${isl.shopTiers.map((t) => `T${t}`).join('·')}` : ''}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a><a href="#/world#village"><b>${esc(vg.name)} 놀거리</b><span>폭죽 · 체스 · 오목 · 날씨</span></a></nav>`;
   return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 모항입니다.')}<h2>서막</h2><div class="stack">${prologueCard}</div><h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}${questLineCard}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>히든 던전</h2><div class="stack">${hiddenCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>선술집 의뢰</h2><div class="stack">${tavernCard}${catCard}</div><h2>생활</h2><div class="stack">${lifeCard}${seaEventsCard()}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>길드</h2><div class="stack">${guildRankCard}${guildStorageCard}</div><h2>${esc(vg.name)} 놀거리</h2><div class="stack">${villageCard}</div><h2>교류·편의</h2><div class="stack">${socialCards}</div>`;
 }
 
@@ -1832,8 +1843,8 @@ function pageGrowth() {
 
     <h2 id="ego">에고소드</h2>
     <p>캐릭터가 <b>Lv ${D.ego.unlock}</b>에 닿으면 우편으로 <b>에고소드</b> 한 자루가 옵니다(캐릭터마다 한 번). 모든 직업이 끼는 무기이고, 처음 받을 때 이름을 지어 줍니다. 무기 자체에 <b>레벨(1~${D.ego.max})</b>이 있어 조건을 채우면 한 레벨씩 오릅니다. 실패는 없고, 조건이 모자라면 아무것도 빠지지 않습니다.</p>
-    <p>무기 레벨은 <b>캐릭터 레벨을 넘지 못합니다</b>: 최대 무기 Lv = (캐릭터 Lv − 100) ÷ 4(내림, 최대 ${D.ego.max}). 레벨을 올릴 때마다 강화서·베리·보스 재료·필드 재료와 함께 <b>각인</b>이 필요합니다. 각인은 에고소드를 <b>장착한 채로</b> 레이드를 깨거나 몬스터를 쓰러뜨리면 무기에 쌓이는 기록이라 사고팔 수 없고, 레벨이 오르면 비워집니다. 10·20·30·40레벨과 49레벨에서는 더 무거운 <b>고비</b> 조건이 붙습니다.</p>
-    <p>Lv1 공격력은 Lv150 티어 영웅 무기와 같고, Lv${D.ego.max}에 ${esc(D.ego.primal)}과 같아집니다. 10레벨마다 모든 능력치가 +3씩 오르고, Lv${D.ego.max}에 전용 기술 <b>${esc(D.ego.skill.name)}</b>이 열립니다(${esc(D.ego.skill.desc)} 재사용 대기 ${D.ego.skill.cdSec}초). 에고소드는 강화·각성·초월·제련·합성·도감 등록을 할 수 없고, 거래·거래소·우편·창고·판매·버리기도 할 수 없습니다.</p>
+    <p>무기 레벨은 <b>캐릭터 레벨을 넘지 못합니다</b>: 최대 무기 Lv = (캐릭터 Lv − 100) ÷ 4(내림, 최대 ${D.ego.max}). 레벨을 올릴 때마다 강화서·베리·보스 재료·필드 재료와 함께 <b>각인</b>이 필요합니다. 각인은 에고소드를 가진 채(끼지 않고 <b>가방에 넣어 둬도</b> 됩니다) 레이드를 깨거나 몬스터를 쓰러뜨리면 무기에 쌓이는 기록이라 사고팔 수 없고, 레벨이 오르면 비워집니다. 10·20·30·40레벨과 49레벨에서는 더 무거운 <b>고비</b> 조건이 붙습니다.</p>
+    <p>Lv1 공격력은 Lv150 티어 영웅 무기와 같고, Lv${D.ego.max}에 각성한 ${esc(D.ego.primal)}(초월 없음)과 같아집니다. 10레벨마다 모든 능력치가 +3씩 오르고, Lv${D.ego.max}에 전용 기술 <b>${esc(D.ego.skill.name)}</b>이 열립니다(${esc(D.ego.skill.desc)} 재사용 대기 ${D.ego.skill.cdSec}초). 에고소드는 강화·각성·초월·제련·합성·도감 등록을 할 수 없고, 거래·거래소·우편·창고·판매·버리기도 할 수 없습니다.</p>
     ${note(`1 → ${D.ego.max} 합계: 강화서 ${fmt(D.ego.total.scrolls)}개 · 베리 ${fmt(D.ego.total.gold)}`)}
     ${table([{ t: '무기 Lv', c: 'r' }, { t: '캐릭터 Lv', c: 'r' }, { t: '강화서', c: 'r' }, { t: '베리', c: 'r' }, '재료', '각인'], D.ego.levels.map((r) => tr([R(r.gate ? `<b>${r.lv} → ${r.lv + 1}</b>` : `${r.lv} → ${r.lv + 1}`), R(r.charLv), R(fmt(r.scrolls)), R(fmt(r.gold)), r.mats.map((m) => `${esc(m.name)} ${fmt(m.qty)}`).join(' · '), r.marks.map(esc).join(' · ')])))}
     <p><b>각성 에고</b>: Lv${D.ego.max} 뒤 한 번 더 깨울 수 있습니다(강화서 ${fmt(D.ego.awaken.scrolls)}개 · 베리 ${fmt(D.ego.awaken.gold)} · ${D.ego.awaken.mats.map((m) => `${esc(m.name)} ${fmt(m.qty)}`).join(' · ')} · 각인 ${D.ego.awaken.marks.map(esc).join(' · ')}). 겉모습이 한 단계 더 바뀌고 이름 뒤에 ✦가 붙으며 칭호와 서버 공지가 따릅니다. 능력치는 그대로입니다.</p>
@@ -2064,7 +2075,8 @@ function buildSearch() {
   const W = D.wanderer;
   add('직업', W.name, `#/classes/${W.id}`, '히든 직업 · 3차 전직 기술 조합', ph('map'), W.jobs.map((j) => j.name).join(' · '), '방랑자 히든직업 wanderer 조합 섞기');
   const vg = D.village;
-  add('콘텐츠', '폭죽놀이', '#/world#village', `${vg.name} · 매일 ${vg.fireworks.hourKst}시(한국 시간) · ${vg.fireworks.durationMin}분`, ph('flame'), '해변 앞바다 폭죽놀이 보기', '폭죽 불꽃놀이 불꽃 fireworks 밤 해변 11시');
+  add('콘텐츠', '폭죽놀이', '#/world#village', `${vg.name} · 매일 ${vg.fireworks.hourKst}시(한국 시간) · ${vg.fireworks.durationMin}분`, ph('flame'), '해변 앞바다 폭죽놀이 보기', '폭죽 불꽃놀이 불꽃 fireworks 밤 해변 11시 하트 무지개 분수 혜성 피날레');
+  add('콘텐츠', '날씨', '#/world#village-weather', `${vg.weather.island} · ${vg.weather.slotMin}분마다 ${vg.weather.kinds.map((k) => k.name).join('·')} · 밤의 ${vg.weather.lanternPct}%는 풍등`, ph('sparkles'), '눈 꽃비 풍등 밤 별 은하수 달 별똥별', '날씨 weather 눈 snow 꽃비 꽃잎 벚꽃 풍등 등불 lantern 밤하늘 별 은하수 달 별똥별 유성 낭만');
   add('콘텐츠', '체스', '#/world#village', `${vg.name} · 탁자 ${vg.chess.tables}개 · ${vg.chess.clockMin}분 + 한 수 ${vg.chess.incSec}초`, ph('gamepad-2'), '모험가와 대국 컴퓨터와 대국 관전 훈수', '체스 chess 보드게임 미니게임 탁자 훈수');
   add('콘텐츠', '오목', '#/world#village', `${vg.name} · ${vg.omok.size}×${vg.omok.size} · 한 수 ${vg.omok.turnSec}초`, ph('gamepad-2'), '정확히 다섯 흑 삼삼 금지', '오목 omok 바둑 보드게임 미니게임');
   add('콘텐츠', '치장 뽑기', '#/drops#cos-gacha', `1회 ${D.cosGacha.ruby.one}루비 · ${D.cosGacha.multi}회 ${D.cosGacha.ruby.multi}루비 · 천장 ${D.cosGacha.pity}회`, ph('gem'), D.cosGacha.seasons.map((s) => `${s.name} ${s.prizes.filter((p) => p.cosmeticId).map((p) => p.name).join(' ')}`).join(' · '), '치장 뽑기 가챠 gacha 뽑기권 꾸미기 천장 코스튬 확률');
@@ -2126,7 +2138,7 @@ function buildSearch() {
   add('콘텐츠', `${D.constants.grades.absolute.name} 장비`, '#/drops#absolute', `최상위 장비 · 착용 Lv${D.constants.grades.absolute.reqLevel} · ${D.constants.grades.absolute.raids.map((r) => r.raidName).join('·')}`, ph('crown'), `유니크의 ${D.constants.grades.absolute.overUnique}배 모든 능력치 +${D.constants.grades.absolute.allStat}`, '앱솔루트 absolute 최초의 용자 황혼');
   add('콘텐츠', '파티 붐박스', '#/world#boombox', `파티 음악 · ${D.gems.name} ${D.boombox.gemPrice}개 = ${D.boombox.passMinutes}분`, ph('sparkles'), '유튜브 곡 대기열 이용권', '붐박스 음악 유튜브 노래 파티');
   add('콘텐츠', '초월', '#/growth#transcend', `Lv${D.transcend.level} · 같은 각성 장비 둘 → ★ · 최대 ★${D.transcend.max} · 기본 능력치 최대 +${Math.round((D.transcend.mul[D.transcend.max] - 1) * 100)}%`, ph('sparkles'), '각성 장비(무기·방어구·장신구) 별 초월 등급 · 단계마다 강화서·베리', '초월 별 각성 장비 무기 방어구 장신구 합치기 transcend 강화서 베리 비용');
-  add('콘텐츠', '에고소드', '#/growth#ego', `Lv${D.ego.unlock}에 우편 · 무기 Lv 1~${D.ego.max} · 최대 = (캐릭터 Lv − 100) ÷ 4 · Lv${D.ego.max} = ${D.ego.primal}`, ph('swords'), `레벨마다 강화서·베리·보스 재료·필드 재료·각인 · 1→${D.ego.max} 강화서 ${fmt(D.ego.total.scrolls)}개 · 베리 ${fmt(D.ego.total.gold)}`, '에고소드 에고 소드 무기 레벨 성장 각인 고비 각성 에고 전 직업 공용 귀속 ego sword 강화서 베리 보스 재료 필드 재료');
+  add('콘텐츠', '에고소드', '#/growth#ego', `Lv${D.ego.unlock}에 우편 · 무기 Lv 1~${D.ego.max} · 최대 = (캐릭터 Lv − 100) ÷ 4 · Lv${D.ego.max} = 각성 ${D.ego.primal}`, ph('swords'), `레벨마다 강화서·베리·보스 재료·필드 재료·각인 · 1→${D.ego.max} 강화서 ${fmt(D.ego.total.scrolls)}개 · 베리 ${fmt(D.ego.total.gold)}`, '에고소드 에고 소드 무기 레벨 성장 각인 고비 각성 에고 전 직업 공용 귀속 ego sword 강화서 베리 보스 재료 필드 재료');
   add('콘텐츠', '도감', '#/growth#codex', `레이드 장비 등록 · Lv${D.codex.level} · 계정 공용 · ${D.codex.total}칸`, ph('scroll-text'), D.codex.full.join(' · '), '도감 컬렉션 수집 레이드 장비 등록 계정');
   add('콘텐츠', '페이드', '#/growth#fade', `계정 레벨 합 ${D.codex.fade.step}마다 최종 공격력 +${D.codex.fade.stepPct}% · 최대 ${D.codex.fade.max}%`, ph('sparkles'), '가장 높은 캐릭터를 뺀 나머지 레벨 합', '페이드 계정 레벨 합 부캐 최종 공격력');
   add('콘텐츠', '펫', '#/growth#pets', `Lv${D.pets.level} · 계정 공용 · 장착 ${D.pets.slots}칸 · 최종 공격력 곱연산${D.pets.collection ? ` · 도감 최대 +${D.pets.collection[D.pets.collection.length - 1].atkPct}%` : ''}`, ph('sparkles'), D.pets.list.map((p) => p.name).join(' · '), '펫 소환 소라고둥 펫 간식 선택권 유니크 펫 도감 도감 보너스 pet');
