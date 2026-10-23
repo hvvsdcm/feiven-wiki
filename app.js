@@ -263,7 +263,7 @@ function pageGuide() {
 function pageDamage() {
   const c = D.constants;
   const classRows = D.classes.map((k) => tr([
-    `<a href="#/classes/${k.id}">${esc(k.name)}</a>`, DMG[k.dmgType], R(k.baseAtk), R(`×${k.classMul.atk}`), R(k.growth.find((g) => g.level === 100)?.atk ?? '-'), R(k.growth.find((g) => g.level === D.meta.maxLevel)?.atk ?? '-'), R(`${k.critPct}%`),
+    `<a href="#/classes/${k.id}">${esc(k.name)}</a>`, DMG[k.dmgType], esc(k.styleName), R(k.skillMul === 1 ? '—' : `×${k.skillMul}`), R(k.baseAtk), R(`×${k.classMul.atk}`), R(k.growth.find((g) => g.level === 100)?.atk ?? '-'), R(k.growth.find((g) => g.level === D.meta.maxLevel)?.atk ?? '-'), R(`${k.critPct}%`),
   ]));
   const rarRows = c.grades.list.map((r) => tr([`<span class="rar-${r.id}">${esc(r.name)}</span>`, ...c.grades.mulExamples.map((ex) => R(`×${ex.mul.find((x) => x.rarity === r.id).mul}`))]));
   const enhRows = EQUIP.map((k) => tr([KIND[k], R(`+${pct(c.enhanceBonusPer[k])}`), R(`×${(1 + c.enhanceBonusPer[k] * c.enhanceMax).toFixed(2)}`)]));
@@ -275,6 +275,7 @@ function pageDamage() {
 치명타면 피해 × ${c.critMul} (다시 반올림)</div>
       <ul class="plain">
         <li><b>계수</b>: 기본 공격·스킬마다 정해진 배율입니다(스킬 도감의 "계수"). 도적 기본 공격처럼 여러 번 때리는 공격은 타마다 따로 계산합니다.</li>
+        <li><b>직업 계열</b>: 근접 직업은 기본 공격 계수가 크고 스킬 피해가 줄며, 마법 직업은 기본 공격 계수가 작은 대신 스킬 피해가 늘어납니다(아래 표 "스킬 피해"). 스킬 피해 배율은 스킬·소환수·지속 피해에 곱하고 기본 공격·회복·보호막에는 곱하지 않습니다.</li>
         <li>대상의 능력치와 상관없이 같은 공격은 같은 피해를 줍니다. 아무리 약해도 최소 1은 들어갑니다.</li>
         <li><b>받는 피해 감소 버프</b>(도발 등 guard)는 받는 피해에 (1 − %)를 곱합니다.</li>
         <li><b>다음 공격 강화</b>: dmgNext 버프는 공격력에 배율을 곱하고, critNext는 치명타를 확정합니다. 한 번 쓰면 사라집니다.</li>
@@ -291,7 +292,7 @@ function pageDamage() {
 전직 패시브(공격력 %)는 직업 기본값(레벨 성장 포함) 쪽에만 곱함 (+ 올스탯)
 장비 수치 = 반올림(기본 수치 × 등급 배율 × (1 + 강화 단계 × 상승률))</div>
     <p class="muted small">전직 공격력 %는 장비 공격력(무기·장갑·반지)에는 붙지 않습니다. 물리·마법 공격력은 같은 값에서 출발하고, 직업 피해 종류(물리/마법)에 맞는 쪽을 씁니다.</p>
-    ${table(['직업', '계열', { t: '기본 공격력(Lv1, 계수 전)', c: 'r' }, { t: '직업 공격 계수', c: 'r' }, { t: 'Lv100 일반 장비 공격력', c: 'r' }, { t: `Lv${D.meta.maxLevel} 일반 장비 공격력`, c: 'r' }, { t: '치명타', c: 'r' }], classRows)}
+    ${table(['직업', '계열', '직업 계열', { t: '스킬 피해', c: 'r' }, { t: '기본 공격력(Lv1, 계수 전)', c: 'r' }, { t: '직업 공격 계수', c: 'r' }, { t: 'Lv100 일반 장비 공격력', c: 'r' }, { t: `Lv${D.meta.maxLevel} 일반 장비 공격력`, c: 'r' }, { t: '치명타', c: 'r' }], classRows)}
     <div class="grid g2" style="margin-top:12px">
       <div>${table(['등급', ...c.grades.mulExamples.map((ex) => ({ t: `T${ex.tier} 배율`, c: 'r' }))], rarRows)}<p class="muted small" style="margin-top:6px">등급 한 칸 = 티어 ¼칸(한 칸 최소 ×${c.grades.minMul}) · 티어마다 다른 곡선이라 <a href="#/drops">드랍률</a>에서 자세히 봅니다.</p></div>
       <div>${table(['장비 칸', { t: '강화 1단계당', c: 'r' }, { t: `+${c.enhanceMax} 배율`, c: 'r' }], enhRows)}</div>
@@ -308,6 +309,18 @@ function pageDamage() {
     <h2>치유량·보호막</h2>
     <div class="formula">치유량(보호막) = 대상 최대 HP × 스킬 HP % + 시전자 마법 공격력 × 스킬 마법 공격력 %</div>
     <p class="muted small">힐러 스킬은 마법 공격력 비중이 커서 장비로 마법 공격력을 올려야 회복량이 늡니다(예: 치유의 빛 = 마법 공격력 150% + 대상 최대 HP 12%). 기사의 자가 회복·성역 보호막은 최대 HP만 탑니다. 스킬 도감의 수치 줄에 스킬마다 두 비율이 나옵니다. 회복 물약·마나 물약은 티어마다 정해진 양을 회복합니다(아이템 도감 참고, 쿨 회복 ${c.potionCdSec}초·마나 ${c.mpPotionCdSec}초 따로). 엘릭서는 HP·MP를 함께 채우고 회복 물약 쿨을 같이 씁니다.</p>
+
+    <h2 id="support">서포터 장비 보너스</h2>
+    <div class="formula">보너스 b = log₂(내 공격력 × 치명타 피해 배율 ÷ (표준 장비 공격력 × ${c.critMul})) ÷ log₂(${c.supportScale.fullRatio})   (0 ~ 1)
+치유량·보호막·받는 피해 감소·부활 HP × (1 + ${pct(c.supportScale.defMax)} × b)
+노래 세기 × (1 + ${pct(c.supportScale.songMax)} × b)</div>
+    <ul class="plain">
+      <li><b>대상</b>: 기사 수호자 갈래(수호자·불멸의 수호자·성채의 거신)와 힐러·바드 모든 갈래(전직 전 포함)입니다. 방랑자는 원래 직업이 그래도 받지 않습니다.</li>
+      <li><b>표준 장비</b> = 내 레벨 지역 장비 일반 등급 +0 일곱 칸. 내 공격력(수호자는 물리, 힐러·바드는 마법)과 치명타 피해가 그보다 높을수록 커지고, 같거나 낮으면 0입니다. 공격력이 두 배가 될 때마다 최대치의 ${pct(1 / Math.log2(c.supportScale.fullRatio))}씩 오르고 ${c.supportScale.fullRatio}배에서 최대입니다. 치명타 피해 배율은 유물·증강을 더한 값이고, 노래로 오른 주는 피해는 셈하지 않습니다.</li>
+      <li><b>노래</b>(주는 피해·공격 속도·이동 속도·재사용 대기 감소)는 파티 전체 피해를 곱하므로 방어 쪽의 절반만 커집니다. 바드 「시간의 변주」류의 돌고 있는 재사용 대기 즉시 단축도 노래 배율을 씁니다.</li>
+      <li><b>상한</b>: 받는 피해 감소 ${c.supportScale.guardCap}% · 재사용 대기 감소 노래 ${c.supportScale.songCdrCap}% · 즉시 단축 ${c.supportScale.cdCutCap}% · 부활(수호천사) HP ${c.supportScale.hpPctCap}%. 지속 시간·스킬 피해·무적·황금 성채(받는 피해 90% 감소)는 그대로입니다.</li>
+      <li>결투장에서는 붙지 않습니다. 캐릭터 창 세부 능력치의 "서포트 효과"(바드는 "노래 효과"도)에 지금 붙는 %가 나옵니다.</li>
+    </ul>
 
     <h2>몬스터가 주는 피해</h2>
     <div class="formula">받는 피해 = max(1, 반올림(몬스터 공격력 × 공격 계수 × 편차))</div>
@@ -351,21 +364,21 @@ function renderCalc() {
   const awakened = !!branch && calc.level >= D.constants.awakenLevel;
   const slots = skillsFor(cls, branch, awakened, second, third).map((id) => M.skills.get(id));
   const crit = Math.min(100, st.crit) / 100;
-  const rowsFor = (label, iconHtml, coefs, locked) => coefs.map((cf, i) => {
-    const mn = damage(st.atk, cf.coef, 0);
-    const mx = damage(st.atk, cf.coef, 1);
-    const avg = avgDamage(st.atk, cf.coef);
+  const rowsFor = (label, iconHtml, coefs, locked, mul = 1) => coefs.map((cf, i) => {
+    const mn = damage(st.atk, cf.coef * mul, 0);
+    const mx = damage(st.atk, cf.coef * mul, 1);
+    const avg = avgDamage(st.atk, cf.coef * mul);
     const exp = avg * (1 - crit) + Math.round(avg * D.constants.critMul) * crit;
     const perUse = exp * (cf.hits ?? 1);
     const kill = mob ? Math.ceil(mob.hp / perUse) : null;
     const name = i === 0 ? `<span class="name-cell">${iconHtml}<span>${label}${locked ? ` <span class="chip">Lv${locked} 해금</span>` : ''}</span></span>` : `<span class="muted small">└ ${esc(cf.note ?? '')}</span>`;
-    return tr([name, R(`${Math.round(cf.coef * 100)}%${cf.hits > 1 ? ` ×${cf.hits}` : ''}`), R(`${fmt(mn)} ~ ${fmt(mx)}`), R(`${fmt(Math.round(mn * D.constants.critMul))} ~ ${fmt(Math.round(mx * D.constants.critMul))}`), R(fmt(Math.round(perUse))), R(kill ?? '—')]);
+    return tr([name, R(`${Math.round(cf.coef * 100)}%${cf.hits > 1 ? ` ×${cf.hits}` : ''}${mul !== 1 ? ` <span class="muted small">×${mul}</span>` : ''}`), R(`${fmt(mn)} ~ ${fmt(mx)}`), R(`${fmt(Math.round(mn * D.constants.critMul))} ~ ${fmt(Math.round(mx * D.constants.critMul))}`), R(fmt(Math.round(perUse))), R(kill ?? '—')]);
   }).join('');
   const basicCoefs = [{ coef: cls.basic.coef, hits: cls.basic.hits ?? 1 }];
   let rows = rowsFor('기본 공격', skillIcon({ icon: cls.basicIcon }, 'sm'), basicCoefs, 0);
   slots.forEach((s, i) => {
     if (!s || !s.coefs.length) return;
-    rows += rowsFor(`<a href="#/skills/${s.id}">${esc(s.name)}</a> <span class="slot">${i + 1}</span>`, skillIcon(s, 'sm'), s.coefs, calc.level < s.unlockLevel ? s.unlockLevel : 0);
+    rows += rowsFor(`<a href="#/skills/${s.id}">${esc(s.name)}</a> <span class="slot">${i + 1}</span>`, skillIcon(s, 'sm'), s.coefs, calc.level < s.unlockLevel ? s.unlockLevel : 0, cls.skillMul);
   });
   const mobHit = mob ? { mn: damage(mob.atk, mob.attack.coef, 0), mx: damage(mob.atk, mob.attack.coef, 1) } : null;
 
@@ -678,7 +691,7 @@ function pageClasses() {
       <a class="card class-card" href="#/classes/${k.id}" style="--c:${k.color}">
         ${k.icon ? `<img class="ico lg" src="${esc(k.icon)}" alt="" style="width:64px;height:64px">` : ''}
         <div><b style="font-size:18px;color:var(--text)">${esc(k.name)}</b><div class="muted small">${esc(k.role)}</div>
-        <div class="chips" style="margin-top:6px"><span class="chip">${DMG[k.dmgType]}</span>${k.id === D.blacksmith.id || k.id === D.alchemist.id ? '<span class="chip accent">히든 직업</span>' : `<span class="chip">갈래 ${D.branches.filter((b) => b.classId === k.id).length}개</span>`}</div></div>
+        <div class="chips" style="margin-top:6px"><span class="chip">${DMG[k.dmgType]}</span><span class="chip">${esc(k.styleName)} 계열</span>${k.id === D.blacksmith.id || k.id === D.alchemist.id ? '<span class="chip accent">히든 직업</span>' : `<span class="chip">갈래 ${D.branches.filter((b) => b.classId === k.id).length}개</span>`}</div></div>
       </a>`).join('')}
       <a class="card class-card" href="#/classes/${esc(D.wanderer.id)}" style="--c:${esc(D.wanderer.color)}">
         <span class="ico lg ph" style="width:64px;height:64px">${icon('map')}</span>
@@ -720,11 +733,11 @@ function pageClass(id) {
   return `
     ${crumb('#/classes', '직업 목록')}
     <div class="detail-head">${k.icon ? `<img class="ico lg" src="${esc(k.icon)}" alt="">` : ''}<div><h1 style="color:${esc(k.color)}">${esc(k.name)}</h1>
-      <div class="chips"><span class="chip">${esc(k.role)}</span><span class="chip">${DMG[k.dmgType]} 피해</span><span class="chip">치명타 ${k.critPct}%</span><span class="chip">직업 계수 공격 ×${k.classMul.atk} · HP ×${k.classMul.hp}</span></div></div></div>
+      <div class="chips"><span class="chip">${esc(k.role)}</span><span class="chip">${esc(k.styleName)} 계열</span><span class="chip">${DMG[k.dmgType]} 피해</span><span class="chip">치명타 ${k.critPct}%</span><span class="chip">직업 계수 공격 ×${k.classMul.atk} · HP ×${k.classMul.hp}</span></div></div></div>
     <div class="grid g2">
       <div class="card"><h3>레벨별 능력치(그 티어 일반 장비 7칸)</h3><p class="muted small">레벨마다 HP +${k.hpPerLevel} · 공격력 +${k.atkPerLevel} · MP +${k.mpPerLevel}씩 오릅니다. 표는 그 레벨 성장분에 그 레벨 티어의 일반 장비 7칸을 모두 끼고 직업 계수를 곱한 능력치입니다(강화·등급 제외).</p>${table([{ t: '레벨', c: 'r' }, { t: '장비 티어', c: 'r' }, { t: '공격력', c: 'r' }, { t: '최대 HP', c: 'r' }, { t: '최대 MP', c: 'r' }], growthRows)}</div>
       <div class="card"><h3>기본 공격</h3>
-        <div class="skill-row">${skillIcon({ icon: k.basicIcon })}<div><b>기본 공격</b><div class="meta"><span class="chip">${icon('clock')}${k.basic.cdSec}초</span><span class="chip">MP 0</span></div><ul><li>${basicLine} · 계수 ${Math.round(k.basic.coef * 100)}%${k.basic.hits > 1 ? ` × ${k.basic.hits}타` : ''}</li></ul></div></div>
+        <div class="skill-row">${skillIcon({ icon: k.basicIcon })}<div><b>기본 공격</b><div class="meta"><span class="chip">${icon('clock')}${k.basic.cdSec}초</span><span class="chip">MP 0</span></div><ul><li>${basicLine} · 계수 ${Math.round(k.basic.coef * 100)}%${k.basic.hits > 1 ? ` × ${k.basic.hits}타` : ''}</li><li>${esc(k.styleLine)}</li></ul></div></div>
         <h3 style="margin-top:14px">견습 스킬</h3>
         ${k.skills.map((sid) => skillRow(M.skills.get(sid))).join('')}
       </div>
@@ -834,8 +847,8 @@ function pageWanderer() {
         <li><b>5번 칸</b>: 3차 전직 대궁극기 ${W.ults.length}종 가운데 하나(직업 제한 없음, 변신 궁극기 제외).</li>
         <li>기술은 <b>촌장 앞에서 언제든 무료로</b> 다시 고릅니다.</li>
         <li>능력치(HP·공격력·MP·치명타)와 기본 공격은 원래 직업과 상관없이 <b>모든 방랑자가 같습니다</b>(직업 계수 ×1, 직업별 몬스터 대상 배율 없음). 원래 직업에서 남는 것은 무기와 겉모습뿐입니다.</li>
-        <li>물리·마법 공격력이 같아 다른 직업 기술도 같은 공격력으로 칩니다. 치유·보호막은 내 마법 공격력으로, 노래는 3차 바드와 같은 값으로 들어갑니다. 지점을 찍는 기술의 사거리와 관통 직선 속도는 그 기술 원래 직업의 기본 공격을 따릅니다.</li>
-        <li>갈래 패시브·3차 기본 공격·3차 직업 기믹은 없습니다. 다른 칸 스킬을 건드리는 효과(사냥 본능의 2번 재사용 대기 절반, 암살자 처치 보상의 1번 재사용 대기 초기화)와 레이드의 서포터 피해 보정·힐러 치유 보정도 붙지 않습니다.</li>
+        <li>물리·마법 공격력이 같아 다른 직업 기술도 같은 공격력으로 칩니다. 치유·보호막은 내 마법 공격력으로, 노래는 3차 바드 스킬에 적힌 원래 값으로 들어갑니다. 지점을 찍는 기술의 사거리와 관통 직선 속도는 그 기술 원래 직업의 기본 공격을 따릅니다.</li>
+        <li>갈래 패시브·3차 기본 공격·3차 직업 기믹은 없습니다. 다른 칸 스킬을 건드리는 효과(사냥 본능의 2번 재사용 대기 절반, 암살자 처치 보상의 1번 재사용 대기 초기화)와 레이드의 서포터 피해 보정·힐러 치유 보정, <a href="#/damage#support">서포터 장비 보너스</a>도 붙지 않습니다.</li>
         <li>몇몇 기술은 방랑자가 쓰면 재사용 대기가 달라집니다(아래 표의 「재사용 ×」).</li>
       </ul></div>
       <div class="card"><h3>몸과 피해 배율</h3><p class="muted small">원래 직업과 상관없이 모든 방랑자가 같습니다.</p>
@@ -894,7 +907,7 @@ function songSection() {
   const ult = Sg.ultimates.map((u) => `<div class="skill-row" id="sk-${esc(u.id)}">${u.icon ? `<span class="ico lg"><img src="${esc(u.icon)}" alt=""></span>` : ''}<div><b><a href="#/skills/${u.id}">${esc(u.name)}</a></b> <span class="muted small">(${esc(u.stage)})</span><div class="meta"><span class="chip">${icon('clock')}${u.cdSec}초</span><span class="chip">${icon('droplet')}MP ${u.mpCost}</span></div><div class="small">${esc(u.desc)}</div><ul>${u.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></div></div>`).join('');
   return `
     <h2 id="songs">노래</h2>
-    <p class="muted small">노래는 바드 자신을 포함해 반경 안 아군 플레이어 전원에게 걸리는 버프입니다. 슬롯마다 노래가 하나씩이고, 노래를 부르면 주변 적에게 음파 피해도 줍니다.</p>
+    <p class="muted small">노래는 바드 자신을 포함해 반경 안 아군 플레이어 전원에게 걸리는 버프입니다. 슬롯마다 노래가 하나씩이고, 노래를 부르면 주변 적에게 음파 피해도 줍니다. 아래 표는 원래 값이고, 바드의 공격력·치명타 피해가 표준 장비보다 높을수록 최대 +${pct(D.constants.supportScale.songMax)}까지 커집니다(<a href="#/damage#support">서포터 장비 보너스</a> — 재사용 대기 감소는 ${D.constants.supportScale.songCdrCap}%, 즉시 단축은 ${D.constants.supportScale.cdCutCap}%까지).</p>
     <div class="grid g2">${cards}</div>
     ${note('<b>겹침 규칙</b> — 같은 노래는 하나만 걸립니다. 바드 둘이 같은 노래를 불러도 쌓이지 않고 더 센 쪽만 남으며(같거나 더 세면 지속 시간만 갱신), 더 센 노래가 걸려 있는 동안 약한 노래는 덮어쓰지 못합니다. 서로 다른 노래끼리는 함께 걸리고, 다른 버프와도 곱해집니다. 재사용 대기 노래의 <b>즉시 단축</b>은 이미 재사용 대기 감소 노래를 받고 있는 아군에게는 다시 걸리지 않고, 재사용 대기 노래가 든 칸(자기 것·다른 바드나 방랑자의 것)은 줄이지 않습니다.')}
     <h3 style="margin-top:14px">궁극기</h3>
@@ -1596,7 +1609,7 @@ function pageWorld() {
         <li>한 캐릭터는 입구 하나에 한 번만 들어갑니다. ${hd.lifetimeMin}분이 지나거나 안의 도전이 끝나면(완주·전멸·모두 나감) 입구가 닫힙니다.</li>
         <li>안은 허공에 뜬 <b>공허의 군도</b>입니다 — 다리로 이어진 섬 넷을 차례로 지나며, 섬마다 기믹이 있습니다. 라이프 토큰 ${hd.lifeTokens}개 · 들어가고 ${hd.timeLimitMin}분이 지나면 보상 없이 나옵니다.
           <ol>${hd.rooms.map((r) => `<li><b>${esc(r.name)}</b> — ${esc(r.text)}</li>`).join('')}</ol></li>
-        <li>난이도는 <b>${hd.refRaid}급</b>으로 파티 레벨과 상관없이 고정입니다. 최종 보스는 HP ${fmt(hd.bossHp)}·공격력 ${fmt(hd.bossAtk)}(${hd.refRaid} 보스와 같고, 6명부터 인원마다 HP가 늘어납니다)이고, 앞 섬 몬스터와 중간 보스도 그에 맞춰 강합니다.</li>
+        <li>난이도는 <b>${hd.refRaid}급</b>으로 파티 레벨과 상관없이 고정입니다. 최종 보스는 HP ${fmt(hd.bossHp)}·공격력 ${fmt(hd.bossAtk)}(6명부터 인원마다 HP가 늘어납니다)이고, 앞 섬 몬스터와 중간 보스도 그에 맞춰 강합니다.</li>
         <li>보상은 <b>최종 보스를 쓰러뜨릴 때만</b>: 참가자마다 베리 레벨 × ${fmt(hd.goldPerLevel)} · ${hd.ores.map((o) => `${itemLink(o.itemId)} ${o.min === o.max ? o.min : `${o.min}~${o.max}`}개${o.chance < 1 ? `(${pct(o.chance)})` : ''}`).join(' · ')}. ${itemLink(hd.swordId)}은 <b>한 판에 한 번 ${pct(hd.swordChance)}</b>(${oneIn(hd.swordChance)}, 핫타임 드랍 배율 적용)로 굴려, 당첨되면 그 판 참가자 중 <b>무작위 한 명</b>이 받습니다. 구역 보상·경험치·강화서·젬·루비는 없습니다.</li>
       </ul>
     </section>`;
