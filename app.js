@@ -476,7 +476,7 @@ function pageDrops() {
   const goldSplit = D.islands.filter((isl) => isl.partyGoldSplit).map((isl) => islandLink(isl.id)).join(', ');
   const raidRows = D.raids.map((r) => {
     const set = D.raidSets.find((s) => s.raidId === r.id);
-    return tr([islandLink(r.id), R(`Lv${r.minLevel}`), `${set ? `${esc(set.prefix)} 세트` : '보스 세트'} 1점 ${r.rewards.gearChance >= 1 ? '확정' : pct(r.rewards.gearChance)}${r.rewards.firstClearUnique ? ' · 캐릭터 첫 클리어 때 원하는 부위 1개를 유니크로' : ''}${r.dawn ? ` · ${itemLink(r.dawn)} 1명(파티장 지정 또는 무작위)` : ''}`, r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')]);
+    return tr([islandLink(r.id), R(`Lv${r.minLevel}`), `${set ? `${esc(set.prefix)} 세트` : '보스 세트'} 1점 ${r.rewards.gearChance >= 1 ? '확정' : pct(r.rewards.gearChance)}${r.rewards.firstClearUnique ? ' · 캐릭터 첫 클리어 때 원하는 부위 1개를 유니크로(히든 직업 제외)' : ''}${r.dawn ? ` · ${itemLink(r.dawn)} 1명(파티장 지정 또는 무작위)` : ''}`, r.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ×${i.qty}`).join(', ')]);
   });
   const wbRows = D.worldBosses.map((w) => tr([islandLink(w.islandId), R(`지분만큼(최소 ${w.floorSharePct}%)`), [w.rewards.legendaryChance ? `전설 등급 min(100%, ${pct(w.rewards.legendaryChance)} × 몫)(내 레벨 티어 장비 부위)` : '', `${itemLink(w.rareDrop.itemId)} ${pct(w.rareDrop.chance)} × 내 기여 ÷ 1위`].filter(Boolean).join(' · '), `풀 ${fmt(w.rewards.gold)} 베리 · ${esc(D.gems.name)} ${w.rewards.gems[0]}~${w.rewards.gems[1]}개 · ${w.rewards.items.map((i) => `${esc(M.items.get(i.itemId)?.name)} ${i.qty[0]}~${i.qty[1]}개`).join(', ')} · 경험치(${levelShare(pct(w.rewards.expLevelFrac))})`]));
   return `
@@ -579,13 +579,14 @@ function pageDrops() {
     ${table(['전장', { t: '기여 지분', c: 'r' }, '장비', '고정 보상'], wbRows)}
     <p class="muted small" style="margin-top:8px">기여(보스에게 넣은 피해 + 지원·치유 점수)가 있는 사람 모두가 보상 풀을 지분만큼(최소 보장 몫까지) 나눠 받습니다. 지원은 내 강화(전투의 노래·3차 동료 버프·받는 피해 증가)로 아군 피해가 늘어난 몫 × ${c.worldBossSupWeight}(가장 많이 때린 사람 피해의 ${Math.round(c.worldBossSupCap * 100)}%까지), 치유는 보스와 싸우는 동안 다른 사람을 채운 양 × ${c.worldBossHealWeight}(자기 회복은 빼고)이며, 둘을 합쳐 가장 많이 때린 사람 피해의 ${Math.round(c.worldBossAssistCap * 100)}%까지만 셉니다. 시간이 다 되어 보스가 물러나면 깎은 HP 비율만큼만 받고, 전설 장비 · 성장 보너스 · 희귀 드랍은 처치 때만 나옵니다. 전장을 떠나 다른 곳에 있어도 받고, 접속을 끊었으면 그 캐릭터로 다음에 들어올 때 받습니다. 처치 경험치와 전리품은 없습니다.</p>`;
 }
-const CASH_KIND = { starter: '스타터 팩', subscription: '월정액', pass: '레벨 패스', pet: '펫', blessing: '서버 축복', bundle: '아이템', cosmetic: '꾸미기' };
-/** 루비 상점: 상품 표(꾸미기 상품은 꾸미기 표로) · 월정액·자석펫·축복·패스·선물 규칙 · 레벨 패스 단계별 보상 */
+const CASH_KIND = { starter: '스타터 팩', subscription: '월정액', rubyMonthly: '월간 루비', pass: '레벨 패스', pet: '펫', blessing: '서버 축복', bundle: '아이템', cosmetic: '꾸미기' };
+/** 루비 상점: 상품 표(꾸미기 상품은 꾸미기 표로) · 월정액·월간 루비·자석펫·축복·패스·선물 규칙 · 레벨 패스 단계별 보상 */
 function cashShopSection() {
   const cs = D.cashShop;
   const mp = cs.magnetPet;
   const sup = cs.supporter;
   const bl = cs.blessing;
+  const rm = cs.rubyMonthly;
   const STEP_NAME = { relic: '유물', pet: '펫' };
   const limit = (p) => (p.perAccountMax ? `계정당 ${p.perAccountMax}번` : p.perWeekMax ? `계정당 주 ${p.perWeekMax}번(월요일 0시 초기화)` : p.perDayMax ? `계정당 하루 ${p.perDayMax}번` : p.step ? `${STEP_NAME[p.step.line] ?? p.step.line} 스텝업 ${p.step.n}단계 · 순서대로, 5단계 다음 주 월요일부터 다시` : '');
   const rows = cs.products.filter((p) => p.kind !== 'cosmetic').map((p) => tr([
@@ -600,6 +601,7 @@ function cashShopSection() {
     ${table(['상품', { t: '값', c: 'r' }, '구성'], rows)}
     <ul class="plain small" style="margin-top:12px">
       <li><b>모험가 월정액</b>: 계정의 모든 캐릭터에 ${sup.days}일 동안 혜택이 붙습니다. 쓰는 중에 또 사면 ${sup.days}일이 더해집니다(최대 ${sup.maxDays}일). 경험치 +${pct(sup.expBonus)}는 다른 경험치 보너스와 더합니다(<a href="#/growth#exp-bonus">경험치 배율</a>). 생활 경험치(채굴·낚시·농사) +${pct(sup.lifeExpBonus)}도 다른 생활 경험치 보너스와 더하고, 수확량·행운은 그대로입니다. 가방 뒤에 생활 아이템만 들어가는 <b>생활 가방 ${sup.lifeBagSlots}칸</b>이 붙고 생활 아이템은 이 칸부터 채웁니다(구독이 끝나면 꺼내기만 됩니다). 전용 오라·궤적과 밀짚모자·낚싯대 외형 꾸미기는 구독 중에만 장착합니다.</li>
+      ${rm ? `<li><b>${esc(rm.name)}</b>: 충전한 루비로만 삽니다(무료 루비는 쓸 수 없습니다). 산 날부터 ${rm.days}일 동안 매일 루비 ${rm.daily}개, 모두 ${fmt(rm.daily * rm.days)}개를 받습니다(한국 시간 0시 기준). 접속하지 않은 날 몫은 다음 접속 때 한꺼번에 들어옵니다. 받는 루비는 무료 루비라 선물에 쓸 수 없고, 하루 무료 루비 상한과는 따로 셉니다. 받는 중에 또 사면 ${rm.days}일이 더해집니다(남은 기간 최대 ${rm.maxDays}일).</li>` : ''}
       <li><b>${esc(mp.name)}</b>: 계정의 모든 캐릭터 곁을 떠다니며 주변 드랍을 끌어와 줍습니다. 자동 줍기 거리가 기본 ${mp.basePickup}의 ${mp.pickupRadius}배가 됩니다. 계정에 영구로 남고, 모험가 월정액을 사면 함께 받습니다. ${esc(mp.name)}을 이미 가진 계정은 월정액을 ${fmt(mp.priceRuby)}루비 싸게 삽니다.</li>
       <li><b>서버 축복</b>: 받는 순간 서버 전체에 ${bl.minutes / 60}시간 동안 경험치 +${pct(bl.expBonus)}가 붙습니다. 축복 중에 또 받으면 시간이 늘어납니다(남은 시간 최대 ${bl.maxQueueMinutes / 60}시간). 계정당 하루 ${bl.perAccountPerDay}번까지 삽니다.</li>
       <li><b>레벨 패스</b>: 무료 줄은 누구나, 유료 줄은 패스를 산 계정만 받습니다. 캐릭터마다 그 단계 레벨에 닿으면 상점 창에서 각자 받고, 지난 단계도 받을 수 있습니다. 유료 줄 보상은 강화서 말고는 귀속입니다.</li>
@@ -1299,7 +1301,7 @@ function pageWorld() {
         ${r.rewards.gems ? `<li>${esc(D.gems.name)} <b>${r.rewards.gems[0]}~${r.rewards.gems[1]}개 확정</b>(클리어마다 전원, 레이드 공통 젬 확률과 별개)</li>` : ''}
         <li>${r.rewards.gearChance >= 1 ? '<b>반드시</b>' : `${pct(r.rewards.gearChance)} 확률로`} ${esc(D.raidSets.find((s) => s.raidId === r.id)?.prefix ?? '이 보스')} 세트 1점(${r.rewards.gearPool.length}종 중 내가 쓸 수 있는 것, 첫 클리어는 자기 직업 무기). 등급: ${esc(D.constants.grades.raidText)}</li>
         ${growthLine(r.growth, `입장 레벨(Lv${r.minLevel})`, '모든 레이드 합산, 혼자 도전해도 그대로')}
-        ${r.rewards.firstClearUnique ? '<li><b>캐릭터마다 처음 깰 때 한 번</b>: 이 레이드 세트 중 내 직업 무기 + 직업 무관 부위에서 원하는 1개를 골라 <b>유니크 등급</b>으로 받습니다(귀속 아님). 가방이 차 있거나 창을 닫아도 다음에 접속할 때 다시 고를 수 있습니다. 서버 최초 칭호는 없습니다.</li>' : ''}
+        ${r.rewards.firstClearUnique ? '<li><b>캐릭터마다 처음 깰 때 한 번</b>: 이 레이드 세트 중 내 직업 무기 + 직업 무관 부위에서 원하는 1개를 골라 <b>유니크 등급</b>으로 받습니다(귀속 아님). 가방이 차 있거나 창을 닫아도 다음에 접속할 때 다시 고를 수 있습니다. 히든 직업은 받지 못합니다. 서버 최초 칭호는 없습니다.</li>' : ''}
         ${r.dawn ? `<li><b>클리어마다 1명</b>: ${itemLink(r.dawn)}(<span class="rar-legendary">전설</span> 목걸이, 각성 상태로 받음)을 레이드 안 참가자 중 한 명이 받습니다. 파티장이 출발 전에 레이드 창 지옥 단계의 「황혼의 아침 받을 사람」에서 정할 수 있고, 정하지 않으면(또는 정한 사람이 클리어 때 레이드 안에 없으면) 무작위입니다. 받으면 레이드 참가자에게 알리고, 가방이 차 있으면 우편으로 갑니다. 귀속이라 거래할 수 없지만 상점에 팔거나 버릴 수 있습니다.</li>` : ''}
       </ul>
     </section>`).join('');
