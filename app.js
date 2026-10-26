@@ -1419,7 +1419,7 @@ function pageWorld() {
   const fwCard = `
     <section class="card" id="faction-war">
       <h2 style="margin-top:0">${esc(fwar.name)} <span class="chip">매일 ${hm(fwar.startMin)}</span> <span class="chip">인원 제한 없음</span> <span class="chip">이긴 팀 젬 ${fwar.winGems}개</span></h2>
-      <p>매일 ${hm(fwar.startMin)}에 열리는 서버 전체 PvP입니다. 화면 왼쪽 아래 「${esc(fwar.name)}」을 눌러 <b>누구나</b> 신청합니다(레벨 제한 없음, 한 계정에 한 캐릭터). 신청한 사람을 전투력으로 반씩 나눠 <b>${esc(fwar.teamName.a)}</b>과 <b>${esc(fwar.teamName.b)}</b>으로 싸우고, 이긴 팀은 판에 들어온 사람 <b>모두</b> 젬 ${fwar.winGems}개를 받습니다(접속이 끊겼으면 우편).</p>
+      <p>기본으로 매일 ${hm(fwar.startMin)}에 열리는 서버 전체 PvP입니다(운영 사정에 따라 시각·보상이 바뀔 수 있고, 지금 값은 게임 안 「${esc(fwar.name)}」 카드에 나옵니다). 화면 왼쪽 아래 「${esc(fwar.name)}」를 눌러 <b>누구나</b> 신청합니다(레벨 제한 없음, 한 계정에 한 캐릭터). 신청한 사람을 전투력으로 반씩 나눠 <b>${esc(fwar.teamName.a)}</b>과 <b>${esc(fwar.teamName.b)}</b>으로 싸우고, 이긴 팀은 판에 들어온 사람 <b>모두</b> 젬 ${fwar.winGems}개를 받습니다(접속이 끊겼으면 우편).</p>
       ${table(['시각', '하는 일'], [
         tr([`~ ${hm(fwar.startMin + fwar.closeOff)}`, '신청 · 취소']),
         tr([hm(fwar.startMin + fwar.closeOff), '신청 마감']),
@@ -1428,7 +1428,7 @@ function pageWorld() {
       ])}
       <ul class="plain small">
         <li>판 규칙(전장 · 점수 · 등대 · 진주 · 해룡 · 왕관 · 전투 보정 · 부활)은 아래 <a href="#/world#guild-war">길드전</a>과 같습니다. 정원은 큰 편 인원입니다.</li>
-        <li>보상은 이긴 팀만 받습니다. 무승부 · 무효 · 한 편이 아무도 들어오지 못해 시작하지 못한 판은 보상이 없고, 길드전 점수도 바뀌지 않습니다.</li>
+        <li>${fwar.loseGems > 0 ? `진 팀도 판에 들어온 사람마다 젬 ${fwar.loseGems}개를 받습니다.` : '보상은 이긴 팀만 받습니다.'} 무승부 · 무효 · 한 편이 아무도 들어오지 못해 시작하지 못한 판은 보상이 없고, 길드전 점수도 바뀌지 않습니다.</li>
         <li>${esc(fwar.teamName.b)}은 전장에서 주황색으로 보입니다.</li>
       </ul>
     </section>`;
@@ -1775,7 +1775,7 @@ function pageWorld() {
       </div>
     </section>`;
   const index = `<nav class="isl-index" aria-label="지역 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>${isl.hub ? "모항" : `Lv${isl.levelRange[0]}~${isl.levelRange[1]}`}${isl.shopTiers.length ? ` · ${isl.shopTiers.map((t) => `T${t}`).join('·')}` : ''}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a><a href="#/world#village"><b>${esc(vg.name)} 놀거리</b><span>폭죽 · 체스 · 오목 · 날씨</span></a></nav>`;
-  return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 모항입니다.')}<h2>서막</h2><div class="stack">${prologueCard}</div><h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}${questLineCard}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>히든 던전</h2><div class="stack">${hiddenCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>선술집 의뢰</h2><div class="stack">${tavernCard}${catCard}</div><h2>생활</h2><div class="stack">${lifeCard}${seaEventsCard()}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>세력전 (PvP)</h2><div class="stack">${fwCard}</div><h2>길드전 (PvP)</h2><div class="stack">${gwCard}</div><h2>길드</h2><div class="stack">${guildRankCard}${guildStorageCard}</div><h2>${esc(vg.name)} 놀거리</h2><div class="stack">${villageCard}</div><h2>교류·편의</h2><div class="stack">${socialCards}</div>`;
+  return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 모항입니다.')}<h2>서막</h2><div class="stack">${prologueCard}</div><h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}${questLineCard}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>히든 던전</h2><div class="stack">${hiddenCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>선술집 의뢰</h2><div class="stack">${tavernCard}${catCard}</div><h2>생활</h2><div class="stack">${lifeCard}${seaEventsCard()}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>${esc(fwar.name)} (PvP)</h2><div class="stack">${fwCard}</div><h2>길드전 (PvP)</h2><div class="stack">${gwCard}</div><h2>길드</h2><div class="stack">${guildRankCard}${guildStorageCard}</div><h2>${esc(vg.name)} 놀거리</h2><div class="stack">${villageCard}</div><h2>교류·편의</h2><div class="stack">${socialCards}</div>`;
 }
 
 // ── 페이지: 성장·강화 ──
@@ -2169,7 +2169,7 @@ function buildSearch() {
   add('레이드', D.augment.name, `#/world#raid-${D.augment.id}`, `웨이브 던전 베타 · ${D.augment.every}웨이브마다 증강 카드`, ph('crown'), D.augment.list.map((a) => `${a.name} ${a.desc}`).join(' · '), '레이드 증강 베타 카드');
   for (const w of D.worldBosses) add('레이드', w.name, `#/world#wb-${w.id}`, `필드 보스 원정 · ${M.mobs.get(w.bossId)?.name ?? ''}`, ph('crown'), w.phases.map((p) => p.label).join(' · '), `필드보스 월드보스 원정 ${gimmickWords(w.gimmicks)}`);
   add('콘텐츠', D.duel.name, '#/world#duel', `PvP · ${D.duel.modes.map((m) => m.name).join(' · ')} · ${D.duel.rules.map((r) => `${r.name} Lv${r.minLevel}+`).join(' · ')}`, ph('swords'), `점수 매칭 ±${D.duel.matchRange} 결투 신청 친선 스펙 적용 동등 조건`, '결투장 PvP 대전 결투 점수 레이팅 동등결투');
-  add('콘텐츠', D.factionWar.name, '#/world#faction-war', `PvP · 매일 ${String(D.factionWar.startMin / 60).padStart(2, '0')}:00 · 인원 제한 없음 · 이긴 팀 젬 ${D.factionWar.winGems}개`, ph('swords'), `${D.factionWar.teamName.a} ${D.factionWar.teamName.b} 전투력으로 반씩 · 왼쪽 아래 「${D.factionWar.name}」에서 신청`, '세력전 진영전 팀전 레드팀 블루팀 PvP 전장 젬');
+  add('콘텐츠', D.factionWar.name, '#/world#faction-war', `PvP · 매일 ${String(D.factionWar.startMin / 60).padStart(2, '0')}:00 · 인원 제한 없음 · 이긴 팀 젬 ${D.factionWar.winGems}개`, ph('swords'), `${D.factionWar.teamName.a} ${D.factionWar.teamName.b} 전투력으로 반씩 · 왼쪽 아래 「${D.factionWar.name}」에서 신청`, '난투 세력전 진영전 팀전 레드팀 블루팀 PvP 전장 젬');
   add('콘텐츠', D.guildWar.name, '#/world#guild-war', `PvP · 매일 ${D.guildWar.clock.sessionMin.map((m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`).join(' · ')}${D.guildWar.beta ? ' 베타' : ''} · ${D.guildWar.starters.base} 대 ${D.guildWar.starters.base} · Lv${D.guildWar.minLevel}+`, ph('swords'), `등대 진주 금고 해룡 왕관 현상범 조수 썰물 밀물 · 먼저 ${D.guildWar.match.winScore}점`, '길드전 길드 전쟁 길드대전 PvP 전장 등대 진주 금고 해룡 왕관 현상범 조수 밀물 썰물 대썰물 지휘관 교대');
   add('콘텐츠', '선술집 의뢰', '#/world#tavern', `노을마을 선술집 · ${D.tavern.rotateHours}시간마다 교체 · 개인 의뢰 ${D.tavern.personalCount}개`, ph('scroll-text'), D.tavern.tiers.map((t) => t.name).join(' · '), '선술집 의뢰 일퀘 일일 퀘스트 게시판 개인 마고');
   add('콘텐츠', '생활(농사·광산·낚시)', '#/world#life', `${D.life.islands.mine} · ${D.life.islands.cove} · ${D.life.islands.farm} · Lv${D.life.unlockLevel}부터 · 직접 채굴·낚시·농사 · 요리·제련`, ph('scroll-text'), D.life.kinds.map((k) => k.name).join(' · '), '생활 농사 광산 낚시 수확 채굴 요리 제련 음식 노을 광산 노을 해변 낚시터 농장 마을 내 농장 부지 풍요의 삼지창');
