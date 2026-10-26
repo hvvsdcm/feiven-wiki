@@ -20,7 +20,7 @@ const KIND = { weapon: '무기', helmet: '투구', armor: '갑옷', gloves: '장
 const EQUIP = ['weapon', 'helmet', 'armor', 'gloves', 'boots', 'accessory', 'ring'];
 const ROLE = { chief: '촌장(전직)', quest: '퀘스트', shop: '상인', smith: '대장장이(강화)', sailor: '뱃사공(이동)', raid: '선술집(레이드·던전·원정)', gem: '젬 상인', storage: '창고', tavern: '의뢰 중개인', cook: '요리사(생활)', smelter: '광부 반장(생활)', fishmonger: '어물전 주인(생활)', farmer: '농장 관리인(생활)', shipwright: '선주(배낚시 배)', flavor: '주민' };
 const MOB_KIND = { field: '일반', elite: '정예', boss: '필드 보스', raid: '레이드 보스', raidAdd: '레이드 소환수', worldBoss: '원정 필드 보스', worldBossAdd: '원정 소환수' };
-const PASSIVE = { patkPct: ['물리 공격력', '%'], matkPct: ['마법 공격력', '%'], maxHpPct: ['최대 HP', '%'], maxMpPct: ['최대 MP', '%'], critPct: ['치명타 확률', '%p'], bossPct: ['보스에게 주는 피해', '%'] };
+const PASSIVE = { patkPct: ['물리 공격력', '%'], matkPct: ['마법 공격력', '%'], maxHpPct: ['최대 HP', '%'], maxMpPct: ['최대 MP', '%'], critPct: ['치명타 확률', '%p'], bossPct: ['보스에게 주는 피해', '%'], mobPct: ['일반 몬스터에게 주는 피해', '%'] };
 const DMG = { phys: '물리', magic: '마법' };
 const RARITIES = ['common', 'rare', 'saga', 'epic', 'legendary', 'unique', 'absolute'];
 
