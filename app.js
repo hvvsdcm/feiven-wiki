@@ -161,7 +161,7 @@ function homeTiles() {
     ['items', 'inventory', '아이템 도감', `아이템 ${D.items.length}개 · 얻는 곳`],
     ['mobs', 'duel', '몬스터 도감', `몬스터 ${D.mobs.length}종 · 드랍표`],
     ['drops', 'cashshop', '드랍률·상점', '등급 · 장비 · 루비 상점 · 치장 뽑기 · 젬 · 출석'],
-    ['world', 'attendance', '지역·레이드', `지역 ${D.islands.length}곳 · 레이드 ${D.raids.length}개 · 던전 · 생활 · 결투장`],
+    ['world', 'attendance', '지역·레이드', `지역 ${D.islands.length}곳 · 레이드 ${D.raids.length}개 · 던전 · 생활 · 결투장 · 길드전`],
     ['growth', 'stats', '성장·강화', '레벨 해금 · 강화 · 초월 · 유물 · 펫 · 항해 등급'],
     ['world#village', 'friends', `${D.village.name} 놀거리`, '밤 폭죽놀이 · 체스 · 오목 · 날씨'],
     ['news', 'patch', '업데이트 소식', `최근 패치노트 ${D.news.length}개`],
@@ -219,7 +219,7 @@ function unlockHref(id) {
   const raid = D.raids.find((r) => !r.guild);
   const guildRaid = D.raids.find((r) => r.guild);
   const map = {
-    pets: '#/growth#pets', tavernJobs: '#/world#tavern', duel: '#/world#duel', exchange: '#/world#exchange', guild: '#/world#guild-rank',
+    pets: '#/growth#pets', tavernJobs: '#/world#tavern', duel: '#/world#duel', guildWar: '#/world#guild-war', exchange: '#/world#exchange', guild: '#/world#guild-rank',
     advance1: '#/classes', advance2: '#/classes', advance3: '#/classes', raid: raid ? `#/world#raid-${raid.id}` : '#/world', life: '#/world#life',
     infinite: `#/world#raid-${D.infinite.id}`, worldboss: D.worldBosses[0] ? `#/world#wb-${D.worldBosses[0].id}` : '#/world', guildRaid: guildRaid ? `#/world#raid-${guildRaid.id}` : '#/world',
     relics: '#/growth#relics', codex: '#/growth#codex', treasureDungeon: '#/world#dungeons', transcend: '#/growth#transcend', voyage: '#/growth#voyage',
@@ -1383,6 +1383,35 @@ function pageWorld() {
       ${table(['갈래', '2차 직업', { t: '1차·각성', c: 'r' }, { t: '2차', c: 'r' }, { t: '3차', c: 'r' }], du.branchMuls.map((b) => tr([esc(b.name), esc(b.second), mulCell(b.first), mulCell(b.secondMul), mulCell(b.third)])))}
       <p class="small" style="margin-top:8px">히든 직업 <a href="#/classes/${esc(D.wanderer.id)}">${esc(D.wanderer.name)}</a>에게는 방랑자 피해 배율(×${D.wanderer.dmgMul})이 붙고, ${esc(eq.name)}에서는 그 대신 ×${D.wanderer.duelEqMul}을 쓰며 5번 칸이 비어 있습니다.</p>
     </section>`;
+  const gw = D.guildWar;
+  const hm = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+  const ms = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  const gwCard = `
+    <section class="card" id="guild-war">
+      <h2 style="margin-top:0">${esc(gw.name)} ${gw.beta ? '<span class="chip">베타</span>' : ''} <span class="chip">매일 ${hm(gw.clock.roundMin[0])}</span> <span class="chip">${gw.starters.base} 대 ${gw.starters.base}</span> <span class="chip">Lv${gw.minLevel}+</span></h2>
+      <p>길드 창의 「길드전」 탭에서 길드장·부길드장이 그날 참가를 신청하고, 길드원은 <b>출전 희망</b>을 누릅니다. 두 길드가 20분 동안 전장에서 등대·진주·해룡·왕관으로 점수를 모아 먼저 <b>${gw.match.winScore.toLocaleString()}점</b>이면 이깁니다. 보상은 없고 결과와 길드전 점수만 남습니다.</p>
+      ${table(['시각', '하는 일'], [
+        tr([`~${hm(gw.clock.closeMin)}`, '참가 신청 · 출전 희망(조건: Lv' + gw.minLevel + ' 이상, 그 길드에 가입한 지 ' + gw.memberMinHours + '시간 이상, 하루 한 계정 한 캐릭터)']),
+        tr([hm(gw.clock.closeMin), '마감 · 대진 발표(길드전 점수가 가까운 길드끼리, 어제 상대는 피함). 짝이 없는 길드는 쉬고 다음 날 먼저 짝지어집니다']),
+        tr([`~${hm(gw.clock.readyMin)}`, `명단(선발 · 교대 ${gw.subs}명 · 지휘관)과 인원 제안`]),
+        tr([hm(gw.clock.readyMin), '출전 확인 — 명단에 든 사람은 「입장 준비」를 누릅니다']),
+        tr([gw.clock.roundMin.map(hm).join(' · '), `회차 시작(한 회차 최대 ${gw.perRoundMax}판, 넘치면 다음 회차)`]),
+      ])}
+      <ul class="plain small">
+        <li>인원: 기본 <b>${gw.starters.base} 대 ${gw.starters.base}</b>. 두 길드가 같은 수(${gw.starters.base}~${gw.starters.max})를 제안하면 그 수로 합니다. 교대 ${gw.subs}명, 관전 최대 ${gw.watchMax}명. 모자란 편은 모자란 채로 싸우고, 시작 때 들어온 선수가 ${gw.forfeitBelow}명 미만이면 기권패입니다.</li>
+        <li>점수: 등대 하나당 초당 ${gw.lighthouse.pointsPerSec}점 · 금고에 넣은 진주 1개 ${gw.pearl.points}점 · 처치 ${gw.killPoints}점 · 현상범(${gw.bounty.streak}연속 처치) 처치 ${gw.bounty.points}점 · 해룡 ${gw.dragon.points}점 · 왕관 ${gw.crown.points}점 · 끝날 때 들고 있던 진주 1개 ${gw.pearl.heldPoints}점. 금고를 털리면 꺼낸 진주만큼 점수가 넘어갑니다.</li>
+        <li>등대: 반지름 ${gw.lighthouse.r} 원 안에 우리 편만 있으면 점령이 진행됩니다(적 등대 → 중립 ${gw.lighthouse.toNeutralSec}초, 중립 → 우리 등대 ${gw.lighthouse.toOwnSec}초, 1명 늘 때마다 +${gw.lighthouse.perExtra * 100}% · 최대 ×${gw.lighthouse.maxMul}). 두 편이 함께 있으면 멈춥니다. 우리 등대 곁에 적이 없으면 그 등대에서 부활할 수 있습니다.</li>
+        <li>진주: 썰물마다 갯벌에 상자가 열립니다(빛기둥 ${gw.tide.beamSec}초 뒤). 한 사람이 최대 ${gw.pearl.max}개, 1개마다 이동 속도 −${gw.pearl.slowPer * 100}%, ${gw.pearl.beaconAt}개부터 적 지도에 보입니다. 쓰러지면 모두 떨어뜨리고, 밀물에 잠기면 떠내려갑니다. 적 금고는 ${gw.vault.raidSec}초 시전으로 털 수 있습니다(넣은 진주의 ${gw.vault.raidPct * 100}%, 최대 ${gw.vault.raidMax}개, 한 금고 ${gw.vault.raidCooldownSec}초에 한 번).</li>
+        <li>해룡: ${ms(gw.dragon.atSec)}에 가운데 섬에 나타나 두 편을 모두 공격합니다. 쓰러뜨린 순간 최근 ${gw.dragon.windowSec}초 동안 피해를 더 준 편이 잡은 편이 되고, ${gw.dragon.blessSec}초 동안 해룡의 가호(점령 속도 ×${gw.dragon.blessCaptureMul}, 잠긴 갯벌 감속 없음)를 받습니다. ${ms(gw.dragon.leaveSec)}까지 못 잡으면 물러납니다.</li>
+        <li>결전(${ms(gw.crown.atSec)}~): 대썰물로 깊은 골까지 마르고 왕관이 가운데 섬에 나옵니다. 든 사람은 이동 속도 −${gw.crown.slow * 100}%, 대시를 못 쓰며 우리 금고에 ${gw.crown.depositSec}초 동안 넣으면 ${gw.crown.points}점입니다. 부활 대기가 ×${gw.respawn.finaleMul}로 길어집니다.</li>
+        <li>전투: 플레이어끼리 피해 ${pct(gw.combat.damageMul)} · 치유·보호막 ${pct(gw.combat.healMul)}만 들어갑니다. 기절이 풀리면 ${gw.combat.stunImmuneSec}초 기절 면역, 기사 도발에 맞으면 ${gw.combat.taunt.sec}초 동안 기사 아닌 대상에게 주는 피해 −${gw.combat.taunt.pct}%. 공격력·최대 HP는 전장 평균 전투력에 맞춰 ×${gw.compress.min}~×${gw.compress.max} 사이로 보정됩니다. 물약은 목숨마다 ${gw.combat.potion.perLife}개(최대 HP ${gw.combat.potion.pct}%, 재사용 ${gw.combat.potion.cdSec}초), 탈것·귀환은 쓸 수 없습니다.</li>
+        <li>부활: ${gw.respawn.baseSec}초 + 쓰러질 때마다 ${gw.respawn.perDeathSec}초(최대 ${gw.respawn.maxSec}초). 힐러는 쓰러진 지 ${gw.revive.windowSec}초 안의 같은 편을 ${gw.revive.castSec}초 시전으로 HP ${gw.revive.hpPct}%로 일으킬 수 있습니다.</li>
+        <li>승패: 먼저 ${gw.match.winScore.toLocaleString()}점이거나 20분 뒤 점수가 높은 편. 같으면 넣은 진주 수, 그다음 등대를 가진 시간 합, 그래도 같으면 무승부. 길드전 점수는 처음 ${gw.elo.start}점(Elo, K=${gw.elo.k}).</li>
+      </ul>
+      <h3>조수</h3>
+      ${table(['시간', '조수', '상자'], gw.tides.map((s) => tr([`${ms(s.from)}~${ms(s.to)}`, esc(s.name), s.wave ? `${s.wave}번째 물결` : '<span class="muted">—</span>'])))}
+      <p class="small" style="margin-top:8px">밀물에는 갯벌이 잠겨 그 위에서 이동 속도 ×${gw.tide.floodSpeedMul}, 대시 거리 ×${gw.tide.floodDashMul}이 되고, 가운데 섬은 북·남 둑길로만 닿습니다. 밀물 ${gw.tide.warnSec}초 전부터 조수 시계가 노랗게 바뀝니다.</p>
+    </section>`;
   const gr = D.guildRank;
   const sc = gr.score;
   const gsh = D.guildShop;
@@ -1726,7 +1755,7 @@ function pageWorld() {
       </div>
     </section>`;
   const index = `<nav class="isl-index" aria-label="지역 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>${isl.hub ? "모항" : `Lv${isl.levelRange[0]}~${isl.levelRange[1]}`}${isl.shopTiers.length ? ` · ${isl.shopTiers.map((t) => `T${t}`).join('·')}` : ''}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a><a href="#/world#village"><b>${esc(vg.name)} 놀거리</b><span>폭죽 · 체스 · 오목 · 날씨</span></a></nav>`;
-  return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 모항입니다.')}<h2>서막</h2><div class="stack">${prologueCard}</div><h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}${questLineCard}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>히든 던전</h2><div class="stack">${hiddenCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>선술집 의뢰</h2><div class="stack">${tavernCard}${catCard}</div><h2>생활</h2><div class="stack">${lifeCard}${seaEventsCard()}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>길드</h2><div class="stack">${guildRankCard}${guildStorageCard}</div><h2>${esc(vg.name)} 놀거리</h2><div class="stack">${villageCard}</div><h2>교류·편의</h2><div class="stack">${socialCards}</div>`;
+  return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 모항입니다.')}<h2>서막</h2><div class="stack">${prologueCard}</div><h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}${questLineCard}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>히든 던전</h2><div class="stack">${hiddenCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>선술집 의뢰</h2><div class="stack">${tavernCard}${catCard}</div><h2>생활</h2><div class="stack">${lifeCard}${seaEventsCard()}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>길드전 (PvP)</h2><div class="stack">${gwCard}</div><h2>길드</h2><div class="stack">${guildRankCard}${guildStorageCard}</div><h2>${esc(vg.name)} 놀거리</h2><div class="stack">${villageCard}</div><h2>교류·편의</h2><div class="stack">${socialCards}</div>`;
 }
 
 // ── 페이지: 성장·강화 ──
@@ -2120,6 +2149,7 @@ function buildSearch() {
   add('레이드', D.augment.name, `#/world#raid-${D.augment.id}`, `웨이브 던전 베타 · ${D.augment.every}웨이브마다 증강 카드`, ph('crown'), D.augment.list.map((a) => `${a.name} ${a.desc}`).join(' · '), '레이드 증강 베타 카드');
   for (const w of D.worldBosses) add('레이드', w.name, `#/world#wb-${w.id}`, `필드 보스 원정 · ${M.mobs.get(w.bossId)?.name ?? ''}`, ph('crown'), w.phases.map((p) => p.label).join(' · '), `필드보스 월드보스 원정 ${gimmickWords(w.gimmicks)}`);
   add('콘텐츠', D.duel.name, '#/world#duel', `PvP · ${D.duel.modes.map((m) => m.name).join(' · ')} · ${D.duel.rules.map((r) => `${r.name} Lv${r.minLevel}+`).join(' · ')}`, ph('swords'), `점수 매칭 ±${D.duel.matchRange} 결투 신청 친선 스펙 적용 동등 조건`, '결투장 PvP 대전 결투 점수 레이팅 동등결투');
+  add('콘텐츠', D.guildWar.name, '#/world#guild-war', `PvP · 매일 23:00${D.guildWar.beta ? ' 베타' : ''} · ${D.guildWar.starters.base} 대 ${D.guildWar.starters.base} · Lv${D.guildWar.minLevel}+`, ph('swords'), `등대 진주 금고 해룡 왕관 현상범 조수 썰물 밀물 · 먼저 ${D.guildWar.match.winScore}점`, '길드전 길드 전쟁 길드대전 PvP 전장 등대 진주 금고 해룡 왕관 현상범 조수 밀물 썰물 대썰물 지휘관 교대');
   add('콘텐츠', '선술집 의뢰', '#/world#tavern', `노을마을 선술집 · ${D.tavern.rotateHours}시간마다 교체 · 개인 의뢰 ${D.tavern.personalCount}개`, ph('scroll-text'), D.tavern.tiers.map((t) => t.name).join(' · '), '선술집 의뢰 일퀘 일일 퀘스트 게시판 개인 마고');
   add('콘텐츠', '생활(농사·광산·낚시)', '#/world#life', `${D.life.islands.mine} · ${D.life.islands.cove} · ${D.life.islands.farm} · Lv${D.life.unlockLevel}부터 · 직접 채굴·낚시·농사 · 요리·제련`, ph('scroll-text'), D.life.kinds.map((k) => k.name).join(' · '), '생활 농사 광산 낚시 수확 채굴 요리 제련 음식 노을 광산 노을 해변 낚시터 농장 마을 내 농장 부지 풍요의 삼지창');
   if (D.seaEvents) add('콘텐츠', '바다 이벤트', '#/world#sea-events', `깊은 바다 · ${D.seaEvents.events.length}가지 · 항해사 이점 · 해역 ${D.seaEvents.regions.length}곳`, ph('scroll-text'), D.seaEvents.events.map((e) => e.name).join(' · '), `바다 이벤트 깊은 바다 해적 해적선 유령선 안개 폭풍 벼락 소용돌이 해류 물살 난파선 표류물 화약통 고래 축복 항해사 ${D.seaEvents.regions.map((r) => r.name).join(' ')}`);
