@@ -1347,10 +1347,32 @@ function pageWorld() {
   /** 길드전 시작 기준 분(음수 = 전) → 「30분 전」·「시작」·「15분 뒤」 */
   const off = (m) => (m < 0 ? `${-m}분 전` : m === 0 ? '시작' : `${m}분 뒤`);
   const gwTimes = gw.clock.sessionMin.map(hm).join(' · ');
+  const [rift, abyss] = gw.maps;
+  const mn = gw.mobName;
+  const sn = gw.structureName;
+  const cn = Object.fromEntries(gw.camps.map((c) => [c.id, c.name]));
+  const ec = gw.economy;
+  const st = gw.structure;
+  // 판 시계: 같은 초의 일은 한 줄로 묶는다
+  const gwClockRows = [
+    [0, `입장 · 문 닫힘(${gw.match.gateSec}초 동안 서로 못 때림) · 시작 골드 ${fmt(ec.startGold)} · 상점 열림 · 판 레벨 1`],
+    [gw.match.gateSec, '문 열림'],
+    [gw.wave.firstSec, `첫 일꾼 웨이브(그 뒤 ${gw.wave.everySec}초마다 모든 라인에서)`],
+    [ec.passiveFromSec, `저절로 들어오는 골드(초당 ${ec.passivePerSec})`],
+    [gw.camp.atSec, '정글 캠프 등장'],
+    [gw.dragon.atSec, `${esc(mn.dragon)} 등장(잡히면 ${ms(gw.dragon.respawnSec)} 뒤 다시)`],
+    [gw.surrender.fromSec, '항복 투표 가능'],
+    [gw.baron.atSec, `${esc(mn.baron)} 등장(잡히면 ${ms(gw.baron.respawnSec)} 뒤 다시)`],
+    [gw.respawn.lateFromSec, `부활 대기 ×${gw.respawn.lateMul}`],
+    [gw.match.finaleSec, `<b>결전</b> — 새 웨이브가 모두 ${esc(mn.super)}(HP ×${gw.wave.finaleHpMul}), 구조물이 받는 피해 ×${st.finaleTakenMul}. ${esc(abyss.name)}은 ${ms(gw.abyss.finaleSec)}부터`],
+    [gw.match.totalSec, '시간 종료 — 아래 동점 규칙으로 승패'],
+  ].reduce((m, [sec, text]) => m.set(sec, [...(m.get(sec) ?? []), text]), new Map());
+  const lastStreak = gw.streakTitles[gw.streakTitles.length - 1];
+  const bountyAt = ec.bountyByStreak.map((g, i) => [i, g]).filter(([, g]) => g > 0);
   const gwCard = `
     <section class="card" id="guild-war">
-      <h2 style="margin-top:0">${esc(gw.name)} ${gw.beta ? '<span class="chip">베타</span>' : ''} <span class="chip">매일 ${gwTimes}</span> <span class="chip">${gw.starters.base} 대 ${gw.starters.base}</span> <span class="chip">Lv${gw.minLevel}+</span></h2>
-      <p>매일 ${gwTimes}에 열리고, 길드전마다 따로 신청합니다. 길드 창의 「길드전」 탭에서 길드장·부길드장이 참가를 신청하고, 길드원은 <b>출전 희망</b>을 누릅니다. 두 길드가 ${gw.match.totalSec / 60}분 동안 전장에서 등대·진주·해룡·왕관으로 점수를 모아 먼저 <b>${gw.match.winScore.toLocaleString()}점</b>이면 이깁니다. 보상은 없고 결과와 길드전 점수만 남습니다.</p>
+      <h2 style="margin-top:0">${esc(gw.name)} ${gw.beta ? '<span class="chip">베타</span>' : ''} <span class="chip">매일 ${gwTimes}</span> <span class="chip">${gw.starters.base} 대 ${gw.starters.base}</span> <span class="chip">Lv${gw.minLevel}+</span> <span class="chip">한 판 ${gw.match.totalSec / 60}분</span></h2>
+      <p>매일 ${gwTimes}에 열리고, 길드전마다 따로 신청합니다. 길드 창의 「길드전」 탭에서 길드장·부길드장이 참가를 신청하고, 길드원은 <b>출전 희망</b>을 누릅니다. 두 길드가 <b>${esc(rift.name)}</b>(${rift.lanes.length}라인 전장)에서 일꾼과 함께 라인을 밀고, 판 안에서 레벨·골드·아이템을 키워 <b>상대 ${esc(sn.nexus)}를 먼저 깨면</b> 이깁니다. 보상은 없고 결과와 길드전 점수만 남습니다.</p>
       ${table(['시각(길드전 시작 기준)', '하는 일'], [
         tr([`앞 길드전이 끝난 뒤 ~ ${off(gw.clock.closeOff)}`, '참가 신청 · 출전 희망(조건: Lv' + gw.minLevel + ' 이상, 그 길드에 가입한 지 ' + gw.memberMinHours + '시간 이상, 길드전마다 한 계정 한 캐릭터)']),
         tr([off(gw.clock.closeOff), '마감 · 대진 발표(길드전 점수가 가까운 길드끼리, 바로 앞 길드전 상대는 피함). 짝이 없는 길드는 쉬고 다음 길드전에서 먼저 짝지어집니다']),
@@ -1358,20 +1380,57 @@ function pageWorld() {
         tr([off(gw.clock.readyOff), '출전 확인 — 명단에 든 사람은 「입장 준비」를 누릅니다']),
         tr([gw.clock.roundOff.map(off).join(' · '), `회차 시작(한 회차 최대 ${gw.perRoundMax}판, 넘치면 다음 회차)`]),
       ])}
+      <h3>지도</h3>
       <ul class="plain small">
-        <li>인원: 기본 <b>${gw.starters.base} 대 ${gw.starters.base}</b>. 두 길드가 같은 수(${gw.starters.base}~${gw.starters.max})를 제안하면 그 수로 합니다. 교대 ${gw.subs}명, 관전 최대 ${gw.watchMax}명. 모자란 편은 모자란 채로 싸우고, 시작 때 들어온 선수가 ${gw.forfeitBelow}명 미만이면 기권패입니다.</li>
-        <li>점수: 등대 하나당 초당 ${gw.lighthouse.pointsPerSec}점 · 금고에 넣은 진주 1개 ${gw.pearl.points}점 · 처치 ${gw.killPoints}점 · 현상범(${gw.bounty.streak}연속 처치) 처치 ${gw.bounty.points}점 · 해룡 ${gw.dragon.points}점 · 왕관 ${gw.crown.points}점 · 끝날 때 들고 있던 진주 1개 ${gw.pearl.heldPoints}점. 금고를 털리면 꺼낸 진주만큼 점수가 넘어갑니다.</li>
-        <li>등대: 반지름 ${gw.lighthouse.r} 원 안에 우리 편만 있으면 점령이 진행됩니다(적 등대 → 중립 ${gw.lighthouse.toNeutralSec}초, 중립 → 우리 등대 ${gw.lighthouse.toOwnSec}초, 1명 늘 때마다 +${gw.lighthouse.perExtra * 100}% · 최대 ×${gw.lighthouse.maxMul}). 두 편이 함께 있으면 멈춥니다. 우리 등대 곁에 적이 없으면 그 등대에서 부활할 수 있습니다.</li>
-        <li>진주: 썰물마다 갯벌에 상자가 열립니다(빛기둥 ${gw.tide.beamSec}초 뒤). 상자는 ${gw.pearl.openSec}초 동안 열어야 하고, 반지름 ${gw.pearl.contestR} 안에 살아 있는 적이 있으면 열 수 없으며 여는 중에 적이 다가오면 끊깁니다 — 먼저 싸워 물리쳐야 합니다. 한 사람이 최대 ${gw.pearl.max}개, 1개마다 이동 속도 −${gw.pearl.slowPer * 100}%, ${gw.pearl.beaconAt}개부터 적 지도에 보이고 머리 위에 든 진주 수가 뜹니다. 쓰러지면 모두 떨어뜨리고, 밀물에 잠기면 떠내려갑니다. 적 금고는 ${gw.vault.raidSec}초 시전으로 털 수 있습니다(넣은 진주의 ${gw.vault.raidPct * 100}%, 최대 ${gw.vault.raidMax}개, 한 금고 ${gw.vault.raidCooldownSec}초에 한 번).</li>
-        <li>해룡: ${ms(gw.dragon.atSec)}에 가운데 섬에 나타나 두 편을 모두 공격합니다. 쓰러뜨린 순간 최근 ${gw.dragon.windowSec}초 동안 피해를 더 준 편이 잡은 편이 되고, ${gw.dragon.blessSec}초 동안 해룡의 가호(점령 속도 ×${gw.dragon.blessCaptureMul}, 잠긴 갯벌 감속 없음)를 받습니다. ${ms(gw.dragon.leaveSec)}까지 못 잡으면 물러납니다.</li>
-        <li>결전(${ms(gw.crown.atSec)}~): 대썰물로 깊은 골까지 마르고 왕관이 가운데 섬에 나옵니다. 든 사람은 이동 속도 −${gw.crown.slow * 100}%, 대시를 못 쓰며 우리 금고에 ${gw.crown.depositSec}초 동안 넣으면 ${gw.crown.points}점입니다. 부활 대기가 ×${gw.respawn.finaleMul}로 길어집니다.</li>
-        <li>전투: 플레이어끼리 피해 ${pct(gw.combat.damageMul)} · 치유·보호막 ${pct(gw.combat.healMul)}만 들어갑니다. 기절·잠은 결투장처럼 최대 ${D.duel.stunMaxSec}초이고 걸려 있는 동안 다시 걸어도 늘어나지 않으며, 풀리면 ${gw.combat.stunImmuneSec}초 기절·잠 면역입니다. 기사 도발에 맞으면 ${gw.combat.taunt.sec}초 동안 기사 아닌 대상에게 주는 피해 −${gw.combat.taunt.pct}%. 공격력·최대 HP는 전장 평균 전투력에 맞춰 ×${gw.compress.min}~×${gw.compress.max} 사이로 보정됩니다. 물약은 목숨마다 ${gw.combat.potion.perLife}개(최대 HP ${gw.combat.potion.pct}%, 재사용 ${gw.combat.potion.cdSec}초), 탈것·귀환은 쓸 수 없습니다.</li>
-        <li>부활: ${gw.respawn.baseSec}초 + 쓰러질 때마다 ${gw.respawn.perDeathSec}초(최대 ${gw.respawn.maxSec}초). 힐러는 쓰러진 지 ${gw.revive.windowSec}초 안의 같은 편을 ${gw.revive.castSec}초 시전으로 HP ${gw.revive.hpPct}%로 일으킬 수 있습니다.</li>
-        <li>승패: 먼저 ${gw.match.winScore.toLocaleString()}점이거나 ${gw.match.totalSec / 60}분 뒤 점수가 높은 편. 같으면 넣은 진주 수, 그다음 등대를 가진 시간 합, 그래도 같으면 무승부. 길드전 점수는 처음 ${gw.elo.start}점(Elo, K=${gw.elo.k}).</li>
+        <li><b>${esc(rift.name)}</b>(${rift.w}×${rift.h}칸): 남서쪽이 갑, 북동쪽이 을 본진이고 두 본진은 거울처럼 같습니다. ${rift.lanes.map(esc).join(' · ')} ${rift.lanes.length}라인 사이에 정글(캠프 ${rift.camps}곳)이 있고, 강이 가운데를 대각선으로 가로지릅니다. 강 북서쪽 둥지에 ${esc(mn.baron)}, 남동쪽 둥지에 ${esc(mn.dragon)}이 나옵니다.</li>
+        <li><b>${esc(abyss.name)}</b>(${abyss.w}×${abyss.h}칸): ${esc(D.factionWar.name)}에서 큰 편이 ${D.factionWar.abyssMaxPerSide}명 이하일 때 여는 ${abyss.lanes.length}라인 전장입니다. 라인 포탑 ${abyss.turretsPerLane}개 · ${esc(sn.inhib)} · ${esc(sn.nexusTurret)} ${abyss.nexusTurrets}개 · ${esc(sn.nexus)}만 있고, 정글·강·${esc(mn.dragon)}·${esc(mn.baron)}이 없으며 귀환을 쓸 수 없습니다. 구조물 HP ×${gw.abyss.structureHpMul}, 결전 ${ms(gw.abyss.finaleSec)}. 가운데 <b>치유의 샘</b>: 둘레 ${gw.abyss.well.r}칸에 들어온 다친 선수가 최대 HP ${gw.abyss.well.healPct}%를 회복하고, 빈 샘은 ${gw.abyss.well.refillSec}초 뒤 다시 찹니다.</li>
+        <li>추천 자리(입장 때 알려 줄 뿐 정해지지 않습니다): ${gw.laneRoles.map((r) => `${esc(r.cls)} ${esc(r.role)}`).join(' · ')}</li>
       </ul>
-      <h3>조수</h3>
-      ${table(['시간', '조수', '상자'], gw.tides.map((s) => tr([`${ms(s.from)}~${ms(s.to)}`, esc(s.name), s.wave ? `${s.wave}번째 물결` : '<span class="muted">—</span>'])))}
-      <p class="small" style="margin-top:8px">밀물에는 갯벌이 잠겨 그 위에서 이동 속도 ×${gw.tide.floodSpeedMul}, 대시 거리 ×${gw.tide.floodDashMul}이 되고, 가운데 섬은 북·남 둑길로만 닿습니다. 밀물 ${gw.tide.warnSec}초 전부터 조수 시계가 노랗게 바뀝니다.</p>
+      <h3>판 시계</h3>
+      ${table(['판 시각', '일어나는 일'], [...gwClockRows].sort((a, b) => a[0] - b[0]).map(([sec, texts]) => tr([ms(sec), texts.join(' · ')])))}
+      <h3>구조물·일꾼</h3>
+      <ul class="plain small">
+        <li>라인마다 ${gw.turretTiers.map(esc).join(' → ')} → ${esc(sn.inhib)}, 본진에 ${esc(sn.nexusTurret)} ${rift.nexusTurrets}개와 ${esc(sn.nexus)}가 있습니다. 앞 포탑이 서 있으면 뒤 포탑은 피해를 받지 않습니다. 맞는 차례: ${esc(sn.inhib)} — 그 라인 포탑이 모두 깨진 뒤 · ${esc(sn.nexusTurret)} — ${esc(sn.inhib)}가 하나라도 깨진 뒤 · ${esc(sn.nexus)} — ${esc(sn.nexusTurret)}까지 모두 깨진 뒤.</li>
+        <li>${esc(mn.turret)}: 사거리 ${st.turretR}칸. 선수를 1초마다 최대 HP ${st.turretPct[0]}%로 치고, 같은 사람을 이어 맞히면 한 번마다 +${st.turretPct[1]}%(최대 ${st.turretPct[2]}%). 노리는 순서: 포탑 곁에서 우리 편 선수를 때린 적 선수(${st.focusSec}초) → ${esc(mn.cannon)} → ${esc(mn.melee)}·${esc(mn.super)} → ${esc(mn.caster)} → 가까운 적 선수.</li>
+        <li>구조물 HP(판 시작 때 잰 평균 선수 한 명이 혼자 칠 때 걸리는 초): 라인 포탑 ${st.hpSec.turret.join(' · ')}초 · ${esc(sn.nexusTurret)} ${st.hpSec.nexusTurret}초 · ${esc(sn.inhib)} ${st.hpSec.inhib}초 · ${esc(sn.nexus)} ${st.hpSec.nexus}초. 깨진 ${esc(sn.inhib)}는 ${st.inhibRespawnSec / 60}분 뒤 다시 서고, 그동안 상대 편 그 라인 웨이브에 ${esc(mn.super)}도 나옵니다.</li>
+        <li>일꾼 웨이브: ${gw.wave.everySec}초마다 라인마다 ${esc(mn.melee)} ${gw.wave.melee} · ${esc(mn.caster)} ${gw.wave.caster}, ${gw.wave.cannonEvery}번째 웨이브마다 ${esc(mn.cannon)} 1. HP는 1분마다 +${pct(gw.wave.hpGrowPerMin)}. 선수를 최대 HP %로 칩니다(${esc(mn.melee)} ${gw.minion.pct.melee}% · ${esc(mn.caster)} ${gw.minion.pct.caster}% · ${esc(mn.cannon)} ${gw.minion.pct.cannon}% · ${esc(mn.super)} ${gw.minion.pct.super}%). 포탑에 주는 피해: ${esc(mn.cannon)} ×${gw.minion.cannonTurretMul}. ${esc(mn.super)} 둘레 ${gw.minion.superAura.r}칸 아군 일꾼 피해 +${gw.minion.superAura.pct}%.</li>
+      </ul>
+      <h3>판 레벨·골드·상점</h3>
+      <ul class="plain small">
+        <li>판 레벨 1~${gw.xp.maxLevel}(판이 끝나면 사라집니다): 공격력·최대 HP ×${gw.levelMulRange[0]}에서 최고 레벨 ×${gw.levelMulRange[1]}까지 오릅니다. 스킬 칸은 ${gw.xp.unlock.map((lv, i) => `${i + 1}번 Lv${lv}`).join(' · ')}에 열립니다. 다음 레벨까지 XP ${gw.levelXp.map(fmt).join(' · ')}.</li>
+        <li>XP: 일꾼이 쓰러지면 둘레 ${gw.xp.shareR}칸 아군 선수가 나눠 받습니다(${esc(mn.melee)} ${gw.xp.minion.melee} · ${esc(mn.caster)} ${gw.xp.minion.caster} · ${esc(mn.cannon)} ${gw.xp.minion.cannon} · ${esc(mn.super)} ${gw.xp.minion.super}). 캠프 막타 ${esc(cn.wolf)} ${gw.xp.camp.wolf} · ${esc(cn.toad)} ${gw.xp.camp.toad} · 정령 ${gw.xp.camp.buff}, 처치 = 쓰러진 사람 레벨 × ${gw.xp.kill}(도움은 절반), 포탑 둘레 아군 ${gw.xp.turret}, ${esc(mn.dragon)} ${gw.xp.dragon} · ${esc(mn.baron)} ${gw.xp.baron}(편 전원).</li>
+      </ul>
+      ${table(['골드 원천', { t: '골드', c: 'r' }], [
+        tr(['판 시작', R(fmt(ec.startGold))]),
+        tr([`저절로(${ms(ec.passiveFromSec)}부터, 초당)`, R(fmt(ec.passivePerSec))]),
+        tr([`일꾼 막타(CS): ${esc(mn.melee)} · ${esc(mn.caster)} · ${esc(mn.cannon)} · ${esc(mn.super)}`, R([ec.cs.melee, ec.cs.caster, ec.cs.cannon, ec.cs.super].map(fmt).join(' · '))]),
+        tr([`캠프 막타: ${esc(cn.wolf)} · ${esc(cn.toad)} · 정령(${esc(cn.blue)}·${esc(cn.red)})`, R([ec.camp.wolf, ec.camp.toad, ec.camp.buff].map(fmt).join(' · '))]),
+        tr(['처치 · 판 첫 처치 덤 · 도움(사람마다)', R([ec.kill, ec.firstBlood, ec.assist].map(fmt).join(' · '))]),
+        tr([`현상금 덤(쓰러진 사람이 이어 가던 연속 처치 ${bountyAt.map(([i], k) => `${i}${k === bountyAt.length - 1 ? '+' : ''}`).join(' · ')})`, R(bountyAt.map(([, g]) => fmt(g)).join(' · '))]),
+        tr([`포탑 파괴: 둘레 ${gw.xp.shareR}칸 아군 · 편 전원`, R(`${fmt(ec.turret.local)} · ${fmt(ec.turret.global)}`)]),
+        tr([`${esc(sn.inhib)} 파괴 · ${esc(mn.dragon)} · ${esc(mn.baron)}(편 전원)`, R([ec.inhib, ec.dragon, ec.baron].map(fmt).join(' · '))]),
+      ])}
+      <p class="small" style="margin-top:8px">일꾼·포탑에 쓰러져도 조금 전에 그 사람을 때린 적 선수가 있으면 그 선수의 처치(처형)로 셉니다. 상점은 <b>우리 부활실 안에서만</b>(쓰러져 있어도) 열리고, 아이템은 ${gw.itemSlots}칸까지 듭니다. 2단계는 같은 줄 1단계를 들고 있으면 차액만 내고, 되팔면 값의 ${ec.sellPct}%를 돌려받습니다. 직업과 상관없이 누구나 같은 아이템을 삽니다.</p>
+      ${table(['아이템', '단계', { t: '값', c: 'r' }, '재료', '효과'], gw.items.map((it) => tr([esc(it.name), `${it.tier}단계`, R(it.from ? `${fmt(it.cost)} <span class="muted">(재료 있으면 ${fmt(it.cost - it.fromCost)})</span>` : fmt(it.cost)), it.from ? esc(it.from) : '<span class="muted">—</span>', esc(it.desc)])))}
+      <h3>목표물·정글</h3>
+      <ul class="plain small">
+        <li>${esc(mn.dragon)}(${ms(gw.dragon.atSec)}~, 잡히면 ${ms(gw.dragon.respawnSec)} 뒤 다시): 쓰러뜨린 순간 최근 ${gw.dragon.windowSec}초 동안 피해를 더 준 편이 잡습니다. 잡은 편 전원 <b>해룡의 가호</b> 1중첩(판 끝까지, 최대 ${gw.dragon.stackMax}중첩): 중첩마다 공격력 +${gw.dragon.stackAtk}% · 최대 HP +${gw.dragon.stackHp}%, ${gw.dragon.stackMax}중첩째에 <b>용의 영혼</b> 공격력 +${gw.dragon.soulAtk}%.</li>
+        <li>${esc(mn.baron)}(${ms(gw.baron.atSec)}~, 잡히면 ${ms(gw.baron.respawnSec)} 뒤 다시): 둘레 ${gw.baron.r}칸 모든 선수를 ${gw.baron.cdSec}초마다 최대 HP ${gw.baron.pct}%로 치고, 둥지에서 ${gw.baron.leash}칸 넘게 쫓지 않습니다. 잡은 편의 살아 있는 선수에게 <b>심해의 손길</b> ${gw.baron.buffSec}초: 공격력 +${gw.baron.atk}% · 초당 최대 HP ${gw.baron.regenPct}% 회복 · 둘레 ${gw.baron.r}칸 아군 일꾼 HP·피해 +${pct(gw.baron.minionMul)}. 쓰러지면 사라집니다.</li>
+        <li>정글 캠프(${ms(gw.camp.atSec)}~): ${gw.camps.map((c) => `${esc(c.name)}${c.count > 1 ? ` ${c.count}마리` : ''}`).join(' · ')}. 잡히면 다시 나오는 때: 정령 ${ms(gw.camp.respawnSec.buff)} · ${esc(cn.wolf)} ${ms(gw.camp.respawnSec.wolf)} · ${esc(cn.toad)} ${ms(gw.camp.respawnSec.toad)}. 막타 선수가 골드·XP를 받습니다.</li>
+        <li><b>${esc(cn.red)}</b>(막타 선수 ${gw.camp.buffSec}초): 공격력 +${gw.camp.red.atk}%, 기본 공격이 맞으면 ${gw.camp.red.slowSec}초 동안 ${gw.camp.red.slowPct}% 감속. <b>${esc(cn.blue)}</b>(${gw.camp.buffSec}초): MP 가득 + 재사용 −${gw.camp.blue.cdr}%. 정령 버프를 가진 채 쓰러지면 남은 시간째 처치한 적 선수에게 넘어갑니다.</li>
+      </ul>
+      <h3>규칙</h3>
+      <ul class="plain small">
+        <li>인원: 기본 <b>${gw.starters.base} 대 ${gw.starters.base}</b>. 두 길드가 같은 수(${gw.starters.base}~${gw.starters.max})를 제안하면 그 수로 합니다. 교대 ${gw.subs}명(한 판 ${gw.swapMax}번, 결전에는 못 함), 관전 최대 ${gw.watchMax}명. 모자란 편은 모자란 채로 싸우고, 시작 때 들어온 선수가 ${gw.forfeitBelow}명 미만이면 기권패입니다. 끊긴 선수는 ${gw.rejoinSec}초 기다린 뒤 준비한 교대로 바뀝니다.</li>
+        <li>전투: 플레이어끼리 피해 ${pct(gw.combat.damageMul)} · 치유·보호막 ${pct(gw.combat.healMul)}만 들어갑니다(일꾼·포탑의 최대 HP % 피해는 그대로). 기절·잠은 결투장처럼 최대 ${D.duel.stunMaxSec}초이고 걸려 있는 동안 다시 걸어도 늘어나지 않으며, 풀리면 ${gw.combat.stunImmuneSec}초 기절·잠 면역입니다. 기사 도발에 맞으면 ${gw.combat.taunt.sec}초 동안 기사 아닌 대상에게 주는 피해 −${gw.combat.taunt.pct}%. 공격력·최대 HP는 전장 평균 전투력에 맞춰 ×${gw.compress.min}~×${gw.compress.max} 사이로 보정됩니다. 탈것·귀환 주문서는 쓸 수 없습니다.</li>
+        <li>물약: 처음 ${gw.combat.potion.start}개, 부활실에서 ${gw.combat.potion.cost}골드에 하나씩 사서 최대 ${gw.combat.potion.max}개(판 전체 — 쓰러져도 채워지지 않음). ${gw.combat.potion.overSec}초에 걸쳐 최대 HP ${gw.combat.potion.pct}% 회복, 맞아도 끊기지 않고 재사용 ${gw.combat.potion.cdSec}초.</li>
+        <li>부활: 우리 부활실에서만. 대기 = ${gw.respawn.baseSec}초 + 판 레벨 × ${gw.respawn.perLevelSec}초, ${ms(gw.respawn.lateFromSec)}부터 ×${gw.respawn.lateMul}, 최대 ${gw.respawn.maxSec}초. 부활실 안에서는 초당 최대 HP ${gw.respawn.roomRegenPctPerSec}%가 차고, 적은 들어올 수 없습니다. 힐러는 쓰러진 지 ${gw.revive.windowSec}초 안의 같은 편을 ${gw.revive.castSec}초 시전으로 HP ${gw.revive.hpPct}%로 일으킬 수 있습니다.</li>
+        <li>귀환(PC <kbd>B</kbd> · 모바일 귀환 단추): ${gw.recall.sec}초 시전 뒤 부활실로 돌아갑니다. 움직이거나 맞으면 끊깁니다(${esc(abyss.name)}에서는 못 씀).</li>
+        <li>항복: ${ms(gw.surrender.fromSec)}부터 편 안에서 투표를 열 수 있습니다. ${gw.surrender.voteSec}초 안에 편 인원의 ${gw.surrender.pct}%(올림) 이상이 찬성하면 그 편이 집니다. 실패하면 ${ms(gw.surrender.retrySec)} 동안 다시 못 엽니다.</li>
+        <li>핑: 누구나 ${gw.pings.map(esc).join(' · ')} 핑을 찍습니다(같은 종류 ${gw.ping.cdSec}초에 한 번, 10초에 ${gw.ping.perTenSec}개까지). 표적 표시는 지휘관만. 우리 편 선수·일꾼·포탑 둘레 ${gw.visionR}칸 안의 적만 지도에 보입니다.</li>
+        <li>점수판(PC <kbd>Tab</kbd> · 위 처치 수 누르기): 처치/쓰러짐/도움 · CS · 골드 · 판 레벨 · 아이템. 처치 알림: 연속 처치 ${gw.streakTitles.map((s) => `${s.n}${s === lastStreak ? '+' : ''} 「${esc(s.name)}」`).join(' · ')}, ${gw.kill.multiSec}초 안에 이어 잡으면 ${gw.multiNames.map(esc).join(' · ')}, ${gw.shutdownAt}연속 이상을 끊으면 저지, 상대 편을 모두 쓰러뜨리면 에이스.</li>
+        <li>승패: <b>${esc(sn.nexus)}를 깨면 바로 승리</b>. ${gw.match.totalSec / 60}분이 되면 깬 구조물 수 → ${esc(sn.nexus)} HP % → 처치 수 순으로 앞선 편이 이기고, 그래도 같으면 무승부. 결과 창의 진척 점수(${gw.sources.map((s) => `${esc(s.name)} ${gw.score[s.id]}`).join(' · ')} · ${esc(sn.nexusTurret)} ${gw.score.nexusTurret})는 보기용입니다. 길드전 점수는 처음 ${gw.elo.start}점(Elo, K=${gw.elo.k}).</li>
+      </ul>
     </section>`;
   const fwar = D.factionWar;
   const fwCard = `
@@ -1385,7 +1444,7 @@ function pageWorld() {
         tr([hm(fwar.startMin), '시작 — 필드에서 살아 있는 신청자를 전장으로 옮깁니다. 늦게 접속하거나 레이드·던전에서 나온 신청자도 판 중에 들어옵니다']),
       ])}
       <ul class="plain small">
-        <li>판 규칙(전장 · 점수 · 등대 · 진주 · 해룡 · 왕관 · 전투 보정 · 부활)은 아래 <a href="#/world#guild-war">길드전</a>과 같습니다. 정원은 큰 편 인원입니다.</li>
+        <li>판 규칙(${esc(rift.name)} · 라인 · 판 레벨·골드·상점 · ${esc(mn.dragon)} · ${esc(mn.baron)} · 전투 보정 · 부활)은 아래 <a href="#/world#guild-war">길드전</a>과 같습니다. 정원은 큰 편 인원이고, 큰 편이 ${fwar.abyssMaxPerSide}명 이하면 <b>${esc(abyss.name)}</b>(${abyss.lanes.length}라인)에서 엽니다.</li>
         <li>${fwar.loseGems > 0 ? `진 팀도 판에 들어온 사람마다 젬 ${fwar.loseGems}개를 받습니다.` : '보상은 이긴 팀만 받습니다.'} 무승부 · 무효 · 한 편이 아무도 들어오지 못해 시작하지 못한 판은 보상이 없고, 길드전 점수도 바뀌지 않습니다.</li>
         <li>${esc(fwar.teamName.b)}은 전장에서 주황색으로 보입니다.</li>
       </ul>
@@ -1412,11 +1471,11 @@ function pageWorld() {
         ['생활 행동 1회(채굴 · 낚시 성공 · 작물 거두기 한 칸)', `${lv(sc.life)} (그 생활 레벨)`],
       ].map(([a, b]) => tr([a, b])))}
       <ul class="plain small" style="margin-top:12px">
-        <li>한 사람이 하루(한국 시간)에 쌓는 점수는 <b>${fmt(sc.dailyCap)}점</b>까지, 그중 사냥(일반·정예·섬 보스) 몫은 <b>${fmt(sc.huntDailyCap)}점</b>, 생활(채굴·낚시·농사) 몫은 <b>${fmt(sc.lifeDailyCap)}점</b>까지입니다.</li>
+        <li>한 계정이 하루(한국 시간)에 쌓는 점수는 캐릭터를 바꿔도 합쳐서 <b>${fmt(sc.dailyCap)}점</b>까지, 그중 사냥(일반·정예·섬 보스) 몫은 <b>${fmt(sc.huntDailyCap)}점</b>, 생활(채굴·낚시·농사) 몫은 <b>${fmt(sc.lifeDailyCap)}점</b>까지입니다.</li>
         <li>내 레벨보다 ${sc.greyGap}레벨 넘게 낮은 몬스터, 봇 파티원이 대신 잡은 처치, 훈련장·결투장은 점수가 없습니다.</li>
         <li>점수 <b>${sc.scorePerCoin}점마다 ${esc(gr.coinName)} 1개</b>가 길드 금고에 들어옵니다. 주화는 0시에 초기화되지 않습니다(길드가 해체되면 사라집니다).</li>
-        <li>길드에는 <b>계정마다 한 캐릭터</b>만 들 수 있습니다(같은 길드든 다른 길드든 부캐릭터는 함께 가입·창설할 수 없습니다).</li>
-        <li>길드를 탈퇴하거나 추방되면 <b>${gr.rejoinHours}시간</b> 동안 어느 길드에도 들어갈 수 없습니다(새 길드를 만드는 것은 됩니다).</li>
+        <li>길드는 <b>계정 단위</b>입니다. 계정의 모든 캐릭터가 같은 길드 소속이고(나중에 만든 캐릭터도), 길드장·부길드장 직책도 계정에 붙습니다. 길드원 목록과 정원은 계정마다 한 명입니다.</li>
+        <li>길드를 탈퇴하거나 추방되면 그 계정의 모든 캐릭터가 함께 나가고, <b>${gr.rejoinHours}시간</b> 동안 어느 길드에도 들어갈 수 없습니다(새 길드를 만드는 것은 됩니다).</li>
         <li>보상 우편은 길드원 계정마다 한 통입니다. 접속하지 않은 길드원도 받습니다.</li>
         <li>서버가 0시에 꺼져 있었다면 다시 켜진 뒤 바로 지급합니다(하루 한 번).</li>
         <li>개인 랭킹은 전체와 직업별 탭, 전투력 랭킹, PvP 랭킹으로 볼 수 있습니다.</li>
@@ -1569,11 +1628,12 @@ function pageWorld() {
     <section class="card" id="training">
       <h2 style="margin-top:0">${esc(tg.name)} <span class="chip">누구나 · 레벨 제한 없음</span> <span class="chip">DPS 측정</span></h2>
       <p>어느 섬의 뱃사공에게서든 목록 맨 끝의 「훈련장」으로 건너갑니다. 허수아비는 움직이지도 반격하지도 않고, HP가 바닥나도 그 자리에서 다시 가득 찹니다. 경험치·전리품·퀘스트 진행은 없습니다.</p>
-      ${table(['허수아비', { t: '레벨', c: 'r' }, { t: 'HP', c: 'r' }], tg.dummies.map((d) => tr([`<b>${esc(d.name)}</b>`, R(d.level), R(fmt(d.hp))])))}
+      ${table(['허수아비', '판정', { t: '레벨', c: 'r' }, { t: 'HP', c: 'r' }], tg.dummies.map((d) => tr([`<b>${esc(d.name)}</b>`, d.boss ? '<b>보스</b>' : '일반', R(d.level), R(fmt(d.hp))])))}
       <ul class="plain small" style="margin-top:12px">
         <li>허수아비를 때리면 화면 위쪽에 <b>DPS 측정판</b>이 뜹니다: DPS · 총 피해 · 시간 · 타격 수 · 치명타 비율 · 최고 한 방 · 최고 DPS.</li>
         <li>마지막으로 때린 뒤 ${tg.resetSec}초가 지나면 한 판이 끝나고 허수아비 HP가 다시 가득 찹니다. 다시 때리면 새 판이 시작됩니다.</li>
         <li>허수아비끼리 ${tg.gap}칸씩 떨어져 있어 광역기·튕기는 기술이 다른 허수아비에 같이 맞지 않습니다.</li>
+        <li><b>보스 허수아비</b>(맨 뒷줄)는 보스로 판정됩니다: 보스 대상 피해 배율 · 3차 보스전 특색이 들어가고, 궁극기는 즉사 대신 보스 피해를 주며, 경직 면역 · 기절 저항도 실제 보스와 같습니다. 보스 패턴·보스 체력 바는 없습니다.</li>
         <li>내 공격이 실제로 얼마나 아픈지 순수 피해량을 잽니다(<a href="#/damage">데미지 공식</a>).</li>
       </ul>
     </section>`;
@@ -2126,8 +2186,8 @@ function buildSearch() {
   add('레이드', D.augment.name, `#/world#raid-${D.augment.id}`, `웨이브 던전 베타 · ${D.augment.every}웨이브마다 증강 카드`, ph('crown'), D.augment.list.map((a) => `${a.name} ${a.desc}`).join(' · '), '레이드 증강 베타 카드');
   for (const w of D.worldBosses) add('레이드', w.name, `#/world#wb-${w.id}`, `필드 보스 원정 · ${M.mobs.get(w.bossId)?.name ?? ''}`, ph('crown'), w.phases.map((p) => p.label).join(' · '), `필드보스 월드보스 원정 ${gimmickWords(w.gimmicks)}`);
   add('콘텐츠', D.duel.name, '#/world#duel', `PvP · ${D.duel.modes.map((m) => m.name).join(' · ')} · ${D.duel.rules.map((r) => `${r.name} Lv${r.minLevel}+`).join(' · ')}`, ph('swords'), `점수 매칭 ±${D.duel.matchRange} 결투 신청 친선 스펙 적용 동등 조건`, '결투장 PvP 대전 결투 점수 레이팅 동등결투');
-  add('콘텐츠', D.factionWar.name, '#/world#faction-war', `PvP · 매일 ${String(D.factionWar.startMin / 60).padStart(2, '0')}:00 · 인원 제한 없음 · 이긴 팀 젬 ${D.factionWar.winGems}개`, ph('swords'), `${D.factionWar.teamName.a} ${D.factionWar.teamName.b} 전투력으로 반씩 · 왼쪽 아래 「${D.factionWar.name}」에서 신청`, '난투 세력전 진영전 팀전 레드팀 블루팀 PvP 전장 젬');
-  add('콘텐츠', D.guildWar.name, '#/world#guild-war', `PvP · 매일 ${D.guildWar.clock.sessionMin.map((m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`).join(' · ')}${D.guildWar.beta ? ' 베타' : ''} · ${D.guildWar.starters.base} 대 ${D.guildWar.starters.base} · Lv${D.guildWar.minLevel}+`, ph('swords'), `등대 진주 금고 해룡 왕관 현상범 조수 썰물 밀물 · 먼저 ${D.guildWar.match.winScore}점`, '길드전 길드 전쟁 길드대전 PvP 전장 등대 진주 금고 해룡 왕관 현상범 조수 밀물 썰물 대썰물 지휘관 교대');
+  add('콘텐츠', D.factionWar.name, '#/world#faction-war', `PvP · 매일 ${String(D.factionWar.startMin / 60).padStart(2, '0')}:00 · 인원 제한 없음 · 이긴 팀 젬 ${D.factionWar.winGems}개`, ph('swords'), `${D.factionWar.teamName.a} ${D.factionWar.teamName.b} 전투력으로 반씩 · 왼쪽 아래 「${D.factionWar.name}」에서 신청 · 인원이 적으면 ${D.guildWar.maps[1].name}`, `난투 세력전 진영전 팀전 레드팀 블루팀 PvP 전장 젬 협곡 칼바람 1라인 ${D.guildWar.maps[1].name}`);
+  add('콘텐츠', D.guildWar.name, '#/world#guild-war', `PvP · 매일 ${D.guildWar.clock.sessionMin.map((m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`).join(' · ')}${D.guildWar.beta ? ' 베타' : ''} · ${D.guildWar.starters.base} 대 ${D.guildWar.starters.base} · Lv${D.guildWar.minLevel}+`, ph('swords'), `${D.guildWar.maps[0].name} ${D.guildWar.maps[0].lanes.length}라인 · 포탑 억제기 넥서스 · 일꾼 · 판 레벨 골드 상점 · ${D.guildWar.mobName.dragon} ${D.guildWar.mobName.baron} 정글 · ${D.guildWar.match.totalSec / 60}분`, `길드전 길드 전쟁 길드대전 PvP 전장 협곡 협곡전 롤 라인 포탑 억제기 넥서스 미니언 일꾼 CS 골드 상점 아이템 레벨 해룡 드래곤 바론 리바이어던 정글 버프 정령 귀환 항복 점수판 핑 지휘관 교대 ${D.guildWar.items.map((it) => it.name).join(' ')}`);
   add('콘텐츠', '선술집 의뢰', '#/world#tavern', `노을마을 선술집 · ${D.tavern.rotateHours}시간마다 교체 · 개인 의뢰 ${D.tavern.personalCount}개`, ph('scroll-text'), D.tavern.tiers.map((t) => t.name).join(' · '), '선술집 의뢰 일퀘 일일 퀘스트 게시판 개인 마고');
   add('콘텐츠', '생활(농사·광산·낚시)', '#/world#life', `${D.life.islands.mine} · ${D.life.islands.cove} · ${D.life.islands.farm} · Lv${D.life.unlockLevel}부터 · 직접 채굴·낚시·농사 · 요리·제련`, ph('scroll-text'), D.life.kinds.map((k) => k.name).join(' · '), '생활 농사 광산 낚시 수확 채굴 요리 제련 음식 노을 광산 노을 해변 낚시터 농장 마을 내 농장 부지 풍요의 삼지창');
   if (D.seaEvents) add('콘텐츠', '바다 이벤트', '#/world#sea-events', `깊은 바다 · ${D.seaEvents.events.length}가지 · 항해사 이점 · 해역 ${D.seaEvents.regions.length}곳`, ph('scroll-text'), D.seaEvents.events.map((e) => e.name).join(' · '), `바다 이벤트 깊은 바다 해적 해적선 유령선 안개 폭풍 벼락 소용돌이 해류 물살 난파선 표류물 화약통 고래 축복 항해사 ${D.seaEvents.regions.map((r) => r.name).join(' ')}`);
