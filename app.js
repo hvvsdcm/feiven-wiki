@@ -929,12 +929,12 @@ function bindSkills(focusId) {
 const ITEM_GROUPS = { all: ['전체', null], weapon: ['무기', ['weapon']], armor: ['방어구', ['armor', 'helmet', 'gloves', 'boots']], acc: ['장신구', ['accessory', 'ring']], use: ['소모품', ['potion', 'mp_potion', 'scroll', 'boost', 'box', 'ticket', 'food']], mat: ['재료', ['material']] };
 const itemState = { group: 'all', rarity: 'all', cls: 'all', q: '', sort: 'default', src: 'all' };
 /** 얻는 곳 한 줄 요약(도감 목록 칸). 레이드 출처는 무한의 던전·레이드를 가른다 */
-const SRC_LABEL = { shop: '상점', mob: '몬스터', rare: '등급 드랍', chest: '보물상자', worldBoss: '필드 보스', quest: '퀘스트', questDrop: '퀘스트 수집', premium: '고급 상자', gemShop: '젬 상점', legacy: '옛 장비', grant: '운영자 지급', cash: '현금 상점', guildRank: '길드 랭킹', craft: '대장장이 제작', alchemy: '연금술사 제조', life: '생활', levelMail: '레벨 달성' };
+const SRC_LABEL = { shop: '상점', mob: '몬스터', rare: '등급 드랍', chest: '보물상자', worldBoss: '필드 보스', quest: '퀘스트', questDrop: '퀘스트 수집', premium: '고급 상자', gemShop: '젬 상점', grant: '운영자 지급', cash: '현금 상점', guildRank: '길드 랭킹', craft: '대장장이 제작', alchemy: '연금술사 제조', life: '생활', levelMail: '레벨 달성' };
 function srcLabel(s) {
   if (s.type === 'raid') return s.raid === D.infinite.id ? '무한의 던전' : M.dungeons.has(s.raid) ? '일일 던전' : s.raid === D.dungeons.hidden.id ? '히든 던전' : '레이드';
   return SRC_LABEL[s.type] ?? s.type;
 }
-const obtainable = (it) => it.sources.some((s) => s.type !== 'legacy' && s.type !== 'grant');
+const obtainable = (it) => it.sources.some((s) => s.type !== 'grant');
 function pageItems() {
   const gone = D.items.filter((it) => !obtainable(it)).length;
   return `
@@ -942,7 +942,7 @@ function pageItems() {
     <div class="filters">
       <div class="seg" role="group" aria-label="종류" data-f="group">${Object.entries(ITEM_GROUPS).map(([k, [n]]) => `<button type="button" data-v="${k}" aria-pressed="${itemState.group === k}">${n}</button>`).join('')}</div>
       <div class="seg" role="group" aria-label="등급" data-f="rarity"><button type="button" data-v="all" aria-pressed="${itemState.rarity === 'all'}">전 등급</button>${RARITIES.map((r) => `<button type="button" data-v="${r}" aria-pressed="${itemState.rarity === r}" class="rar-${r}">${rarName(r)}</button>`).join('')}</div>
-      <div class="seg" role="group" aria-label="얻는 곳" data-f="src">${[['all', '모두'], ['now', '지금 얻을 수 있음'], ['gone', '옛 장비·운영자 지급']].map(([k, n]) => `<button type="button" data-v="${k}" aria-pressed="${itemState.src === k}">${n}</button>`).join('')}</div>
+      <div class="seg" role="group" aria-label="얻는 곳" data-f="src">${[['all', '모두'], ['now', '지금 얻을 수 있음'], ['gone', '운영자 지급']].map(([k, n]) => `<button type="button" data-v="${k}" aria-pressed="${itemState.src === k}">${n}</button>`).join('')}</div>
     </div>
     <div class="filters">
       <select data-f="cls" aria-label="직업"><option value="all">모든 직업</option>${D.classes.map((c) => `<option value="${c.id}" ${itemState.cls === c.id ? 'selected' : ''}>${esc(c.name)}이 쓸 수 있는</option>`).join('')}</select>
@@ -1002,7 +1002,6 @@ function sourceBlock(it) {
   if (gemShop.length) out.push(`<div class="card"><h3>${esc(npcNameOfRole('gem'))} (노을마을)</h3><ul class="plain">${gemShop.map((s) => `<li>${esc(D.gems.name)} ${s.gems}개</li>`).join('')}</ul></div>`);
   const premium = by('premium');
   if (premium.length) out.push(`<div class="card"><h3>고급 상자</h3><ul class="plain">${premium.map((s) => `<li>${pct(s.chance)} — ${esc(s.note)}</li>`).join('')}</ul></div>`);
-  if (by('legacy').length) out.push(`<div class="card"><h3>더 이상 얻을 수 없음</h3><p>등급 개편 전 장비입니다. 이미 가진 사람을 위해 남아 있을 뿐, 드랍·상점·상자 어디에서도 나오지 않습니다. 지금은 티어 장비·레이드 세트의 같은 부위가 일반~유니크 등급으로 굴려져 나옵니다(<a href="#/drops">드랍률</a>).</p></div>`);
   const grant = by('grant');
   if (grant.length) out.push(`<div class="card"><h3>운영자 지급</h3><ul class="plain">${grant.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul><p class="muted small" style="margin:8px 0 0">드랍·상점·상자에서는 나오지 않습니다.</p></div>`);
   const cash = by('cash');
