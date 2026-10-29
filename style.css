@@ -161,6 +161,9 @@ main:focus { outline: none; }
 .card { background: linear-gradient(180deg, rgba(255, 255, 255, .025), transparent 120px), var(--s1); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 22px; }
 .card > h2:first-child, .card > h3:first-child { margin-top: 0; }
 .card h3 { margin-bottom: 14px; }
+.card.sea-guide h3 { margin: 26px 0 10px; }
+.card.sea-guide .sea-related { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 22px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
+.card.sea-guide td:first-child { min-width: 6.5em; font-weight: 600; word-break: keep-all; }
 .grid { display: grid; gap: 12px; }
 .g2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
 .g3 { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }

@@ -246,7 +246,7 @@ function pageGuide() {
   const hub = D.islands.find((i) => i.hub);
   const ladder = D.raids.filter((r) => r.ladder);
   const steps = [
-    `<div class="card road-step" id="step-start"><span class="lv">시작</span><h3><a href="#/world#prologue">서막 — ${esc(D.prologue.island)}</a></h3><p class="small">새 캐릭터는 서막(건너뛸 수 있음)을 치른 뒤 Lv1로 <a href="#/world#isl-${esc(hub?.id ?? '')}">${esc(D.village.name)}</a> 부두에서 깨어나고, 깨어나는 컷신이 끝나면 하린의 배로 곧장 태초마을에 닿아 첫 사냥 퀘스트 「해안의 무덤 거미」를 받은 채 시작합니다(${esc(D.village.name)} 도입 퀘스트의 보상은 그대로 받고, 첫 무기는 바로 손에 쥡니다). ${esc(D.village.name)}은 모든 항로가 모이는 모항으로, 대장간·잡화점·창고·젬 상점이 있고 레이드·일일 던전·필드 보스 원정은 선술집 주인에게서 출발합니다. 섬 사이는 뱃사공의 배로 옮겨 다닙니다.</p></div>`,
+    `<div class="card road-step" id="step-start"><span class="lv">시작</span><h3><a href="#/world#prologue">서막 — ${esc(D.prologue.island)}</a></h3><p class="small">새 캐릭터는 서막(건너뛸 수 있음)을 치른 뒤 Lv1로 <a href="#/world#isl-${esc(hub?.id ?? '')}">${esc(D.village.name)}</a> 부두에서 깨어나고, 깨어나는 컷신이 끝나면 하린의 배로 곧장 태초마을에 닿아 첫 사냥 퀘스트 「해안의 무덤 거미」를 받은 채 시작합니다(${esc(D.village.name)} 도입 퀘스트의 보상은 그대로 받고, 첫 무기는 바로 손에 쥡니다). ${esc(D.village.name)}은 모든 항로가 모이는 중심 마을로, 대장간·잡화점·창고·젬 상점이 있고 레이드·일일 던전·필드 보스 원정은 선술집 주인에게서 출발합니다. 섬 사이는 뱃사공의 배로 옮겨 다닙니다.</p></div>`,
     ...field.map((isl, i) => {
       const [a, b] = isl.levelRange;
       const mobs = isl.mobs.map((id) => M.mobs.get(id)).filter((m) => m?.kind === 'field');
@@ -281,8 +281,8 @@ function pageDamage() {
         <li><b>받는 피해 감소 합산 상한</b>: guard 버프·유물 수호·3차 변신의 감소를 모두 곱해도 최대 <b>${c.guardMaxPct}%</b>까지만 줄어듭니다. 약화·황혼 침식처럼 받는 피해를 늘리는 효과는 그 위에 곱합니다.</li>
         <li><b>보스 기절 저항</b>: 보스는 기절이 풀린 뒤 <b>${c.bossStunImmuneSec}초</b> 동안 새 기절에 걸리지 않고, 걸려 있는 기절에 다시 걸어도 시간이 늘어나지 않습니다. 잠·졸음은 보스에게 듣지 않습니다.</li>
         <li><b>다음 공격 강화</b>: dmgNext 버프는 공격력에 배율을 곱하고, critNext는 치명타를 확정합니다. 한 번 쓰면 사라집니다.</li>
-        <li>중독 피해와 지속 장판(연막·먹물 등의 틱)은 치명타가 없고, 중독은 시전자 공격력으로 정해지는 고정 피해입니다(걸 때 시전자 공격력 × 초당 계수).</li>
-        <li><b>중독 중첩</b>: 서로 다른 스킬(또는 다른 시전자)의 중독은 따로 쌓여 함께 들어갑니다(대상 하나에 최대 16개). 같은 스킬로 다시 걸면 남은 시간만 늘어나고 틱 박자는 그대로입니다. 화염술사의 화상은 0.1초마다, 나머지는 1초마다 들어갑니다.</li>
+        <li>중독 피해와 지속 장판(연기 장판·먹물 등의 틱)은 치명타가 없고, 중독은 건 사람의 공격력으로 정해지는 고정 피해입니다(걸 때 건 사람 공격력 × 초당 계수).</li>
+        <li><b>중독 중첩</b>: 서로 다른 스킬(또는 다른 사람)의 중독은 따로 쌓여 함께 들어갑니다(대상 하나에 최대 16개). 같은 스킬로 다시 걸면 남은 시간만 늘어나고 틱 박자는 그대로입니다. 화염술사의 화상은 0.1초마다, 나머지는 1초마다 들어갑니다.</li>
       </ul>
     </div>
 
@@ -309,7 +309,7 @@ function pageDamage() {
     <p>치명타 확률 = 직업 기본값 + 전직 패시브(%p). 치명타가 뜨면 피해 × ${c.critMul}. 활잽이는 기본 15%, 나머지 직업은 10%에서 시작합니다. 몬스터 공격은 치명타가 없습니다.</p>
 
     <h2>치유량·보호막</h2>
-    <div class="formula">치유량(보호막) = 대상 최대 HP × 스킬 HP % + 시전자 마법 공격력 × 스킬 마법 공격력 %</div>
+    <div class="formula">치유량(보호막) = 대상 최대 HP × 스킬 HP % + 스킬 쓴 사람의 마법 공격력 × 스킬 마법 공격력 %</div>
     <p class="muted small">힐러 스킬은 마법 공격력 비중이 커서 장비로 마법 공격력을 올려야 회복량이 늡니다(예: 치유의 빛 = 마법 공격력 150% + 대상 최대 HP 12%). 기사의 자가 회복·성역 보호막은 최대 HP만 탑니다. 스킬 도감의 수치 줄에 스킬마다 두 비율이 나옵니다. 회복 물약·마나 물약은 티어마다 정해진 양을 회복합니다(아이템 도감 참고, 쿨 회복 ${c.potionCdSec}초·마나 ${c.mpPotionCdSec}초 따로). 엘릭서는 HP·MP를 함께 채우고 회복 물약 쿨을 같이 씁니다.</p>
 
     <h2 id="support">서포터 장비 보너스</h2>
@@ -327,7 +327,7 @@ function pageDamage() {
     <h2>몬스터가 주는 피해</h2>
     <div class="formula">받는 피해 = max(1, 반올림(몬스터 공격력 × 공격 계수 × 편차))</div>
     <ul class="plain">
-      <li>몬스터는 치명타가 없습니다. 근접 공격은 휘두르기 시작 뒤 조금 있다 판정되어 대시로 피할 수 있습니다.</li>
+      <li>몬스터는 치명타가 없습니다. 근접 공격은 휘두르기 시작 뒤 조금 있다 판정되어 대시로 피할 수 있습니다. 보스의 공격(즉사 제외)은 대시가 시작되는 ${c.dashIframeSec}초 동안 빗나갑니다 — 맞는 순간에 딱 맞춰야 합니다.</li>
       <li>정예 몬스터는 같은 섬 기준 몬스터보다 HP ×${c.elite.hpMul}, 공격력 ×${c.elite.atkMul}, 레벨 +${c.elite.levelBonus}입니다.</li>
       <li>레이드 보스는 제한 시간 안에 못 잡으면 격노해 피해가 커집니다(지역·레이드 참고).</li>
       <li><b>고레벨 사냥터</b>(Lv${c.hunt.fromLevel}~ 일반·정예 몬스터)는 레벨이 오를수록 HP·공격력이 커져 Lv${c.hunt.hp[1][0]}부터 HP ×${c.hunt.hp[1][1]}, 공격력 ×${c.hunt.atk[1][1]}입니다. 대신 경험치를 더 주고(<a href="#/growth">성장·강화</a>), <b>특수 공격</b>을 씁니다 — 근접 몬스터는 ${c.hunt.skill.melee.cdSec}초마다 '${esc(c.hunt.skill.melee.name)}'(제자리 반경 ${c.hunt.skill.melee.r}, ${c.hunt.skill.melee.warnSec}초 예고, 계수 ${Math.round(c.hunt.skill.melee.coef * 100)}%), 원거리 몬스터는 ${c.hunt.skill.proj.cdSec}초마다 '${esc(c.hunt.skill.proj.name)}'(대상 발밑 반경 ${c.hunt.skill.proj.r}, ${c.hunt.skill.proj.warnSec}초 예고, 계수 ${Math.round(c.hunt.skill.proj.coef * 100)}%). 바닥 표시를 보고 피하거나, 예고 중에 잡으면 취소됩니다. 정예는 재사용 대기 ×${c.hunt.skill.eliteCdMul}, 반경 +${c.hunt.skill.eliteR}.</li>
@@ -712,7 +712,7 @@ function pageClasses() {
 function skillRow(s, compareTo) {
   if (!s) return '';
   const chips = [`<span class="chip">Lv${s.unlockLevel} 해금</span>`, `<span class="chip">${icon('clock')}${s.cdSec}초</span>`, `<span class="chip">${icon('droplet')}MP ${s.mpCost}</span>`];
-  if (s.castSec) chips.push(`<span class="chip">시전 ${s.castSec}초</span>`);
+  if (s.castSec) chips.push(`<span class="chip">캐스팅 ${s.castSec}초</span>`);
   if (s.toggle) chips.push(`<span class="chip accent">켜기/끄기</span>`, `<span class="chip">${icon('droplet')}지속 마나 ${s.toggle.mpPctPerSec}%/초</span>`);
   if (s.awaken) chips.push('<span class="chip accent">각성</span>');
   if (s.second) chips.push('<span class="chip accent">2차</span>');
@@ -929,12 +929,12 @@ function bindSkills(focusId) {
 const ITEM_GROUPS = { all: ['전체', null], weapon: ['무기', ['weapon']], armor: ['방어구', ['armor', 'helmet', 'gloves', 'boots']], acc: ['장신구', ['accessory', 'ring']], use: ['소모품', ['potion', 'mp_potion', 'scroll', 'boost', 'box', 'ticket', 'food']], mat: ['재료', ['material']] };
 const itemState = { group: 'all', rarity: 'all', cls: 'all', q: '', sort: 'default', src: 'all' };
 /** 얻는 곳 한 줄 요약(도감 목록 칸). 레이드 출처는 무한의 던전·레이드를 가른다 */
-const SRC_LABEL = { shop: '상점', mob: '몬스터', rare: '등급 드랍', chest: '보물상자', worldBoss: '필드 보스', quest: '퀘스트', questDrop: '퀘스트 수집', premium: '고급 상자', gemShop: '젬 상점', grant: '운영자 지급', cash: '현금 상점', guildRank: '길드 랭킹', craft: '대장장이 제작', alchemy: '연금술사 제조', life: '생활', levelMail: '레벨 달성' };
+const SRC_LABEL = { shop: '상점', mob: '몬스터', rare: '등급 드랍', chest: '보물상자', worldBoss: '필드 보스', quest: '퀘스트', questDrop: '퀘스트 수집', premium: '고급 상자', gemShop: '젬 상점', legacy: '옛 장비', grant: '운영자 지급', cash: '현금 상점', guildRank: '길드 랭킹', craft: '대장장이 제작', alchemy: '연금술사 제조', life: '생활', levelMail: '레벨 달성' };
 function srcLabel(s) {
   if (s.type === 'raid') return s.raid === D.infinite.id ? '무한의 던전' : M.dungeons.has(s.raid) ? '일일 던전' : s.raid === D.dungeons.hidden.id ? '히든 던전' : '레이드';
   return SRC_LABEL[s.type] ?? s.type;
 }
-const obtainable = (it) => it.sources.some((s) => s.type !== 'grant');
+const obtainable = (it) => it.sources.some((s) => s.type !== 'legacy' && s.type !== 'grant');
 function pageItems() {
   const gone = D.items.filter((it) => !obtainable(it)).length;
   return `
@@ -942,7 +942,7 @@ function pageItems() {
     <div class="filters">
       <div class="seg" role="group" aria-label="종류" data-f="group">${Object.entries(ITEM_GROUPS).map(([k, [n]]) => `<button type="button" data-v="${k}" aria-pressed="${itemState.group === k}">${n}</button>`).join('')}</div>
       <div class="seg" role="group" aria-label="등급" data-f="rarity"><button type="button" data-v="all" aria-pressed="${itemState.rarity === 'all'}">전 등급</button>${RARITIES.map((r) => `<button type="button" data-v="${r}" aria-pressed="${itemState.rarity === r}" class="rar-${r}">${rarName(r)}</button>`).join('')}</div>
-      <div class="seg" role="group" aria-label="얻는 곳" data-f="src">${[['all', '모두'], ['now', '지금 얻을 수 있음'], ['gone', '운영자 지급']].map(([k, n]) => `<button type="button" data-v="${k}" aria-pressed="${itemState.src === k}">${n}</button>`).join('')}</div>
+      <div class="seg" role="group" aria-label="얻는 곳" data-f="src">${[['all', '모두'], ['now', '지금 얻을 수 있음'], ['gone', '옛 장비·운영자 지급']].map(([k, n]) => `<button type="button" data-v="${k}" aria-pressed="${itemState.src === k}">${n}</button>`).join('')}</div>
     </div>
     <div class="filters">
       <select data-f="cls" aria-label="직업"><option value="all">모든 직업</option>${D.classes.map((c) => `<option value="${c.id}" ${itemState.cls === c.id ? 'selected' : ''}>${esc(c.name)}이 쓸 수 있는</option>`).join('')}</select>
@@ -1002,6 +1002,7 @@ function sourceBlock(it) {
   if (gemShop.length) out.push(`<div class="card"><h3>${esc(npcNameOfRole('gem'))} (노을마을)</h3><ul class="plain">${gemShop.map((s) => `<li>${esc(D.gems.name)} ${s.gems}개</li>`).join('')}</ul></div>`);
   const premium = by('premium');
   if (premium.length) out.push(`<div class="card"><h3>고급 상자</h3><ul class="plain">${premium.map((s) => `<li>${pct(s.chance)} — ${esc(s.note)}</li>`).join('')}</ul></div>`);
+  if (by('legacy').length) out.push(`<div class="card"><h3>더 이상 얻을 수 없음</h3><p>등급 개편 전 장비입니다. 이미 가진 사람을 위해 남아 있을 뿐, 드랍·상점·상자 어디에서도 나오지 않습니다. 지금은 티어 장비·레이드 세트의 같은 부위가 일반~유니크 등급으로 굴려져 나옵니다(<a href="#/drops">드랍률</a>).</p></div>`);
   const grant = by('grant');
   if (grant.length) out.push(`<div class="card"><h3>운영자 지급</h3><ul class="plain">${grant.map((s) => `<li>${esc(s.note)}</li>`).join('')}</ul><p class="muted small" style="margin:8px 0 0">드랍·상점·상자에서는 나오지 않습니다.</p></div>`);
   const cash = by('cash');
@@ -1112,13 +1113,14 @@ function pageMob(id) {
     ${D.seaBoss?.mobId === m.id ? seaBossBlock(D.seaBoss) : ''}
     ${D.charybdis?.mobId === m.id ? charybdisBlock(D.charybdis) : ''}
     ${D.jormungandr?.mobId === m.id ? jormungandrBlock(D.jormungandr) : ''}
+    ${(D.seaGuides ?? []).filter((g) => g.mobs.includes(m.id)).map((g) => `<p style="margin-top:12px">깊은 바다 <a href="#/world#sea-${esc(g.id)}">${esc(g.name)}</a> — ${esc(g.line)}</p>`).join('')}
     <h2>드랍표 <span class="muted small">베리 ${fmt(m.loot.gold[0])}~${fmt(m.loot.gold[1])}</span></h2>
     ${table(['아이템', { t: '확률', c: 'r' }, { t: '개수', c: 'r' }, { t: '', c: 'r' }], lootRows)}
     ${gearNote}
     <p class="muted small" style="margin-top:10px">경험치는 몬스터와 레벨이 같을 때 값입니다. 내가 ${c.expPenaltyDiff[0]}레벨 이상 높으면 50%, ${c.expPenaltyDiff[1]}레벨 이상 높으면 10%만 받습니다.</p>`;
 }
 
-/** 깊은 바다 보스(심연 크라켄): 레벨·HP는 곁 선원에 맞춰 정해진다 — 위 표의 수치는 기본값. 갑판 규칙 · 배 크기 · 기믹 */
+/** 깊은 바다 보스(심연 크라켄): 레벨·HP는 곁 선원에 맞춰 정해진다 — 위 표의 수치는 기본값. 배 위 규칙 · 배 크기 · 기믹 */
 function seaBossBlock(s) {
   return `<p style="margin-top:12px">깊은 바다 배낚시 보스입니다. 위 레벨·HP·공격력은 기본값이고, 나올 때 곁 선원에 맞춰 다시 정해집니다.</p>
     <ul class="plain">${s.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
@@ -1161,8 +1163,45 @@ function seaEventsCard() {
       <p>${S.loot.map((id) => itemLink(id)).join(' · ')}</p>
       <h3>항해사</h3>
       <ul class="plain">${S.nav.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>
-      <h3>해역</h3>
-      ${table(['해역', '구역'], S.regions.map((r) => tr([`<b>${esc(r.name)}</b>`, esc(r.band)])))}
+      <h3>바다 지역</h3>
+      ${table(['지역', '구역'], S.regions.map((r) => tr([`<b>${esc(r.name)}</b>`, esc(r.band)])))}
+    </section>`;
+}
+
+/** 깊은 바다 절 첫머리: 바다 이벤트와 깊은 바다 콘텐츠로 바로 가는 칩(항해사만 쓰는 것은 금색) */
+function seaGuideIndex() {
+  const G = D.seaGuides ?? [];
+  if (!G.length) return '';
+  const chip = (href, name, nav) => `<a class="chip${nav ? ' accent' : ''}" href="${href}">${esc(name)}</a>`;
+  return `
+    <section class="card" id="sea-index">
+      <p style="margin-top:0">깊은 바다는 매시 ${D.seaEvents?.openMin}분부터 정각까지 열립니다. 배를 띄워 나가면 아래 일들을 할 수 있습니다. 금색은 항해사만 쓸 수 있는 기능입니다.</p>
+      <div class="chips">${D.seaEvents ? chip('#/world#sea-events', '바다 이벤트', false) : ''}${G.map((g) => chip(`#/world#sea-${esc(g.id)}`, g.name, g.navOnly)).join('')}</div>
+    </section>`;
+}
+
+/** 깊은 바다 콘텐츠 안내 한 장(build.ts seaGuides): 한 줄 소개 · 언제·어디서 · 하는 법 · (표) · 보상 · 주의 · 관련 아이템·몬스터·칭호·꾸미기 */
+function seaGuideCard(g) {
+  const list = (tag, rows) => `<${tag} class="plain">${rows.map((r) => `<li>${esc(r)}</li>`).join('')}</${tag}>`;
+  const related = [
+    ...g.items.map((id) => itemLink(id)),
+    ...g.mobs.map((id) => mobLink(id)),
+    ...g.titles.map((id) => `칭호 <a href="#/growth#titles">${esc(D.titles.find((t) => t.id === id)?.name ?? id)}</a>`),
+    ...g.cosmetics.map((id) => `꾸미기 <a href="#/drops#cosmetics">${esc(D.cosmetics.list.find((c) => c.id === id)?.name ?? id)}</a>`),
+  ];
+  return `
+    <section class="card sea-guide" id="sea-${esc(g.id)}">
+      <h2 style="margin-top:0">${esc(g.name)} <span class="chip">${esc(g.tag)}</span>${g.navOnly ? ' <span class="chip accent">항해사</span>' : ''}</h2>
+      <p>${esc(g.line)}</p>
+      <h3>언제·어디서</h3>
+      ${list('ul', g.when)}
+      <h3>하는 법</h3>
+      ${list('ol', g.steps)}
+      ${g.table ? `<h3>${esc(g.table.title)}</h3>${table(g.table.head.map(esc), g.table.rows.map((r) => tr(r.map(esc))))}` : ''}
+      ${g.rewards.length ? `<h3>보상</h3>${list('ul', g.rewards)}` : ''}
+      <h3>주의</h3>
+      ${list('ul', g.cautions)}
+      ${related.length ? `<div class="sea-related small"><span class="muted">관련</span>${related.map((r) => `<span>${r}</span>`).join('')}</div>` : ''}
     </section>`;
 }
 
@@ -1223,7 +1262,7 @@ function pageWorld() {
     const quests = isl.quests.map((q) => M.quests.get(q));
     return `
       <section class="card" id="isl-${isl.id}">
-        <h2 style="margin-top:0">${esc(isl.name)} ${isl.hub ? '<span class="chip accent">모항 · 시작 마을</span> <span class="chip">사냥터 없음</span>' : `<span class="chip">Lv${isl.levelRange[0]}~${isl.levelRange[1]}</span> <span class="chip">입장 Lv${isl.minLevel}</span>`}${isl.partyGoldSplit ? ' <a class="chip" href="#/drops">파티 베리 나눔</a>' : ''} <span class="chip">상점 ${isl.shopTiers.map((t) => `T${t}`).join('·')}</span></h2>
+        <h2 style="margin-top:0">${esc(isl.name)} ${isl.hub ? '<span class="chip accent">시작 마을</span> <span class="chip">사냥터 없음</span>' : `<span class="chip">Lv${isl.levelRange[0]}~${isl.levelRange[1]}</span> <span class="chip">입장 Lv${isl.minLevel}</span>`}${isl.partyGoldSplit ? ' <a class="chip" href="#/drops">파티 베리 나눔</a>' : ''} <span class="chip">상점 ${isl.shopTiers.map((t) => `T${t}`).join('·')}</span></h2>
         <div class="grid g2">
           <div>
             ${isl.hub ? `<p class="small">새 캐릭터가 처음 서는 마을입니다. 대장간·잡화점·창고·젬 상점이 모여 있고, 레이드·일일 던전·필드 보스 원정은 모두 <b>선술집 주인</b>에게서 출발합니다. 귀환 두루마리를 쓰면 이 마을 부두로 돌아옵니다. 광장 모닥불가에 둘러앉을 수 있고, 음유시인은 류트 연주를 할 수 있습니다. 매일 밤 ${D.village.fireworks.hourKst}시 폭죽놀이, 체스·오목, 날씨(눈·꽃비·풍등 밤)는 <a href="#/world#village">${esc(D.village.name)} 놀거리</a>를 보세요.</p>` : `<h3>몬스터</h3>
@@ -1423,8 +1462,8 @@ function pageWorld() {
         <li>인원: 기본 <b>${gw.starters.base} 대 ${gw.starters.base}</b>. 두 길드가 같은 수(${gw.starters.base}~${gw.starters.max})를 제안하면 그 수로 합니다. 교대 ${gw.subs}명(한 판 ${gw.swapMax}번, 결전에는 못 함), 관전 최대 ${gw.watchMax}명. 모자란 편은 모자란 채로 싸우고, 시작 때 들어온 선수가 ${gw.forfeitBelow}명 미만이면 기권패입니다. 끊긴 선수는 ${gw.rejoinSec}초 기다린 뒤 준비한 교대로 바뀝니다.</li>
         <li>전투: 플레이어끼리 피해 ${pct(gw.combat.damageMul)} · 치유·보호막 ${pct(gw.combat.healMul)}만 들어갑니다(일꾼·포탑의 최대 HP % 피해는 그대로). 기절·잠은 결투장처럼 최대 ${D.duel.stunMaxSec}초이고 걸려 있는 동안 다시 걸어도 늘어나지 않으며, 풀리면 ${gw.combat.stunImmuneSec}초 기절·잠 면역입니다. 기사 도발에 맞으면 ${gw.combat.taunt.sec}초 동안 기사 아닌 대상에게 주는 피해 −${gw.combat.taunt.pct}%. 공격력·최대 HP는 전장 평균 전투력에 맞춰 ×${gw.compress.min}~×${gw.compress.max} 사이로 보정됩니다. 탈것·귀환 주문서는 쓸 수 없습니다.</li>
         <li>물약: 처음 ${gw.combat.potion.start}개, 부활실에서 ${gw.combat.potion.cost}골드에 하나씩 사서 최대 ${gw.combat.potion.max}개(판 전체 — 쓰러져도 채워지지 않음). ${gw.combat.potion.overSec}초에 걸쳐 최대 HP ${gw.combat.potion.pct}% 회복, 맞아도 끊기지 않고 재사용 ${gw.combat.potion.cdSec}초.</li>
-        <li>부활: 우리 부활실에서만. 대기 = ${gw.respawn.baseSec}초 + 판 레벨 × ${gw.respawn.perLevelSec}초, ${ms(gw.respawn.lateFromSec)}부터 ×${gw.respawn.lateMul}, 최대 ${gw.respawn.maxSec}초. 부활실 안에서는 초당 최대 HP ${gw.respawn.roomRegenPctPerSec}%가 차고, 적은 들어올 수 없습니다. 힐러는 쓰러진 지 ${gw.revive.windowSec}초 안의 같은 편을 ${gw.revive.castSec}초 시전으로 HP ${gw.revive.hpPct}%로 일으킬 수 있습니다.</li>
-        <li>귀환(PC <kbd>B</kbd> · 모바일 귀환 단추): ${gw.recall.sec}초 시전 뒤 부활실로 돌아갑니다. 움직이거나 맞으면 끊깁니다(${esc(abyss.name)}에서는 못 씀).</li>
+        <li>부활: 우리 부활실에서만. 대기 = ${gw.respawn.baseSec}초 + 판 레벨 × ${gw.respawn.perLevelSec}초, ${ms(gw.respawn.lateFromSec)}부터 ×${gw.respawn.lateMul}, 최대 ${gw.respawn.maxSec}초. 부활실 안에서는 초당 최대 HP ${gw.respawn.roomRegenPctPerSec}%가 차고, 적은 들어올 수 없습니다. 힐러는 쓰러진 지 ${gw.revive.windowSec}초 안의 같은 편을 ${gw.revive.castSec}초 동안 붙잡고 있으면 HP ${gw.revive.hpPct}%로 일으킬 수 있습니다.</li>
+        <li>귀환(PC <kbd>B</kbd> · 모바일 귀환 단추): ${gw.recall.sec}초 기다린 뒤 부활실로 돌아갑니다. 움직이거나 맞으면 끊깁니다(${esc(abyss.name)}에서는 못 씀).</li>
         <li>항복: ${ms(gw.surrender.fromSec)}부터 편 안에서 투표를 열 수 있습니다. ${gw.surrender.voteSec}초 안에 편 인원의 ${gw.surrender.pct}%(올림) 이상이 찬성하면 그 편이 집니다. 실패하면 ${ms(gw.surrender.retrySec)} 동안 다시 못 엽니다.</li>
         <li>핑: 누구나 ${gw.pings.map(esc).join(' · ')} 핑을 찍습니다(같은 종류 ${gw.ping.cdSec}초에 한 번, 10초에 ${gw.ping.perTenSec}개까지). 표적 표시는 지휘관만. 우리 편 선수·일꾼·포탑 둘레 ${gw.visionR}칸 안의 적만 지도에 보입니다.</li>
         <li>점수판(PC <kbd>Tab</kbd> · 위 처치 수 누르기): 처치/쓰러짐/도움 · CS · 골드 · 판 레벨 · 아이템. 처치 알림: 연속 처치 ${gw.streakTitles.map((s) => `${s.n}${s === lastStreak ? '+' : ''} 「${esc(s.name)}」`).join(' · ')}, ${gw.kill.multiSec}초 안에 이어 잡으면 ${gw.multiNames.map(esc).join(' · ')}, ${gw.shutdownAt}연속 이상을 끊으면 저지, 상대 편을 모두 쓰러뜨리면 에이스.</li>
@@ -1792,8 +1831,8 @@ function pageWorld() {
           </ul></div>
       </div>
     </section>`;
-  const index = `<nav class="isl-index" aria-label="지역 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>${isl.hub ? "모항" : `Lv${isl.levelRange[0]}~${isl.levelRange[1]}`}${isl.shopTiers.length ? ` · ${isl.shopTiers.map((t) => `T${t}`).join('·')}` : ''}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a><a href="#/world#village"><b>${esc(vg.name)} 놀거리</b><span>폭죽 · 체스 · 오목 · 날씨</span></a></nav>`;
-  return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 모항입니다.')}<h2>서막</h2><div class="stack">${prologueCard}</div><h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}${questLineCard}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>히든 던전</h2><div class="stack">${hiddenCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>선술집 의뢰</h2><div class="stack">${tavernCard}${catCard}</div><h2>생활</h2><div class="stack">${lifeCard}${seaEventsCard()}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>${esc(fwar.name)} (PvP)</h2><div class="stack">${fwCard}</div><h2>길드전 (PvP)</h2><div class="stack">${gwCard}</div><h2>길드</h2><div class="stack">${guildRankCard}${guildStorageCard}</div><h2>${esc(vg.name)} 놀거리</h2><div class="stack">${villageCard}</div><h2>교류·편의</h2><div class="stack">${socialCards}</div>`;
+  const index = `<nav class="isl-index" aria-label="지역 바로가기">${D.islands.map((isl) => `<a href="#/world#isl-${isl.id}"><b>${esc(isl.name)}</b><span>${isl.hub ? "시작 마을" : `Lv${isl.levelRange[0]}~${isl.levelRange[1]}`}${isl.shopTiers.length ? ` · ${isl.shopTiers.map((t) => `T${t}`).join('·')}` : ''}</span></a>`).join('')}<a href="#/world#training"><b>${esc(tg.name)}</b><span>DPS 측정</span></a><a href="#/world#village"><b>${esc(vg.name)} 놀거리</b><span>폭죽 · 체스 · 오목 · 날씨</span></a></nav>`;
+  return `${head('지역·레이드', '지역(섬)은 뱃사공의 배로 옮겨 다닙니다. 입장 레벨이 되어야 갈 수 있습니다. 노을마을은 모든 항로가 모이는 중심 마을입니다.')}<h2>서막</h2><div class="stack">${prologueCard}</div><h2>지역 (${D.islands.length}곳)</h2>${index}<div class="stack">${islands}${questLineCard}</div><h2>훈련장</h2><div class="stack">${trainingCard}</div><h2>레이드</h2><div class="stack">${raids}${infCard}${augCard}</div><h2>일일 던전</h2><div class="stack">${dungeonCards}</div><h2>히든 던전</h2><div class="stack">${hiddenCard}</div><h2>필드 보스 원정</h2><div class="stack">${worldBosses}</div><h2>선술집 의뢰</h2><div class="stack">${tavernCard}${catCard}</div><h2>생활</h2><div class="stack">${lifeCard}</div><h2>깊은 바다</h2><div class="stack">${seaGuideIndex()}${seaEventsCard()}${(D.seaGuides ?? []).map(seaGuideCard).join('')}</div><h2>결투장 (PvP)</h2><div class="stack">${duelCard}</div><h2>${esc(fwar.name)} (PvP)</h2><div class="stack">${fwCard}</div><h2>길드전 (PvP)</h2><div class="stack">${gwCard}</div><h2>길드</h2><div class="stack">${guildRankCard}${guildStorageCard}</div><h2>${esc(vg.name)} 놀거리</h2><div class="stack">${villageCard}</div><h2>교류·편의</h2><div class="stack">${socialCards}</div>`;
 }
 
 // ── 페이지: 성장·강화 ──
@@ -2170,7 +2209,7 @@ function buildSearch() {
   for (const it of D.items) add('아이템', it.name, `#/items/${it.id}`, `${rarName(it.rarity)} ${KIND[it.kind]}${it.reqLevel ? ` · Lv${it.reqLevel}` : ''}`, itemIcon(it, 'sm'), it.desc, `${rarName(it.rarity)}${KIND[it.kind]}${it.classId ? classOf(it.classId).name : '공용'}`, `rar-${it.rarity}`);
   for (const m of D.mobs) add('몬스터', m.name, `#/mobs/${m.id}`, `${MOB_KIND[m.kind]} · Lv${m.level}`, ph(m.kind === 'field' ? 'skull' : 'crown'), m.islands.map(islandName).join(', '), `${MOB_KIND[m.kind]}몬스터`);
   for (const i of D.islands) {
-    add('지역', i.name, `#/world#isl-${i.id}`, i.hub ? "모항 · 시작 마을" : `섬 · Lv${i.levelRange[0]}~${i.levelRange[1]}`, ph('map'), '', '섬지역');
+    add('지역', i.name, `#/world#isl-${i.id}`, i.hub ? "시작 마을" : `섬 · Lv${i.levelRange[0]}~${i.levelRange[1]}`, ph('map'), '', '섬지역');
     for (const n of i.npcs) add('NPC', n.name, `#/world#isl-${i.id}`, `${i.name} · ${ROLE[n.role] ?? n.role}`, ph('info'), '', `npc${ROLE[n.role] ?? ''}`);
     for (const qid of i.quests) {
       const q = M.quests.get(qid);
@@ -2189,7 +2228,7 @@ function buildSearch() {
   add('콘텐츠', D.guildWar.name, '#/world#guild-war', `PvP · 매일 ${D.guildWar.clock.sessionMin.map((m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`).join(' · ')}${D.guildWar.beta ? ' 베타' : ''} · ${D.guildWar.starters.base} 대 ${D.guildWar.starters.base} · Lv${D.guildWar.minLevel}+`, ph('swords'), `${D.guildWar.maps[0].name} ${D.guildWar.maps[0].lanes.length}라인 · 포탑 억제기 넥서스 · 일꾼 · 판 레벨 골드 상점 · ${D.guildWar.mobName.dragon} ${D.guildWar.mobName.baron} 정글 · ${D.guildWar.match.totalSec / 60}분`, `길드전 길드 전쟁 길드대전 PvP 전장 협곡 협곡전 롤 라인 포탑 억제기 넥서스 미니언 일꾼 CS 골드 상점 아이템 레벨 해룡 드래곤 바론 리바이어던 정글 버프 정령 귀환 항복 점수판 핑 지휘관 교대 ${D.guildWar.items.map((it) => it.name).join(' ')}`);
   add('콘텐츠', '선술집 의뢰', '#/world#tavern', `노을마을 선술집 · ${D.tavern.rotateHours}시간마다 교체 · 개인 의뢰 ${D.tavern.personalCount}개`, ph('scroll-text'), D.tavern.tiers.map((t) => t.name).join(' · '), '선술집 의뢰 일퀘 일일 퀘스트 게시판 개인 마고');
   add('콘텐츠', '생활(농사·광산·낚시)', '#/world#life', `${D.life.islands.mine} · ${D.life.islands.cove} · ${D.life.islands.farm} · Lv${D.life.unlockLevel}부터 · 직접 채굴·낚시·농사 · 요리·제련`, ph('scroll-text'), D.life.kinds.map((k) => k.name).join(' · '), '생활 농사 광산 낚시 수확 채굴 요리 제련 음식 노을 광산 노을 해변 낚시터 농장 마을 내 농장 부지 풍요의 삼지창');
-  if (D.seaEvents) add('콘텐츠', '바다 이벤트', '#/world#sea-events', `깊은 바다 · ${D.seaEvents.events.length}가지 · 항해사 이점 · 해역 ${D.seaEvents.regions.length}곳`, ph('scroll-text'), D.seaEvents.events.map((e) => e.name).join(' · '), `바다 이벤트 깊은 바다 해적 해적선 유령선 안개 폭풍 벼락 소용돌이 해류 물살 난파선 표류물 화약통 고래 축복 항해사 ${D.seaEvents.regions.map((r) => r.name).join(' ')}`);
+  if (D.seaEvents) add('콘텐츠', '바다 이벤트', '#/world#sea-events', `깊은 바다 · ${D.seaEvents.events.length}가지 · 항해사 이점 · 바다 지역 ${D.seaEvents.regions.length}곳`, ph('scroll-text'), D.seaEvents.events.map((e) => e.name).join(' · '), `바다 이벤트 깊은 바다 해적 해적선 유령선 안개 폭풍 벼락 소용돌이 해류 물살 난파선 표류물 화약통 고래 축복 항해사 ${D.seaEvents.regions.map((r) => r.name).join(' ')}`);
   add('콘텐츠', '서막 — 황혼에 오른 자', '#/world#prologue', `새 캐릭터 첫 입장 · ${D.prologue.island} · Lv${D.prologue.level} 3차 전직으로 지는 싸움 · 컷신 ${D.prologue.cutscenes.length}편`, ph('scroll-text'), D.prologue.cutscenes.map((c) => c.name).join(' · '), '서막 프롤로그 튜토리얼 컷신 컷씬 시네마틱 베스페르 첫 입장 건너뛰기 스토리');
   const cq = D.catQuests;
   add('콘텐츠', '고양이 의뢰', '#/world#cat-quests', `${cq.hall} 곁가지 퀘스트 · ${cq.ids.length}개`, ph('scroll-text'), cq.npc, '고양이 의뢰 곁가지 퀘스트 선술집 김꼴꼴');
@@ -2220,7 +2259,8 @@ function buildSearch() {
   add('콘텐츠', '명예의 전당', '#/world#hall-of-fame', `${D.hallOfFame.season} 레벨 랭킹 상위 ${D.hallOfFame.legends.length}명 동상`, ph('crown'), D.hallOfFame.legends.map((l) => l.name).join(' · '), '명예의전당 동상 랭커 시즌');
   add('콘텐츠', `${D.hallOfFame.lv300.title} 명예의 전당`, '#/world#hall-lv300', `직업별 레벨 랭킹 1~10위 · ~${D.hallOfFame.lv300.until}`, ph('crown'), Object.values(D.hallOfFame.lv300.ranks).flat().map((r) => r.name).join(' · '), '명예의전당 만렙 300 랭킹 직업별');
   for (const t of D.titles) add('콘텐츠', t.name, '#/growth#titles', `칭호 · ${t.how}`, ph('crown'), t.desc, '칭호');
-  for (const c of D.cosmetics.list) add('콘텐츠', c.name, '#/drops#cosmetics', `꾸미기 · ${D.cosmetics.slots.find((s) => s.id === c.slot)?.name ?? c.slot}`, ph('sparkles'), `${c.desc} ${c.sources.join(' · ')}`, '꾸미기 오라 궤적 레벨업 의상 코스튬 자석펫 스킨');
+  for (const c of D.cosmetics.list) add('콘텐츠', c.name, '#/drops#cosmetics', `꾸미기 · ${D.cosmetics.slots.find((s) => s.id === c.slot)?.name ?? c.slot}`, ph('sparkles'), `${c.desc} ${c.sources.join(' · ')}`, '꾸미기 오라 궤적 레벨업 의상 코스튬 자석펫 스킨 돛 돛 꾸미기');
+  for (const g of D.seaGuides ?? []) add('콘텐츠', g.name, `#/world#sea-${g.id}`, `깊은 바다 · ${g.tag}`, ph('anchor'), [g.line, ...g.when, ...g.steps].join(' '), g.keys);
   for (const p of D.cashShop.products) if (p.kind !== 'cosmetic') add('콘텐츠', p.name, '#/drops#cash-shop', `루비 상점 · ${fmt(p.priceRuby)}루비`, ph('gem'), p.contents.join(' · '), '상점 루비 현금');
   searchIndex = entries;
 }
