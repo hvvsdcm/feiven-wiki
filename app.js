@@ -646,7 +646,7 @@ function cosGachaSection() {
       <li><b>가진 꾸미기는 나오지 않습니다.</b> 그 몫은 같은 등급의 아직 없는 꾸미기가 나눠 갖고, 한 등급을 모두 가졌으면 남은 등급이 원래 비율대로 나눕니다. 그 회차 꾸미기를 모두 가지면 더 뽑을 수 없습니다.</li>
       <li><b>천장</b>: 전설 없이 ${G.pity - 1}번을 뽑으면 ${G.pity}번째는 <b>아직 없는 전설 꾸미기</b>가 확정입니다. 전설이 나오면 처음부터 다시 셉니다. 뽑기권·루비 회차를 모두 세고, 회차가 바뀌어도 이어서 셉니다.</li>
       <li>회차가 끝나면 그 회차 꾸미기는 더 얻을 수 없습니다. 회차 사이에는 뽑을 수 없고, 뽑기권은 계속 모아 다음 회차에 씁니다.</li>
-      <li><b>뽑기권 얻는 곳</b>: <a href="#/world#tavern">선술집 의뢰</a> 매우 어려움 ${tk.requestVeryHard}장 · 지옥 ${tk.requestHell}장 · ${raidName('twilight_spire')} ${tk.twilight}장 · ${raidName('twilight_spire_hard')} ${tk.twilightHard}장 · ${raidName('twilight_spire_hell')} ${tk.twilightHell}장(클리어) · 필드 사냥 ${pct(G.huntChance)}(${oneIn(G.huntChance)}, 레이드·던전·봇 처치 제외)</li>
+      <li><b>뽑기권 얻는 곳</b>: <a href="#/world#tavern">선술집 의뢰</a> 매우 어려움 ${tk.requestVeryHard}장 · 지옥 ${tk.requestHell}장 · ${raidName('twilight_spire')} ${tk.twilight}장 · ${raidName('twilight_spire_hard')} ${tk.twilightHard}장 · ${raidName('twilight_spire_hell')} ${tk.twilightHell}장 · ${raidName('twilight_spire_doom')} ${tk.twilightDoom}장(클리어) · 필드 사냥 ${pct(G.huntChance)}(${oneIn(G.huntChance)}, 레이드·던전·봇 처치 제외)</li>
     </ul>
     ${live.map((s) => `${seasonHead(s)}${seasonTable(s)}`).join('')}
     ${past.length ? `<details style="margin-top:12px"><summary>지난 회차 ${past.length}개</summary>${past.map((s) => `${seasonHead(s)}${seasonTable(s)}`).join('')}</details>` : ''}`;
