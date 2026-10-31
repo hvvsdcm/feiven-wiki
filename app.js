@@ -684,15 +684,19 @@ function playtimeSection() {
     </ul>
     ${table([{ t: '접속 시간', c: 'r' }, '보상'], tiers.map((t) => tr([R(hm(t.min)), `<span class="small">${t.rewards.map(rewardText).join('<br>')}</span>`])))}`;
 }
-/** 할로윈 사탕 모으기: 기간(시각 ms — 끝 시각은 포함하지 않는다) · 사탕 얻는 곳 · 교환소(계정당 한도) */
+/** 할로윈 사탕 모으기: 기간(시각 ms — 끝 시각은 포함하지 않는다) · 사탕 얻는 곳 · 교환소(계정당 한도 · 시즌 보물은 한 번에 1단계) */
 function halloweenSection() {
   const h = D.halloween;
   const day = (ms) => { const d = new Date(ms + 9 * 3_600_000); return `${d.getUTCMonth() + 1}/${d.getUTCDate()}`; };
   const now = Date.now();
   const phase = now < h.start ? '시작 전' : now < h.end ? '사탕 모으는 중' : now < h.claimUntil ? '교환만 가능' : '끝남';
   const d = h.drop;
-  const reward = (r) => (r.title ? `칭호 <a href="#/growth#titles">${esc(D.titles.find((t) => t.id === r.title)?.name ?? r.title)}</a>`
-    : rewardText(r.cosmetic ? { cosmeticId: r.cosmetic } : r));
+  const reward = (s) => {
+    const r = s.reward;
+    if (s.treasure) return `<span class="name-cell"><img class="ico sm" src="${esc(s.treasure.icon)}" alt="" loading="lazy" width="40" height="40"><b>보물 「${esc(s.treasure.name)}」 1단계</b></span><br><span class="muted">${esc(s.treasure.desc)} 1단계마다 ${esc(s.treasure.per)} · ${s.limit}단계 ${esc(s.treasure.max)}</span>`;
+    return r.title ? `칭호 <a href="#/growth#titles">${esc(D.titles.find((t) => t.id === r.title)?.name ?? r.title)}</a>`
+      : rewardText(r.cosmetic ? { cosmeticId: r.cosmetic } : r);
+  };
   return `
     <h2 id="halloween">할로윈 사탕 모으기</h2>
     <p><b>${esc(h.name)}</b> <span class="chip">사탕 모으기 ${day(h.start)}~${day(h.end - 1)}</span> <span class="chip">교환 ~${day(h.claimUntil - 1)}</span> <span class="chip accent">${phase}</span></p>
@@ -700,8 +704,9 @@ function halloweenSection() {
       <li>기간 안에 ${itemLink(h.candyId)}을 모아 메뉴(ESC) › <b>이벤트</b> › <b>할로윈</b> 탭의 교환소에서 보상으로 바꿉니다. 사탕은 귀속이고 팔 수 없습니다.</li>
       <li>사탕 얻는 곳(사탕 모으기 기간에만): 필드 사냥 처치 ${pct(d.huntChance)}(레이드·던전·봇 처치 제외) · 채굴·낚시 ${pct(d.gatherChance)} · 레이드 클리어 ${d.raid}개 · 일일·보물·히든 던전 완주 ${d.dungeon}개 · 필드 보스 처치 ${d.worldBoss}개 · 사냥터 돌발 사건 성공 ${d.fieldEvent}개 · <a href="#/world#tavern">선술집 의뢰</a> 난이도별 ${d.tavern.join('·')}개. 가방이 가득이면 우편(사냥은 바닥)으로 옵니다.</li>
       <li>교환 한도는 계정마다 셉니다. 아이템은 바꾼 캐릭터에 귀속되고, 가방이 모자라면 바꾸지 않습니다. 이미 가진 꾸미기·칭호는 바꿀 수 없습니다.</li>
+      <li>보물은 <a href="#/growth#season">시즌 보물</a>과 같은 계정 공용·영구 효과입니다. 한 번 바꿀 때마다 1단계씩 올라 최고 단계까지 갑니다. 보물 지도 조각으로는 팔지 않습니다.</li>
     </ul>
-    ${table(['보상', { t: '사탕', c: 'r' }, { t: '계정당', c: 'r' }], h.shop.map((s) => tr([`<span class="small">${reward(s.reward)}</span>`, R(`${fmt(s.candy)}개`), R(`${s.limit}번`)])))}`;
+    ${table(['보상', { t: '사탕', c: 'r' }, { t: '계정당', c: 'r' }], h.shop.map((s) => tr([`<span class="small">${reward(s)}</span>`, R(`${fmt(s.candy)}개`), R(`${s.limit}번`)])))}`;
 }
 
 
@@ -2208,7 +2213,8 @@ function buildSearch() {
   add('콘텐츠', '체스', '#/world#village', `${vg.name} · 탁자 ${vg.chess.tables}개 · ${vg.chess.clockMin}분 + 한 수 ${vg.chess.incSec}초`, ph('gamepad-2'), '모험가와 대국 컴퓨터와 대국 관전 훈수', '체스 chess 보드게임 미니게임 탁자 훈수');
   add('콘텐츠', '오목', '#/world#village', `${vg.name} · ${vg.omok.size}×${vg.omok.size} · 한 수 ${vg.omok.turnSec}초`, ph('gamepad-2'), '정확히 다섯 흑 삼삼 금지', '오목 omok 바둑 보드게임 미니게임');
   add('콘텐츠', '치장 뽑기', '#/drops#cos-gacha', `1회 ${D.cosGacha.ruby.one}루비 · ${D.cosGacha.multi}회 ${D.cosGacha.ruby.multi}루비 · 천장 ${D.cosGacha.pity}회`, ph('gem'), D.cosGacha.seasons.map((s) => `${s.name} ${s.prizes.filter((p) => p.cosmeticId).map((p) => p.name).join(' ')}`).join(' · '), '치장 뽑기 가챠 gacha 뽑기권 꾸미기 천장 코스튬 확률');
-  add('콘텐츠', '할로윈 사탕 모으기', '#/drops#halloween', `할로윈 사탕 교환소 · 보상 ${D.halloween.shop.length}가지`, ph('sparkles'), D.halloween.name, '할로윈 halloween 사탕 캔디 이벤트 교환소 박쥐 날개 사탕 도둑');
+  add('콘텐츠', '할로윈 사탕 모으기', '#/drops#halloween', `할로윈 사탕 교환소 · 보상 ${D.halloween.shop.length}가지`, ph('sparkles'), D.halloween.name, '할로윈 halloween 사탕 캔디 이벤트 교환소 박쥐 날개 사탕 도둑 잭오랜턴 보물');
+  for (const s of D.halloween.shop) if (s.treasure) add('콘텐츠', s.treasure.name, '#/drops#halloween', `보물 · 할로윈 사탕 교환소 · 사탕 ${fmt(s.candy)}개 · ${s.limit}단계 ${s.treasure.max}`, ph('gem'), s.treasure.desc, '보물 할로윈 사탕 교환소 호박 등불');
   add('콘텐츠', '캐릭터 칸 늘리기', '#/drops#gems', `기본 ${D.charSlots.base}칸 · ${D.gems.name} ${D.charSlots.gems}개로 1칸 · 최대 ${D.charSlots.buyMax}번`, ph('gem'), '캐릭터 선택 화면 칸 늘리기', '캐릭터 슬롯 칸 추가 부캐 캐릭터 생성 자리');
   add('콘텐츠', '농장 트랙터', '#/world#life', `${fmt(D.tractor.price)} 베리 · 이동 속도 ×${D.tractor.speedMul} · 지나가며 수확`, ph('sparkles'), D.tractor.villages.join(' · '), '트랙터 tractor 농장 탈것 경적 뒷자리');
   add('콘텐츠', '레이드로 이끄는 곁가지 퀘스트', '#/world#quest-lines', '심연의 원정대 · 성역 토벌 의뢰', ph('scroll-text'), [D.questLines.raidCall, ...D.questLines.bountyRaid, ...D.questLines.bountyHunt].map((id) => M.quests.get(id)?.name ?? '').join(' · '), '성역 토벌 의뢰 현상금 레이드 줄기 사냥 줄기 원정대 곁가지');
