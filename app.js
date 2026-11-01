@@ -1475,7 +1475,7 @@ function pageWorld() {
         tr([`포탑 파괴: 둘레 ${gw.xp.shareR}칸 아군 · 편 전원`, R(`${fmt(ec.turret.local)} · ${fmt(ec.turret.global)}`)]),
         tr([`${esc(sn.inhib)} 파괴 · ${esc(mn.dragon)} · ${esc(mn.baron)}(편 전원)`, R([ec.inhib, ec.dragon, ec.baron].map(fmt).join(' · '))]),
       ])}
-      <p class="small" style="margin-top:8px">일꾼·포탑에 쓰러져도 조금 전에 그 사람을 때린 적 선수가 있으면 그 선수의 처치(처형)로 셉니다. 상점은 <b>우리 부활실 안에서만</b>(쓰러져 있어도) 열리고, 아이템은 ${gw.itemSlots}칸까지 듭니다. 2단계는 같은 줄 1단계를 들고 있으면 차액만 내고, 되팔면 값의 ${ec.sellPct}%를 돌려받습니다. 직업과 상관없이 누구나 같은 아이템을 삽니다.</p>
+      <p class="small" style="margin-top:8px">일꾼·포탑에 쓰러져도 조금 전에 그 사람을 때린 적 선수가 있으면 그 선수의 처치(처형)로 셉니다. 상점은 <b>우리 부활실 안이나 쓰러져 있는 동안</b>(쓰러진 자리 어디서든) 열리고, 아이템은 ${gw.itemSlots}칸까지 듭니다. 2단계는 같은 줄 1단계를 들고 있으면 차액만 내고, 되팔면 값의 ${ec.sellPct}%를 돌려받습니다. 직업과 상관없이 누구나 같은 아이템을 삽니다.</p>
       ${table(['아이템', '단계', { t: '값', c: 'r' }, '재료', '효과'], gw.items.map((it) => tr([esc(it.name), `${it.tier}단계`, R(it.from ? `${fmt(it.cost)} <span class="muted">(재료 있으면 ${fmt(it.cost - it.fromCost)})</span>` : fmt(it.cost)), it.from ? esc(it.from) : '<span class="muted">—</span>', esc(it.desc)])))}
       <h3>목표물·정글</h3>
       <ul class="plain small">
@@ -1943,6 +1943,7 @@ function pageGrowth() {
       <li>처치에 기여한 사람과 같은 맵(같은 채널)에 있는 파티원이 거리와 상관없이 나눠 받습니다 — 1인당 (1 + ${c.partyExpBonus} × (인원 − 1)) ÷ 인원(2명 ${Math.round(((1 + c.partyExpBonus) / 2) * 100)}%, 4명 ${Math.round(((1 + c.partyExpBonus * 3) / 4) * 100)}%). 퀘스트 처치는 모두 인정됩니다.</li>
       <li>다음 레벨까지 잡아야 하는 같은 레벨 몬스터 수는 레벨이 오를수록 늘어납니다 — Lv50 위로는 <b>한 레벨에 드는 시간이 레벨마다 고르게 늘도록</b> 맞췄습니다(아래 표). 퀘스트 보상은 그 퀘스트 최소 레벨 필요 경험치의 ${c.questExpLevels}배(레벨 몫)이고, 최소 레벨보다 ${c.questExpSpan}레벨 높을 때까지는 <b>지금 레벨에서 같은 레벨 몫</b>을 받아 경험치 %가 줄지 않습니다(그보다 높으면 최소 레벨 + ${c.questExpSpan} 기준으로 고정). 무한의 던전·필드 보스·레이드 같은 반복 보상은 다음 레벨 필요 경험치가 아니라 아래 표의 <b>반복 보상 기준</b>을 한 레벨 몫으로 쓰고, 이 값은 Lv${c.rewardLevelFrom} 위로 같은 레벨 몬스터 수 기준으로 고정돼 곡선을 따라 커지지 않습니다. 대신 레이드 클리어·필드 보스 원정은 하루 몇 번까지 <b>현재 레벨 필요 경험치의 일정 비율</b>을 성장 보너스로 더 줍니다(지역·레이드 페이지의 각 보상 칸).</li>
       <li>HP는 교전이 끝나고 ${c.hpRegen.delaySec}초 뒤부터 초당 ${c.hpRegen.pctPerSec}%씩 찹니다. MP는 전투 밖 초당 ${c.mpRegenPct}%, 전투 중 ${c.mpRegenCombatPct}%, 처치할 때 ${c.mpOnKillPct}% 찹니다.</li>
+      <li>노을마을(선술집·청문회장 안 포함)에서는 HP가 교전과 상관없이 초당 ${c.hpRegen.villagePctPerSec}%씩 찹니다. 또 노을마을로 레이드·던전에서 돌아오거나 노을마을에서 장비·유물·펫을 바꾸면 기본 공격과 스킬 재사용 대기가 바로 끝납니다(물약은 그대로).</li>
     </ul>
     <h3>고레벨 사냥터 (Lv${c.hunt.fromLevel}~)</h3>
     <ul class="plain">
