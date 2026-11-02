@@ -485,8 +485,8 @@ function pageDrops() {
     ${head('드랍률', '게임 서버의 전리품 규칙 그대로입니다.')}
     <h2 style="margin-top:0">몬스터 한 마리를 잡으면</h2>
     <ol class="plain">
-      <li><b>베리</b>: 처치를 인정받은 사람마다 따로 굴려 바로 들어옵니다(줍지 않아도 됨).${goldSplit ? ` 단, ${goldSplit}에서는 경험치처럼 인원수로 나눠 받습니다 — 1인당 (1 + ${c.partyExpBonus} × (인원 − 1)) ÷ 인원(2명 ${Math.round(((1 + c.partyExpBonus) / 2) * 100)}%, 4명 ${Math.round(((1 + c.partyExpBonus * 3) / 4) * 100)}%).` : ''}</li>
-      <li><b>전리품</b>: 몬스터 드랍표의 항목마다 <b>독립적으로</b> 한 번씩 굴립니다. 몬스터당 한 번이며, 바닥에 떨어진 뒤 ${c.dropOwnerSec}초 동안은 처치 인정자(파티 포함)만 보고 주울 수 있고(다른 사람 화면에는 보이지 않음), ${c.dropDespawnSec}초 뒤 사라집니다. ${itemLink(D.scrolls.id)}도 여기서 나옵니다(필드 몬스터 ${pct(D.scrolls.fieldDrop)}).</li>
+      <li><b>베리</b>: 처치에 함께한 사람마다 따로 굴려 바로 들어옵니다(줍지 않아도 됨).${goldSplit ? ` 단, ${goldSplit}에서는 경험치처럼 인원수로 나눠 받습니다 — 1인당 (1 + ${c.partyExpBonus} × (인원 − 1)) ÷ 인원(2명 ${Math.round(((1 + c.partyExpBonus) / 2) * 100)}%, 4명 ${Math.round(((1 + c.partyExpBonus * 3) / 4) * 100)}%).` : ''}</li>
+      <li><b>전리품</b>: 몬스터 드랍표의 항목마다 <b>독립적으로</b> 한 번씩 굴립니다. 몬스터당 한 번이며, 바닥에 떨어진 뒤 ${c.dropOwnerSec}초 동안은 처치에 함께한 사람(파티 포함)만 보고 주울 수 있고(다른 사람 화면에는 보이지 않음), ${c.dropDespawnSec}초 뒤 사라집니다. ${itemLink(D.scrolls.id)}도 여기서 나옵니다(필드 몬스터 ${pct(D.scrolls.fieldDrop)}).</li>
       <li><b>장비</b>: 몬스터 레벨의 티어 장비 11종이 드랍표에 들어 있고(하나 이상 나올 확률 필드 몬스터 ${pct(c.gearDrop.field)}(T1은 ${pct(c.gearDrop.fieldT1)}) · 섬 보스 ${pct(c.gearDrop.boss)}), 떨어질 때 <a href="#/drops#grades">등급</a>을 한 번 굴립니다. 정예는 레벨 보너스를 뺀 원종 레벨의 티어입니다.</li>
     </ol>
 
@@ -505,7 +505,7 @@ function pageDrops() {
     <h3 id="absolute"><span class="rar-absolute">${esc(g.absolute.name)}</span> 장비</h3>
     <p>굴려서 나오는 등급 위에 따로 있는 최상위 장비입니다. 부위마다 지금 얻을 수 있는 가장 센 ${esc(rarName('unique'))} 장비(+0)의 <b>${g.absolute.overUnique}배</b> 수치에 모든 능력치 +${g.absolute.allStat}이 붙고, 착용 Lv${g.absolute.reqLevel}입니다. 귀속이 아니라 거래·거래소 등록·계정 창고 보관을 할 수 있고, 끼면 캐릭터에 붉은 금빛 불꽃이 둘러집니다(메뉴 › 설정 › 내 장비 후광으로 끕니다).</p>
     <p>${g.absolute.raids.map((r) => `${islandLink(r.raid)} <b>${pct(r.chance)}</b>`).join(' · ')} — 클리어마다 참가자 각자 그 확률로 자기 직업이 낄 수 있는 ${esc(g.absolute.name)} 장비 1점이 나옵니다(입문·어려움은 나오지 않음, 이벤트 배율 없음, 나오면 서버 전체 공지). 후보: ${g.absolute.items.map((id) => itemLink(id)).join(' ')}</p>
-    ${note(`처치 인정: 막타를 친 사람과 한 대라도 때린 사람, 그리고 그 파티원 중 같은 맵(같은 채널)에 있는 사람 모두입니다. 가상 유저(봇) 파티 덕에만 인정받은 경우 베리·경험치가 ${pct(c.botCarryShare)}로 줄어듭니다.`)}
+    ${note(`처치에 함께한 사람: 막타를 친 사람과 한 대라도 때린 사람, 그리고 그 파티원 중 같은 맵(같은 채널)에 있는 사람 모두입니다. 가상 유저(봇) 파티 덕에만 함께한 경우 베리·경험치가 ${pct(c.botCarryShare)}로 줄어듭니다.`)}
 
     <h2 id="tiers">장비 티어 (T1~T${D.tiers.length})</h2>
     <p class="muted small">티어는 레벨 구간입니다. 티어 장비는 <b>그 티어 시작 레벨</b>부터 낄 수 있고, 한 티어에 장비 11종(직업 무기 5 + 공용 6부위)이 있습니다. 섬 상점은 그 섬 레벨대에 걸친 티어를 모두 팝니다.</p>
@@ -545,7 +545,7 @@ function pageDrops() {
         <ul class="plain small">
           <li>레이드 클리어 1회: ${pct(D.gems.drop.raid.chance)} 확률로 ${D.gems.drop.raid.qty[0]}~${D.gems.drop.raid.qty[1]}개(참가자마다 따로)</li>
           <li>${esc(D.infinite.name)} 웨이브 클리어: ${pct(D.gems.drop.wave.chance)} 확률로 ${D.gems.drop.wave.qty[0]}개, <b>${D.gems.drop.wave.highFromWave}웨이브부터 ${pct(D.gems.drop.wave.high)}</b> 확률로 ${D.gems.drop.wave.highQty[0]}~${D.gems.drop.wave.highQty[1]}개. 보스 웨이브는 확률 ×${D.gems.drop.wave.bossMul}</li>
-          <li>필드 정예 몬스터 처치: ${pct(D.gems.drop.elite.chance)} 확률로 ${D.gems.drop.elite.qty[0]}개(처치 인정자마다 따로, 레이드 · 던전 안 제외)</li>
+          <li>필드 정예 몬스터 처치: ${pct(D.gems.drop.elite.chance)} 확률로 ${D.gems.drop.elite.qty[0]}개(처치에 함께한 사람마다 따로, 레이드 · 던전 안 제외)</li>
           <li>생활 행동(채굴 · 낚시 1회, 농사 거두기 1칸): 채굴 ${pct(D.gems.drop.life.mine)} · 낚시 ${pct(D.gems.drop.life.fish)} · 농사 ${pct(D.gems.drop.life.farm)} 확률로 ${D.gems.drop.life.qty[0]}개</li>
           ${D.worldBosses.map((w) => `<li><a href="#/world#wb-${esc(w.id)}">${esc(w.name)}</a>: 기여한 사람 모두 풀 ${w.rewards.gems[0]}~${w.rewards.gems[1]}개 × 내 몫(최소 ${w.floorSharePct}%, 확률 반올림)</li>`).join('')}
           <li>선술집 의뢰 보상: ${D.tavern.tiers.map((t) => `${esc(t.name)} ${t.gems}개`).join(' · ')} — <a href="#/world#tavern">선술집 의뢰</a></li>
@@ -702,7 +702,7 @@ function halloweenSection() {
     <p><b>${esc(h.name)}</b> <span class="chip">사탕 모으기 ${day(h.start)}~${day(h.end - 1)}</span> <span class="chip">교환 ~${day(h.claimUntil - 1)}</span> <span class="chip accent">${phase}</span></p>
     <ul class="plain small">
       <li>기간 안에 ${itemLink(h.candyId)}을 모아 메뉴(ESC) › <b>이벤트</b> › <b>할로윈</b> 탭의 교환소에서 보상으로 바꿉니다. 사탕은 귀속이고 팔 수 없습니다.</li>
-      <li>사탕 얻는 곳(사탕 모으기 기간에만): 필드 사냥 처치 ${pct(d.huntChance)}(레이드·던전·봇 처치 제외) · 채굴·낚시 ${pct(d.gatherChance)} · 레이드 클리어 ${d.raid}개 · 일일·보물·히든 던전 완주 ${d.dungeon}개 · 필드 보스 처치 ${d.worldBoss}개 · 사냥터 돌발 사건 성공 ${d.fieldEvent}개 · <a href="#/world#tavern">선술집 의뢰</a> 난이도별 ${d.tavern.join('·')}개. 가방이 가득이면 우편(사냥은 바닥)으로 옵니다.</li>
+      <li>사탕 얻는 곳(사탕 모으기 기간에만): 필드 사냥 처치 ${pct(d.huntChance)}(레이드·던전·봇 처치 제외) · 채굴·낚시 ${pct(d.gatherChance)} · 레이드 클리어 ${d.raid}개 · 일일·보물·히든 던전 완주 ${d.dungeon}개 · 필드 보스 처치 ${d.worldBoss}개 · <a href="#/world#tavern">선술집 의뢰</a> 난이도별 ${d.tavern.join('·')}개. 가방이 가득이면 우편(사냥은 바닥)으로 옵니다.</li>
       <li>교환 한도는 계정마다 셉니다. 아이템은 바꾼 캐릭터에 귀속되고, 가방이 모자라면 바꾸지 않습니다. 이미 가진 꾸미기·칭호는 바꿀 수 없습니다.</li>
       <li>보물은 <a href="#/growth#season">시즌 보물</a>과 같은 계정 공용·영구 효과입니다. 한 번 바꿀 때마다 1단계씩 올라 최고 단계까지 갑니다. 보물 지도 조각으로는 팔지 않습니다.</li>
     </ul>
@@ -1277,9 +1277,9 @@ function objectiveText(o) {
     default: return esc(o.k);
   }
 }
-/** 퀘스트 표(이름·NPC · 최소 레벨 · 목표 · 보상) — 섬 카드와 고양이 의뢰가 쓴다 */
+/** 퀘스트 표(장 번호·이름·NPC · 최소 레벨 · 목표 · 보상) — 섬 카드와 고양이 의뢰가 쓴다. 본 퀘스트 장 번호(「1-3」)는 이름 앞 옅은 글자 */
 function questTable(quests) {
-  return table(['퀘스트', { t: 'Lv', c: 'r' }, '목표', '보상'], quests.map((q) => tr([`${esc(q.name)}${q.side ? ' <span class="chip">곁가지</span>' : ''}${q.cine ? ` <span class="chip accent" title="완료하면 컷신이 나옵니다">컷신 · ${esc(q.cine)}</span>` : ''}<div class="muted small">${esc(q.npc)}</div>`, R(q.minLevel), `<span class="small">${q.objectives.map(objectiveText).join('<br>')}</span>`, `<span class="small">경험치 ${fmt(q.rewards.exp)} · ${fmt(q.rewards.gold)} 베리${(q.rewards.items ?? []).map((i) => `<br>${esc(M.items.get(i.itemId)?.name ?? i.itemId)} ×${i.qty}`).join('')}${(q.rewards.bound ?? []).map((i) => `<br>${esc(M.items.get(i.itemId)?.name ?? i.itemId)}${i.enh ? ` +${i.enh}` : ''} ×${i.qty} · 귀속`).join('')}${q.rewards.gear ? `<br>${questGearText(q.rewards.gear)}` : ''}</span>`])));
+  return table(['퀘스트', { t: 'Lv', c: 'r' }, '목표', '보상'], quests.map((q) => tr([`${q.chapter ? `<span class="muted">${esc(q.chapter)}</span> ` : ''}${esc(q.name)}${q.side ? ' <span class="chip">곁가지</span>' : ''}${q.cine ? ` <span class="chip accent" title="완료하면 컷신이 나옵니다">컷신 · ${esc(q.cine)}</span>` : ''}<div class="muted small">${esc(q.npc)}</div>`, R(q.minLevel), `<span class="small">${q.objectives.map(objectiveText).join('<br>')}</span>`, `<span class="small">경험치 ${fmt(q.rewards.exp)} · ${fmt(q.rewards.gold)} 베리${(q.rewards.items ?? []).map((i) => `<br>${esc(M.items.get(i.itemId)?.name ?? i.itemId)} ×${i.qty}`).join('')}${(q.rewards.bound ?? []).map((i) => `<br>${esc(M.items.get(i.itemId)?.name ?? i.itemId)}${i.enh ? ` +${i.enh}` : ''} ×${i.qty} · 귀속`).join('')}${q.rewards.gear ? `<br>${questGearText(q.rewards.gear)}` : ''}</span>`])));
 }
 function pageWorld() {
   const islands = D.islands.map((isl) => {
@@ -1794,16 +1794,6 @@ function pageWorld() {
         <li>친구에게는 <a href="#/drops#cash-shop">루비 상점</a> 상품을 충전한 루비로 선물할 수 있습니다.</li>
       </ul>
     </section>
-    <section class="card" id="board">
-      <h2 style="margin-top:0">게시판 <span class="chip">모든 서버 공용</span> <span class="chip">말머리 ${D.social.board.tags.length}종</span></h2>
-      <p>메뉴(ESC) › <b>게시판</b>에서 여는 인게임 자유 게시판입니다. 글은 서버에 남아 접속을 끊어도 사라지지 않습니다. 목록은 한 쪽에 ${D.social.board.page}개씩 새 글부터 보이고, 말머리(${D.social.board.tags.map(esc).join(' · ')})로 거르거나 제목·글쓴이로 검색합니다.</p>
-      <ul class="plain small">
-        <li>제목 ${D.social.board.titleMax}자, 본문 ${D.social.board.bodyMax}자, 댓글 ${D.social.board.commentMax}자까지 씁니다. 글쓴이는 쓸 때의 캐릭터 이름입니다.</li>
-        <li>추천·비추천은 계정마다 글 하나에 한 번이고 내 글에는 못 합니다. 추천이 ${D.social.board.bestUp}개 이상이면 <b>개념글</b>이 되어 개념글 탭에 모입니다.</li>
-        <li>도배 막기: 계정마다 글은 ${D.social.board.postGapSec / 60}분에 하나·하루 ${D.social.board.postsPerDay}개, 댓글은 ${D.social.board.commentGapSec}초에 하나·하루 ${D.social.board.commentsPerDay}개까지입니다. 채팅 금지 중에는 쓸 수 없고 금칙어는 가려집니다.</li>
-        <li>내 글·댓글은 지울 수 있고, 운영자는 다른 사람의 글·댓글을 숨깁니다.</li>
-      </ul>
-    </section>
     <section class="card" id="boombox">
       <h2 style="margin-top:0">파티 붐박스 <span class="chip">${esc(D.gems.name)} ${bb.gemPrice}개 = ${bb.passMinutes}분</span> <span class="chip">대기열 ${bb.queueMax}곡</span></h2>
       <p>파티원끼리 같은 유튜브 곡을 같은 위치로 함께 듣습니다. 곡을 틀거나 넘기려면 이용권이 있어야 하고, 듣기만 하는 파티원은 이용권이 없어도 됩니다.</p>
@@ -1880,7 +1870,7 @@ function seasonSection() {
   ]));
   const questRows = S.quests.map((d) => tr([
     `<b>${d.day}일차</b>`,
-    `<ul class="plain small" style="margin:0">${d.list.map((q) => `<li><b>${esc(q.name)}</b> <span class="muted">— ${esc(q.hint)}</span></li>`).join('')}</ul>`,
+    `<ul class="plain small" style="margin:0">${d.list.map((q) => `<li><b>${esc(q.name)}</b></li>`).join('')}</ul>`,
     R(`${d.list.map((q) => q.tokens).join(' + ')} + ${S.dayClear}`),
   ]));
   return `
@@ -1892,7 +1882,7 @@ function seasonSection() {
     <p>일일 완주한 날 수가 ${S.milestones.map((m) => `<b>${m.days}일</b>(${m.tokens}개)`).join(' · ')}에 닿으면 바로 더 받습니다. 한 주를 빠짐없이 하면 <b>${S.weekTokens}개</b>입니다.</p>
     <h3>${esc(S.token)} 따로 얻는 곳</h3>
     <ul class="plain">
-      <li><b>레이드 초행</b>: 그 계정의 어느 캐릭터도 깬 적 없는 레이드(사다리 레이드는 단계마다)를 처음 깨면 조각 <b>${G.firstTokens}개</b> · ${itemLink(D.scrolls.id)} ${G.firstScrolls}개. 시즌이 바뀌어도 다시 받지 않습니다.</li>
+      <li><b>레이드 초행</b>: 그 계정의 어느 캐릭터도 깬 적 없는 레이드(사다리 레이드는 단계마다)를 처음 깨면 조각 <b>${G.firstTokens}개</b> · ${itemLink(D.scrolls.id)} ${G.firstScrolls}개. 시즌이 바뀌어도 다시 받지 않습니다. 깬 횟수가 <b>${G.boostBelow}회 미만</b>이면 그 레이드 안에서 <b>초행 부스트</b>(받는 피해 −${G.boostTakenCutPct}%, 즉사 공격도 HP 1로 버팀)를 받습니다.</li>
       <li><b>길잡이</b>: 초행인 사람과 함께 레이드를 깨면, 함께 깬 초행 1명당 조각 <b>${G.perNewbieTokens}개</b>와 그 판 클리어 베리 <b>+${G.perNewbieGoldPct}%</b>(한 판에 초행 ${G.maxNewbies}명까지). 계정마다 시즌에 <b>${G.weeklyRuns}판</b>, 같은 초행 계정과는 시즌에 ${G.perAccountWeekly}판까지 셉니다. 일반·사다리 레이드만 해당하고 길드 레이드는 빠집니다.</li>
       <li><b>항해 등급</b>: 아래 항해 등급 절을 보세요.</li>
     </ul>
@@ -1904,6 +1894,11 @@ function seasonSection() {
     ${table(['받는 것', { t: '값', c: 'r' }, { t: '한도', c: 'r' }], exRows)}
     ${note('무과금으로도 한 시즌에 임무만으로 보물 두 개를 모두 5단계까지 살 수 있게 맞췄습니다(보물 두 개 합 ' + S.costTotal * 2 + '개 < 한 주 임무 ' + S.weekTokens + '개).')}`;
 }
+/** 켜진 사냥 경험치 보너스(연속 처치 · 사냥터 폭주) 이름. 2026-11-02 둘 다 꺼졌다 — 스위치가 없는 옛 데이터는 켜짐 */
+function huntBonusNames() {
+  const h = D.constants.hunt;
+  return [h.comboOn !== false && '연속 처치', h.frenzyOn !== false && '사냥터 폭주'].filter(Boolean);
+}
 /** 항해 등급: Lv300 뒤 경험치 → 등급 · 네 갈래 · 필요 항해 경험치 */
 function voyageSection() {
   const V = D.voyage;
@@ -1911,7 +1906,7 @@ function voyageSection() {
   const needRows = V.needs.map((n) => tr([R(`${n.rank} → ${n.rank + 1}`), R(fmt(n.need))]));
   return `
     <h2 id="voyage">항해 등급</h2>
-    <p><b>Lv ${D.meta.maxLevel}</b>부터 받는 경험치(사냥·레이드·의뢰·던전·필드 보스)는 모두 <b>항해 경험치</b>가 되어 <b>항해 등급</b>을 올립니다. 레벨은 ${D.meta.maxLevel} 그대로입니다. 사료·축복·월정액·보물 경험치 배율도 그대로 붙습니다. 능력치 창(C)의 <b>항해 등급</b> 탭에서 봅니다. 항해 등급은 캐릭터마다 따로입니다.</p>
+    <p><b>Lv ${D.meta.maxLevel}</b>부터 받는 경험치(사냥·레이드·의뢰·던전·필드 보스)는 모두 <b>항해 경험치</b>가 되어 <b>항해 등급</b>을 올립니다. 레벨은 ${D.meta.maxLevel} 그대로입니다. 정각 이벤트·핫타임·사료·서버 축복·월정액·길드 축복·유물·음식·보물 같은 <b>경험치 버프는 붙지 않습니다</b>(${[...huntBonusNames(), '힐러·바드'].join('·')} 몫은 붙습니다). 능력치 창(C)의 <b>항해 등급</b> 탭에서 봅니다. 항해 등급은 캐릭터마다 따로입니다.</p>
     <p>등급이 오를 때마다 1점을 받아 네 갈래 중 하나에 찍습니다(갈래마다 ${V.branchMax}점, 합 ${V.pointCap}점). 다시 찍기는 하루(한국 시간) 1번 무료, 그 뒤로는 ${fmt(V.respecCost)}베리입니다.</p>
     ${table(['갈래', '오르는 것', { t: '1점', c: 'r' }, { t: `${V.branchMax}점`, c: 'r' }], branchRows)}
     <p>${V.pointCap}등급 위로도 등급은 계속 오르고, 등급마다 ${itemLink(D.scrolls.id)} ${V.postScrolls}장, ${V.tokenEvery}등급마다 <b>${esc(D.season.token)}</b> ${V.tokens}개를 받습니다.</p>
@@ -1940,7 +1935,7 @@ function pageGrowth() {
     <div class="formula">몬스터 경험치 = (10 + 6 × 몬스터 레벨) × (보스면 15)
 내가 ${c.expPenaltyDiff[0]}레벨 이상 높으면 × 0.5, ${c.expPenaltyDiff[1]}레벨 이상 높으면 × 0.1</div>
     <ul class="plain">
-      <li>처치에 기여한 사람과 같은 맵(같은 채널)에 있는 파티원이 거리와 상관없이 나눠 받습니다 — 1인당 (1 + ${c.partyExpBonus} × (인원 − 1)) ÷ 인원(2명 ${Math.round(((1 + c.partyExpBonus) / 2) * 100)}%, 4명 ${Math.round(((1 + c.partyExpBonus * 3) / 4) * 100)}%). 퀘스트 처치는 모두 인정됩니다.</li>
+      <li>처치에 기여한 사람과 같은 맵(같은 채널)에 있는 파티원이 거리와 상관없이 나눠 받습니다 — 1인당 (1 + ${c.partyExpBonus} × (인원 − 1)) ÷ 인원(2명 ${Math.round(((1 + c.partyExpBonus) / 2) * 100)}%, 4명 ${Math.round(((1 + c.partyExpBonus * 3) / 4) * 100)}%). 퀘스트 처치 수는 모두 함께 오릅니다.</li>
       <li>다음 레벨까지 잡아야 하는 같은 레벨 몬스터 수는 레벨이 오를수록 늘어납니다 — Lv50 위로는 <b>한 레벨에 드는 시간이 레벨마다 고르게 늘도록</b> 맞췄습니다(아래 표). 퀘스트 보상은 그 퀘스트 최소 레벨 필요 경험치의 ${c.questExpLevels}배(레벨 몫)이고, 최소 레벨보다 ${c.questExpSpan}레벨 높을 때까지는 <b>지금 레벨에서 같은 레벨 몫</b>을 받아 경험치 %가 줄지 않습니다(그보다 높으면 최소 레벨 + ${c.questExpSpan} 기준으로 고정). 무한의 던전·필드 보스·레이드 같은 반복 보상은 다음 레벨 필요 경험치가 아니라 아래 표의 <b>반복 보상 기준</b>을 한 레벨 몫으로 쓰고, 이 값은 Lv${c.rewardLevelFrom} 위로 같은 레벨 몬스터 수 기준으로 고정돼 곡선을 따라 커지지 않습니다. 대신 레이드 클리어·필드 보스 원정은 하루 몇 번까지 <b>현재 레벨 필요 경험치의 일정 비율</b>을 성장 보너스로 더 줍니다(지역·레이드 페이지의 각 보상 칸).</li>
       <li>HP는 교전이 끝나고 ${c.hpRegen.delaySec}초 뒤부터 초당 ${c.hpRegen.pctPerSec}%씩 찹니다. MP는 전투 밖 초당 ${c.mpRegenPct}%, 전투 중 ${c.mpRegenCombatPct}%, 처치할 때 ${c.mpOnKillPct}% 찹니다.</li>
       <li>노을마을(선술집·청문회장 안 포함)에서는 HP가 교전과 상관없이 초당 ${c.hpRegen.villagePctPerSec}%씩 찹니다. 또 노을마을로 레이드·던전에서 돌아오거나 노을마을에서 장비·유물·펫을 바꾸면 기본 공격과 스킬 재사용 대기가 바로 끝납니다(물약은 그대로).</li>
@@ -1948,11 +1943,10 @@ function pageGrowth() {
     <h3>고레벨 사냥터 (Lv${c.hunt.fromLevel}~)</h3>
     <ul class="plain">
       <li><b>경험치 배율</b>: 몬스터가 세진 만큼 처치 경험치를 더 줍니다 — Lv${c.hunt.exp[0][0]} ×${c.hunt.exp[0][1]} → Lv${c.hunt.exp[1][0]} ×${c.hunt.exp[1][1]} → Lv${c.hunt.exp[2][0]} ×${c.hunt.exp[2][1]}(사이는 직선). 아래 표의 몬스터 수에 들어 있습니다. 레이드·던전·퀘스트 보상에는 곱하지 않습니다.</li>
-      <li><b>연속 처치</b>(모든 레벨 필드 사냥터): ${c.hunt.combo.windowSec}초 안에 다음 필드 몬스터(일반·정예)를 잡으면 이어집니다. ${c.hunt.combo.step}마리마다 처치 경험치 +${Math.round(c.hunt.combo.stepBonus * 100)}%(최대 +${Math.round(c.hunt.combo.maxBonus * 100)}%). 쓰러지면 끊깁니다.</li>
-      <li><b>사냥터 폭주</b>(모든 레벨 필드 사냥터): 같은 채널에서 함께 ${c.hunt.frenzy.kills}마리를 잡으면 ${c.hunt.frenzy.sec}초 동안 일반 몬스터가 ×${c.hunt.frenzy.countMul}로 몰려오고 거의 바로 다시 나오며, 처치 경험치 +${Math.round(c.hunt.frenzy.expBonus * 100)}%입니다. 체력 막대 바로 위 칩에서 연속 처치 수와 「열기」 게이지를 봅니다.</li>
-      <li><b>돌발 사건</b>(모든 레벨 필드 사냥터): 사람이 있는 사냥터 채널에 ${c.fieldEvent.gapSec[0] / 60}~${c.fieldEvent.gapSec[1] / 60}분마다 ${Object.values(c.fieldEvent.names).join(' · ')} 중 하나가 터집니다(${c.fieldEvent.limitSec / 60}분 안에 해결). 정예 습격은 정예 ${c.fieldEvent.ambush.base + c.fieldEvent.ambush.perPlayer}~${c.fieldEvent.ambush.max}마리, 몬스터 몰이는 일반 몬스터 ${c.fieldEvent.horde.waves}웨이브, 현상수배는 체력이 ${c.fieldEvent.bounty.hpBase + c.fieldEvent.bounty.hpPerPlayer}~${c.fieldEvent.bounty.hpMax}배인 정예 하나이고, 사람이 많을수록 커집니다. 사건 몬스터를 하나라도 잡는 데 끼면 성공할 때 반복 보상 기준 경험치의 ${Math.round(c.fieldEvent.reward.exp * 100)}%, 정예 ${c.fieldEvent.reward.goldKills}마리 몫 베리, ${Math.round(c.fieldEvent.reward.scrollChance * 100)}% 확률로 강화 주문서를 받습니다.</li>
+      ${c.hunt.comboOn !== false ? `<li><b>연속 처치</b>(모든 레벨 필드 사냥터): ${c.hunt.combo.windowSec}초 안에 다음 필드 몬스터(일반·정예)를 잡으면 이어집니다. ${c.hunt.combo.step}마리마다 처치 경험치 +${Math.round(c.hunt.combo.stepBonus * 100)}%(최대 +${Math.round(c.hunt.combo.maxBonus * 100)}%). 쓰러지면 끊깁니다.</li>` : ''}
+      ${c.hunt.frenzyOn !== false ? `<li><b>사냥터 폭주</b>(모든 레벨 필드 사냥터): 같은 채널에서 함께 ${c.hunt.frenzy.kills}마리를 잡으면 ${c.hunt.frenzy.sec}초 동안 일반 몬스터가 ×${c.hunt.frenzy.countMul}로 몰려오고 거의 바로 다시 나오며, 처치 경험치 +${Math.round(c.hunt.frenzy.expBonus * 100)}%입니다. 체력 막대 바로 위 칩에서 연속 처치 수와 「열기」 게이지를 봅니다.</li>` : ''}
       <li><b>사냥터 채널</b>: 한 사냥터 정원이 차면 다음 사람은 채널 2·3…으로 나뉘고, 사람이 줄면 자동으로 합쳐집니다. 미니맵 이름표(모바일은 큰 지도 머리줄)의 「채널 N」을 누르면 채널마다 인원을 보고 자리가 남은 채널이나 <b>새 채널</b>(혼자 사냥)을 직접 고를 수 있습니다. 직접 고른 채널은 자동 조정으로 옮겨지지 않고, 마을로 돌아가거나 섬을 옮기면 풀립니다. 전투 중에는 못 고르고 10초마다 한 번 바꿀 수 있습니다. 다른 채널에 있는 파티에 들어가면 전투 중이어도 바로 파티장 채널로 옮겨집니다. 마을·부두 가장자리를 잠깐(2초 안) 스치기만 하면 채널은 그대로입니다.</li>
-      <li>연속 처치·폭주 보너스는 서버 이벤트·사료·축복과 더합니다(합연산).</li>
+      ${huntBonusNames().length ? `<li>${huntBonusNames().join('·')} 보너스는 서버 이벤트·사료·축복과 더합니다(합연산).</li>` : ''}
     </ul>
     <div class="filters" style="margin-top:12px"><label class="f">레벨로 이동<input type="number" id="exp-jump" min="1" max="${D.meta.maxLevel}" value="${growthState.level}"></label></div>
     <div class="table-wrap scroll-y" id="exp-wrap"><table><thead><tr><th class="r">레벨</th><th class="r">다음 레벨까지</th><th class="r">누적 경험치</th><th class="r">같은 레벨 몬스터</th><th class="r">반복 보상 기준</th></tr></thead><tbody>
@@ -1996,7 +1990,7 @@ function pageGrowth() {
     <p><b>대량 소환</b>(${D.relics.bulk.map((n) => `${n}회`).join('·')}): 소환하다 보관함이 차면 거기까지만 소환하고, 남은 회차는 ${esc(D.gems.name)}·소환권을 쓰지 않습니다. ${D.relics.draws.filter((n) => !D.relics.bulk.includes(n)).map((n) => `${n}회`).join('·')} 소환은 보관함에 그만큼 자리가 없으면 소환되지 않습니다.</p>
     <p><b>1번 칸은 계정 공용</b>: 1번 칸에 낀 유물은 같은 계정의 모든 캐릭터가 효과를 받습니다(Lv ${D.relics.level} 미만 캐릭터도). 1번 칸에 끼면 그 유물은 캐릭터 보관함을 떠나 계정에 있고, 이미 있던 1번 칸 유물은 끼는 캐릭터의 보관함으로 돌아옵니다. 빼면 뺀 캐릭터의 보관함으로 들어갑니다(끼고 빼기는 Lv ${D.relics.level}부터).</p>
     <p><b>장착 프리셋</b>: 장착 칸 오른쪽 위의 프리셋 단추 ${D.relics.presets}개로 1·2·3번 칸 조합을 저장해 두고 한 번에 갈아 낍니다(캐릭터마다). 1번 공용 칸도 프리셋마다 바뀌고, 원래 있던 공용 칸 유물은 그 캐릭터 보관함으로 돌아옵니다. 공용 칸을 정하지 않은 프리셋이거나 다른 캐릭터가 넣은 공용 칸 유물이면 그대로 두고, 그새 합성 등으로 없어진 유물 칸은 비어서 낍니다. 어느 프리셋에든 들어 있는 유물은 합성 재료로 쓰이지 않습니다.</p>
-    <p>필드 정예 몬스터를 잡으면 Lv ${D.relics.level} 이상인 처치 인정자마다 <b>${pct(D.relics.eliteDrop.chance)}</b> 확률로 유물 1개가 보관함에 바로 들어옵니다(${D.relics.eliteDrop.grades.map((g) => `${esc(rarName(g.id))} ${pct(g.rate)}`).join(' · ')}). 보관함이 가득 차 있으면 나오지 않습니다.</p>
+    <p>필드 정예 몬스터를 잡으면 Lv ${D.relics.level} 이상이면서 처치에 함께한 사람마다 <b>${pct(D.relics.eliteDrop.chance)}</b> 확률로 유물 1개가 보관함에 바로 들어옵니다(${D.relics.eliteDrop.grades.map((g) => `${esc(rarName(g.id))} ${pct(g.rate)}`).join(' · ')}). 보관함이 가득 차 있으면 나오지 않습니다.</p>
     <p><b>천장</b>: 캐릭터마다 ${D.relics.pity.map((t) => `마지막 ${esc(rarName(t.id))} 이상 뒤로 뽑은 횟수`).join('와 ')}를 셉니다(${esc(D.gems.name)}·유물 소환권, ${D.relics.draws.map((n) => `${n}회`).join('·')} 뽑기 모두 회차마다 1). ${D.relics.pity.map((t) => `<b>${t.at}번째</b> 뽑기는 <span class="rar-${t.id}">${esc(rarName(t.id))}</span> 이상 확정`).join(', ')}이고(둘이 겹치면 높은 쪽), 확정 회차의 등급은 그 이상 등급끼리 원래 확률 비율대로 정해집니다(${D.relics.pity.map((t) => `${esc(rarName(t.id))} 확정: ${t.grades.map((g) => `${esc(rarName(g.id))} ${pct(g.rate)}`).join(' · ')}`).join(' / ')}). ${esc(rarName('epic'))} 이상이 나오면 ${esc(rarName('epic'))} 횟수를, ${esc(rarName('legendary'))} 이상이 나오면 두 횟수를 모두 처음부터 셉니다. 합성·정예 몬스터 드랍은 세지 않습니다. 진행은 유물 창 소환 띠에 보입니다. 천장이 생기기 전(2026-10-07)에 뽑은 횟수도 소급합니다: 그 뒤 처음 접속할 때 밀린 만큼 전설·영웅 유물을 한 번 넣어 드립니다(뽑은 횟수는 보관함 유물 수로 추정).</p>
     <p><b>전설 유물 확정권</b>(루비 상점 「유물 패키지」): Lv ${D.relics.level}부터 가방에서 사용하면 <span class="rar-legendary">${esc(rarName('legendary'))}</span> 유물 1개(종류 무작위)를 바로 얻습니다. 뽑기가 아니라서 천장 횟수에는 들어가지 않고, 보관함이 가득 차 있으면 쓸 수 없습니다. 거래·판매할 수 없습니다.</p>
     <div class="grid g2">
@@ -2083,7 +2077,7 @@ function expBonusSection() {
     <ul class="plain small" style="margin-top:12px">
       <li><b>붙는 보상</b>: 몬스터 처치 · 레이드 클리어 · 던전 웨이브(${esc(lvDg?.name ?? '레벨업 던전')} 제외) · 필드 보스 원정 경험치.</li>
       <li><b>붙지 않는 보상</b>: 퀘스트 보상 · 레이드·필드 보스 원정 성장 보너스 · ${esc(lvDg?.name ?? '레벨업 던전')} · <a href="#/world#tavern">선술집 의뢰</a>.</li>
-      <li>고레벨 사냥터의 연속 처치·사냥터 폭주 보너스도 처치 경험치 배율에 더합니다.</li>
+      ${huntBonusNames().length ? `<li>고레벨 사냥터의 ${huntBonusNames().join('·')} 보너스도 처치 경험치 배율에 더합니다.</li>` : ''}
       <li>운영자 확률 이벤트에는 경험치 말고도 ${ev.kinds.filter((k) => k.id !== 'exp').map((k) => esc(k.label)).join(' · ')} 배율이 있습니다. 확률은 배율만큼 곱하되 100%를 넘지 않고, 불운 보정(천장)은 곱하지 않습니다. 핫타임 드랍 배율은 운영자 드랍 이벤트와 곱하고, 전리품·장비 등급 말고도 젬·유물·태초의 검 같은 드랍 확률에 모두 붙습니다(앱솔루트 장비·레이드 보스 재료 제외 · 무료 루비는 배율 없음). 운영자 이벤트는 서버가 다시 켜지면 끝나고, 정각 이벤트·핫타임은 다시 켜진 서버가 그 시간대 안이면 남은 시간만큼 다시 켭니다.</li>
     </ul>`;
 }
@@ -2243,7 +2237,7 @@ function buildSearch() {
     for (const n of i.npcs) add('NPC', n.name, `#/world#isl-${i.id}`, `${i.name} · ${ROLE[n.role] ?? n.role}`, ph('info'), '', `npc${ROLE[n.role] ?? ''}`);
     for (const qid of i.quests) {
       const q = M.quests.get(qid);
-      if (q) add('퀘스트', q.name, `#/world#isl-${i.id}`, `${i.name} 퀘스트 · Lv${q.minLevel}`, ph('scroll-text'), '', '퀘스트');
+      if (q) add('퀘스트', q.name, `#/world#isl-${i.id}`, `${q.chapter ? `${q.chapter} · ` : ''}${i.name} 퀘스트 · Lv${q.minLevel}`, ph('scroll-text'), '', `퀘스트${q.chapter ? ` ${q.chapter}` : ''}`);
     }
   }
   const gimmickWords = (g) => (g ? ['기믹 패턴', ...new Set([...g.phases.flat(), ...g.map].map((x) => x.name))].join(' ') : '');
@@ -2272,7 +2266,6 @@ function buildSearch() {
   add('콘텐츠', '1:1 거래', '#/world#trade', `개인 거래 · 거리 ${so.trade.range} 안 · 베리 수수료 ${so.trade.feePct}%`, ph('coins'), '거래 신청 준비 확인', '거래 개인거래 교환');
   add('콘텐츠', '편지·우편함', '#/world#letter', `계정당 하루 ${so.letter.perDay}통 · 첨부 ${so.letter.attachMax}칸 + 베리`, ph('send'), '우표값 첨부 우편 받기', '편지 우편 우편함 우표 첨부');
   add('콘텐츠', '친구', '#/world#friends', `계정끼리 · 최대 ${so.friends.max}명`, ph('heart'), '친구 추가 요청 선물', '친구 요청 선물');
-  add('콘텐츠', '게시판', '#/world#board', `메뉴(ESC) › 게시판 · 말머리 ${so.board.tags.join('·')}`, ph('scroll-text'), `개념글(추천 ${so.board.bestUp}개 이상) 검색 댓글 추천 비추천`, '게시판 갤러리 디시 글 댓글 개념글 커뮤니티');
   add('콘텐츠', `${D.constants.grades.absolute.name} 장비`, '#/drops#absolute', `최상위 장비 · 착용 Lv${D.constants.grades.absolute.reqLevel} · ${D.constants.grades.absolute.raids.map((r) => r.raidName).join('·')}`, ph('crown'), `유니크의 ${D.constants.grades.absolute.overUnique}배 모든 능력치 +${D.constants.grades.absolute.allStat}`, '앱솔루트 absolute 최초의 용자 황혼');
   add('콘텐츠', '파티 붐박스', '#/world#boombox', `파티 음악 · ${D.gems.name} ${D.boombox.gemPrice}개 = ${D.boombox.passMinutes}분`, ph('sparkles'), '유튜브 곡 대기열 이용권', '붐박스 음악 유튜브 노래 파티');
   add('콘텐츠', '초월', '#/growth#transcend', `Lv${D.transcend.level} · 같은 각성 장비 둘 → ★ · 최대 ★${D.transcend.max} · 기본 능력치 최대 +${Math.round((D.transcend.mul[D.transcend.max] - 1) * 100)}%`, ph('sparkles'), '각성 장비(무기·방어구·장신구) 별 초월 등급 · 단계마다 강화서·베리', '초월 별 각성 장비 무기 방어구 장신구 합치기 transcend 강화서 베리 비용');
@@ -2281,10 +2274,9 @@ function buildSearch() {
   add('콘텐츠', '페이드', '#/growth#fade', `계정 레벨 합 ${D.codex.fade.step}마다 최종 공격력 +${D.codex.fade.stepPct}% · 최대 ${D.codex.fade.max}%`, ph('sparkles'), '가장 높은 캐릭터를 뺀 나머지 레벨 합', '페이드 계정 레벨 합 부캐 최종 공격력');
   add('콘텐츠', '펫', '#/growth#pets', `Lv${D.pets.level} · 계정 공용 · 장착 ${D.pets.slots}칸 · 최종 공격력 곱연산${D.pets.collection ? ` · 도감 최대 +${D.pets.collection[D.pets.collection.length - 1].atkPct}%` : ''}`, ph('sparkles'), D.pets.list.map((p) => p.name).join(' · '), '펫 소환 소라고둥 펫 간식 선택권 유니크 펫 도감 도감 보너스 pet');
   add('콘텐츠', '레벨 해금', '#/growth#unlocks', `레벨마다 열리는 시스템 ${D.unlocks.length}개 · 잠금 ${D.unlocks.filter((u) => u.gated).map((u) => `${u.name} Lv${u.level}`).join(' · ')}`, ph('trending-up'), D.unlocks.map((u) => `Lv${u.level} ${u.name}`).join(' · '), '레벨 해금 잠금 새 시스템 튜토리얼 안내 unlock');
-  add('콘텐츠', '돌발 사건', '#/growth', `필드 사냥터 · ${Object.values(D.constants.fieldEvent.names).join(' · ')} · ${D.constants.fieldEvent.limitSec / 60}분 제한`, ph('sparkles'), '사람이 있는 사냥터 채널에 몇 분마다 터지는 사건', '돌발 사건 정예 습격 몬스터 몰이 현상수배 사냥터 이벤트');
-  add('콘텐츠', '시즌 보물', '#/growth#season', `주간 시즌 · 1~7일차 임무 · ${D.season.token} · 보물 2개 × ${D.season.levels}단계 · 교환소`, ph('gem'), D.season.schedule.flatMap((w) => w.treasures.map((t) => t.name)).join(' · '), '보물 사냥 시즌 주간 보물 지도 조각 교환소 길잡이 초행 season');
+  add('콘텐츠', '시즌 보물', '#/growth#season', `주간 시즌 · 1~7일차 임무 · ${D.season.token} · 보물 2개 × ${D.season.levels}단계 · 교환소`, ph('gem'), D.season.schedule.flatMap((w) => w.treasures.map((t) => t.name)).join(' · '), '보물 사냥 시즌 주간 보물 지도 조각 교환소 길잡이 초행 초행 부스트 season');
   for (const w of D.season.schedule) for (const t of w.treasures) add('콘텐츠', t.name, '#/growth#season', `보물 · 시즌 ${w.season} · ${t.max}`, ph('gem'), t.desc, '보물 시즌');
-  add('콘텐츠', '길잡이', '#/growth#season', `초행과 함께 레이드 클리어 · 1명당 조각 ${D.season.guide.perNewbieTokens}개 · 베리 +${D.season.guide.perNewbieGoldPct}%`, ph('map'), `시즌마다 ${D.season.guide.weeklyRuns}판`, '길잡이 초행 레이드 처음 새싹 동행');
+  add('콘텐츠', '길잡이', '#/growth#season', `초행과 함께 레이드 클리어 · 1명당 조각 ${D.season.guide.perNewbieTokens}개 · 베리 +${D.season.guide.perNewbieGoldPct}%`, ph('map'), `시즌마다 ${D.season.guide.weeklyRuns}판`, '길잡이 초행 초행 부스트 레이드 처음 새싹 동행');
   add('콘텐츠', '항해 등급', '#/growth#voyage', `Lv${D.meta.maxLevel} 뒤 경험치 → 등급 · ${D.voyage.branches.map((b) => b.name).join('·')}`, ph('trending-up'), D.voyage.branches.map((b) => `${b.name} ${b.stat} +${b.max}${b.unit}`).join(' · '), '항해 등급 만렙 경험치 파라곤 돌격 버팀 급소 풍어 voyage');
   add('콘텐츠', '명예의 전당', '#/world#hall-of-fame', `${D.hallOfFame.season} 레벨 랭킹 상위 ${D.hallOfFame.legends.length}명 동상`, ph('crown'), D.hallOfFame.legends.map((l) => l.name).join(' · '), '명예의전당 동상 랭커 시즌');
   add('콘텐츠', `${D.hallOfFame.lv300.title} 명예의 전당`, '#/world#hall-lv300', `직업별 레벨 랭킹 1~10위 · ~${D.hallOfFame.lv300.until}`, ph('crown'), Object.values(D.hallOfFame.lv300.ranks).flat().map((r) => r.name).join(' · '), '명예의전당 만렙 300 랭킹 직업별');
