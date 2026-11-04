@@ -244,6 +244,12 @@ function pageGuide() {
   const within = (a, b) => events.filter((e) => e.lv >= a && e.lv < b).sort((x, y) => x.lv - y.lv);
   const evList = (list) => (list.length ? `<ul class="plain small">${list.map((e) => `<li><span class="chip">Lv${e.lv}</span> ${e.html}</li>`).join('')}</ul>` : '');
   const hub = D.islands.find((i) => i.hub);
+  // 사냥 의뢰(반복) — 그 전 커밋으로 만든 데이터에는 없다(null)
+  const hb = D.huntBoard ?? null;
+  const huntLine = (id) => {
+    const rows = hb ? hb.rows.filter((r) => r.island === id) : [];
+    return rows.length ? `<p class="small"><a href="#/growth#hunt-board"><b>${esc(hb.name)}</b></a> · ${rows.map((r) => `${mobLink(r.mob)} ${fmt(r.n)}마리`).join(' · ')}</p>` : '';
+  };
   const ladder = D.raids.filter((r) => r.ladder);
   const steps = [
     `<div class="card road-step" id="step-start"><span class="lv">시작</span><h3><a href="#/world#prologue">서막 — ${esc(D.prologue.island)}</a></h3><p class="small">새 캐릭터는 서막(건너뛸 수 있음)을 치른 뒤 Lv1로 <a href="#/world#isl-${esc(hub?.id ?? '')}">${esc(D.village.name)}</a> 부두에서 깨어나고, 깨어나는 컷신이 끝나면 하린의 배로 곧장 태초마을에 닿아 첫 사냥 퀘스트 「해안의 무덤 거미」를 받은 채 시작합니다(${esc(D.village.name)} 도입 퀘스트의 보상은 그대로 받고, 첫 무기는 바로 손에 쥡니다). ${esc(D.village.name)}은 모든 항로가 모이는 중심 마을로, 대장간·잡화점·창고·젬 상점이 있고 레이드·일일 던전·필드 보스 원정은 선술집 주인에게서 출발합니다. 섬 사이는 뱃사공의 배로 옮겨 다닙니다.</p></div>`,
@@ -251,7 +257,7 @@ function pageGuide() {
       const [a, b] = isl.levelRange;
       const mobs = isl.mobs.map((id) => M.mobs.get(id)).filter((m) => m?.kind === 'field');
       const boss = isl.bossId ? M.mobs.get(isl.bossId) : null;
-      return `<div class="card road-step" id="step-${esc(isl.id)}"><span class="lv">Lv ${a} ~ ${b}</span><h3><a href="#/world#isl-${esc(isl.id)}">${esc(isl.name)}</a> <span class="chip">입장 Lv${isl.minLevel}</span></h3><p class="small muted">사냥터 · 몬스터 ${mobs.length}종${boss ? ` · 섬 보스 ${esc(boss.name)}` : ''} · 퀘스트 ${isl.quests.length}개 · 상점 ${isl.shopTiers.map((t) => `T${t}`).join('·')}</p>${evList(within(i === 0 ? 0 : a, i === field.length - 1 ? max : b))}</div>`;
+      return `<div class="card road-step" id="step-${esc(isl.id)}"><span class="lv">Lv ${a} ~ ${b}</span><h3><a href="#/world#isl-${esc(isl.id)}">${esc(isl.name)}</a> <span class="chip">입장 Lv${isl.minLevel}</span></h3><p class="small muted">사냥터 · 몬스터 ${mobs.length}종${boss ? ` · 섬 보스 ${esc(boss.name)}` : ''} · 퀘스트 ${isl.quests.length}개 · 상점 ${isl.shopTiers.map((t) => `T${t}`).join('·')}</p>${huntLine(isl.id)}${evList(within(i === 0 ? 0 : a, i === field.length - 1 ? max : b))}</div>`;
     }),
     `<div class="card road-step" id="step-max"><span class="lv">Lv ${max} · 만렙</span><h3>만렙 뒤에도</h3>${evList(within(max, Infinity))}<ul class="plain small">${ladder.length ? `<li><a href="#/world#raid-${esc(ladder[0].id)}"><b>${esc(ladder[0].name.replace(/\s*\(.*\)$/, ''))}</b></a> — 만렙 레이드 사다리 ${ladder.length}단계(${ladder.map((r) => esc(r.ladder.stepName)).join(' → ')}), 단계마다 입장 전투력이 오르고 그보다 전투력이 낮으면 들어갈 수 없습니다.</li>` : ''}<li><a href="#/growth#season"><b>시즌 보물</b></a> — 날마다 바뀌는 시즌 임무, 주간 보물과 교환소</li></ul></div>`,
   ];
@@ -320,7 +326,7 @@ function pageDamage() {
       <li><b>대상</b>: 기사 수호자 갈래(수호자·불멸의 수호자·성채의 거신)와 힐러·바드 모든 갈래(전직 전 포함)입니다.</li>
       <li><b>표준 장비</b> = 내 레벨 지역 장비 일반 등급 +0 일곱 칸. 내 공격력(수호자는 물리, 힐러·바드는 마법)과 치명타 피해가 그보다 높을수록 커지고, 같거나 낮으면 0입니다. 공격력이 두 배가 될 때마다 최대치의 ${pct(1 / Math.log2(c.supportScale.fullRatio))}씩 오르고 ${c.supportScale.fullRatio}배에서 최대입니다. 치명타 피해 배율은 유물·증강을 더한 값이고, 노래로 오른 주는 피해는 셈하지 않습니다.</li>
       <li><b>노래</b>(주는 피해·공격 속도·이동 속도·재사용 대기 감소)는 파티 전체 피해를 곱하므로 방어 쪽의 절반만 커집니다. 바드 「시간의 변주」류의 돌고 있는 재사용 대기 즉시 단축도 노래 배율을 씁니다.</li>
-      <li><b>상한</b>: 받는 피해 감소 ${c.supportScale.guardCap}% · 재사용 대기 감소 노래 ${c.supportScale.songCdrCap}% · 즉시 단축 ${c.supportScale.cdCutCap}% · 부활(수호천사) HP ${c.supportScale.hpPctCap}%. 지속 시간·스킬 피해·무적·황금 성채(받는 피해 90% 감소)는 그대로입니다.</li>
+      <li><b>상한</b>: 받는 피해 감소 ${c.supportScale.guardCap}% · 재사용 대기 감소 노래 ${c.supportScale.songCdrCap}% · 즉시 단축 ${c.supportScale.cdCutCap}% · 부활 HP ${c.supportScale.hpPctCap}%. 지속 시간·스킬 피해·무적·황금 성채(받는 피해 90% 감소)는 그대로입니다.</li>
       <li>결투장에서는 붙지 않습니다. 캐릭터 창 세부 능력치의 "서포트 효과"(바드는 "노래 효과"도)에 지금 붙는 %가 나옵니다.</li>
     </ul>
 
@@ -1921,6 +1927,8 @@ function pageGrowth() {
   // 펫 도감 보너스(2026-10-19) — 그 전 커밋으로 만든 데이터에는 없다(null)
   const petCol = D.pets.collection;
   const petColTop = petCol ? petCol[petCol.length - 1] : null;
+  // 사냥 의뢰(반복) — 그 전 커밋으로 만든 데이터에는 없다(null)
+  const hb = D.huntBoard ?? null;
   return `
     ${head('성장·강화')}
     <h2 style="margin-top:0">장비 성장</h2>
@@ -1937,6 +1945,7 @@ function pageGrowth() {
     <ul class="plain">
       <li>처치에 기여한 사람과 같은 맵(같은 채널)에 있는 파티원이 거리와 상관없이 나눠 받습니다 — 1인당 (1 + ${c.partyExpBonus} × (인원 − 1)) ÷ 인원(2명 ${Math.round(((1 + c.partyExpBonus) / 2) * 100)}%, 4명 ${Math.round(((1 + c.partyExpBonus * 3) / 4) * 100)}%). 퀘스트 처치 수는 모두 함께 오릅니다.</li>
       <li>다음 레벨까지 잡아야 하는 같은 레벨 몬스터 수는 레벨이 오를수록 늘어납니다 — Lv50 위로는 <b>한 레벨에 드는 시간이 레벨마다 고르게 늘도록</b> 맞췄습니다(아래 표). 퀘스트 보상은 그 퀘스트 최소 레벨 필요 경험치의 ${c.questExpLevels}배(레벨 몫)이고, 최소 레벨보다 ${c.questExpSpan}레벨 높을 때까지는 <b>지금 레벨에서 같은 레벨 몫</b>을 받아 경험치 %가 줄지 않습니다(그보다 높으면 최소 레벨 + ${c.questExpSpan} 기준으로 고정). 무한의 던전·필드 보스·레이드 같은 반복 보상은 다음 레벨 필요 경험치가 아니라 아래 표의 <b>반복 보상 기준</b>을 한 레벨 몫으로 쓰고, 이 값은 Lv${c.rewardLevelFrom} 위로 같은 레벨 몬스터 수 기준으로 고정돼 곡선을 따라 커지지 않습니다. 대신 레이드 클리어·필드 보스 원정은 하루 몇 번까지 <b>현재 레벨 필요 경험치의 일정 비율</b>을 성장 보너스로 더 줍니다(지역·레이드 페이지의 각 보상 칸).</li>
+      ${hb ? `<li id="hunt-board"><b>${esc(hb.name)}</b>: 본 퀘스트 레벨이 모자라면 저절로 들어옵니다. 그 레벨 사냥터 몬스터를 다 잡으면 그 자리에서 끝납니다. 처치 경험치의 ${hb.expSharePct}%를 더 받고 같은 의뢰가 바로 다시 들어옵니다. 섬별 몬스터와 마릿수는 <a href="#/guide">모험 길잡이</a>에 있습니다.</li>` : ''}
       <li>HP는 교전이 끝나고 ${c.hpRegen.delaySec}초 뒤부터 초당 ${c.hpRegen.pctPerSec}%씩 찹니다. MP는 전투 밖 초당 ${c.mpRegenPct}%, 전투 중 ${c.mpRegenCombatPct}%, 처치할 때 ${c.mpOnKillPct}% 찹니다.</li>
       <li>노을마을(선술집·청문회장 안 포함)에서는 HP가 교전과 상관없이 초당 ${c.hpRegen.villagePctPerSec}%씩 찹니다. 또 노을마을로 레이드·던전에서 돌아오거나 노을마을에서 장비·유물·펫을 바꾸면 기본 공격과 스킬 재사용 대기가 바로 끝납니다(물약은 그대로).</li>
     </ul>
@@ -2077,6 +2086,7 @@ function expBonusSection() {
     <ul class="plain small" style="margin-top:12px">
       <li><b>붙는 보상</b>: 몬스터 처치 · 레이드 클리어 · 던전 웨이브(${esc(lvDg?.name ?? '레벨업 던전')} 제외) · 필드 보스 원정 경험치.</li>
       <li><b>붙지 않는 보상</b>: 퀘스트 보상 · 레이드·필드 보스 원정 성장 보너스 · ${esc(lvDg?.name ?? '레벨업 던전')} · <a href="#/world#tavern">선술집 의뢰</a>.</li>
+      ${x.firstChar?.mul ? `<li><b>첫 캐릭터 ×${fmt(x.firstChar.mul)}</b>: 계정에 Lv${x.firstChar.level} 캐릭터가 없으면 처음 만든 캐릭터(대장장이·연금술사 제외)는 퀘스트·선술집·성장 보너스를 포함한 모든 경험치를 ${fmt(x.firstChar.mul)}배 받습니다. 위 배율과 곱하고, Lv${x.firstChar.level}이 되면 끝납니다. 생활 경험치에는 붙지 않습니다.</li>` : ''}
       ${huntBonusNames().length ? `<li>고레벨 사냥터의 ${huntBonusNames().join('·')} 보너스도 처치 경험치 배율에 더합니다.</li>` : ''}
       <li>운영자 확률 이벤트에는 경험치 말고도 ${ev.kinds.filter((k) => k.id !== 'exp').map((k) => esc(k.label)).join(' · ')} 배율이 있습니다. 확률은 배율만큼 곱하되 100%를 넘지 않고, 불운 보정(천장)은 곱하지 않습니다. 핫타임 드랍 배율은 운영자 드랍 이벤트와 곱하고, 전리품·장비 등급 말고도 젬·유물·태초의 검 같은 드랍 확률에 모두 붙습니다(앱솔루트 장비·레이드 보스 재료 제외 · 무료 루비는 배율 없음). 운영자 이벤트는 서버가 다시 켜지면 끝나고, 정각 이벤트·핫타임은 다시 켜진 서버가 그 시간대 안이면 남은 시간만큼 다시 켭니다.</li>
     </ul>`;
@@ -2213,6 +2223,8 @@ function buildSearch() {
   add('콘텐츠', '캐릭터 칸 늘리기', '#/drops#gems', `기본 ${D.charSlots.base}칸 · ${D.gems.name} ${D.charSlots.gems}개로 1칸 · 최대 ${D.charSlots.buyMax}번`, ph('gem'), '캐릭터 선택 화면 칸 늘리기', '캐릭터 슬롯 칸 추가 부캐 캐릭터 생성 자리');
   add('콘텐츠', '농장 트랙터', '#/world#life', `${fmt(D.tractor.price)} 베리 · 이동 속도 ×${D.tractor.speedMul} · 지나가며 수확`, ph('sparkles'), D.tractor.villages.join(' · '), '트랙터 tractor 농장 탈것 경적 뒷자리');
   add('콘텐츠', '레이드로 이끄는 곁가지 퀘스트', '#/world#quest-lines', '심연의 원정대 · 성역 토벌 의뢰', ph('scroll-text'), [D.questLines.raidCall, ...D.questLines.bountyRaid, ...D.questLines.bountyHunt].map((id) => M.quests.get(id)?.name ?? '').join(' · '), '성역 토벌 의뢰 현상금 레이드 줄기 사냥 줄기 원정대 곁가지');
+  const hb = D.huntBoard ?? null;
+  if (hb) add('콘텐츠', hb.name, '#/guide', `반복 퀘스트 · 처치 경험치 +${hb.expSharePct}%`, ph('scroll-text'), [...new Set(hb.rows.map((r) => M.mobs.get(r.mob)?.name ?? ''))].join(' · '), '사냥 의뢰 반복 퀘스트 레벨 대기');
   if (D.jormungandr) add('콘텐츠', '세계뱀 요르문간드', `#/mobs/${D.jormungandr.mobId}`, '항해사 바다 레이드 · 크라켄 진주로 부른다', ph('crown'), D.jormungandr.gimmicks.map((g) => g.name).join(' · '), '요르문간드 세계뱀 바다 레이드 항해사 크라켄 진주 소환 똬리');
   for (const c of D.classes) {
     const hidden = c.id === D.blacksmith.id || c.id === D.alchemist.id;
