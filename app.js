@@ -1888,7 +1888,7 @@ function seasonSection() {
     <p>일일 완주한 날 수가 ${S.milestones.map((m) => `<b>${m.days}일</b>(${m.tokens}개)`).join(' · ')}에 닿으면 바로 더 받습니다. 한 주를 빠짐없이 하면 <b>${S.weekTokens}개</b>입니다.</p>
     <h3>${esc(S.token)} 따로 얻는 곳</h3>
     <ul class="plain">
-      <li><b>레이드 초행</b>: 그 계정의 어느 캐릭터도 깬 적 없는 레이드(사다리 레이드는 단계마다)를 처음 깨면 조각 <b>${G.firstTokens}개</b> · ${itemLink(D.scrolls.id)} ${G.firstScrolls}개. 시즌이 바뀌어도 다시 받지 않습니다. 깬 횟수가 <b>${G.boostBelow}회 미만</b>이면 그 레이드 안에서 <b>초행 부스트</b>(받는 피해 −${G.boostTakenCutPct}%, 즉사 공격도 HP 1로 버팀)를 받습니다.</li>
+      <li><b>레이드 초행</b>: 그 계정의 어느 캐릭터도 깬 적 없는 레이드(사다리 레이드는 단계마다)를 처음 깨면 조각 <b>${G.firstTokens}개</b> · ${itemLink(D.scrolls.id)} ${G.firstScrolls}개. 시즌이 바뀌어도 다시 받지 않습니다.</li>
       <li><b>길잡이</b>: 초행인 사람과 함께 레이드를 깨면, 함께 깬 초행 1명당 조각 <b>${G.perNewbieTokens}개</b>와 그 판 클리어 베리 <b>+${G.perNewbieGoldPct}%</b>(한 판에 초행 ${G.maxNewbies}명까지). 계정마다 시즌에 <b>${G.weeklyRuns}판</b>, 같은 초행 계정과는 시즌에 ${G.perAccountWeekly}판까지 셉니다. 일반·사다리 레이드만 해당하고 길드 레이드는 빠집니다.</li>
       <li><b>항해 등급</b>: 아래 항해 등급 절을 보세요.</li>
     </ul>
@@ -2286,9 +2286,9 @@ function buildSearch() {
   add('콘텐츠', '페이드', '#/growth#fade', `계정 레벨 합 ${D.codex.fade.step}마다 최종 공격력 +${D.codex.fade.stepPct}% · 최대 ${D.codex.fade.max}%`, ph('sparkles'), '가장 높은 캐릭터를 뺀 나머지 레벨 합', '페이드 계정 레벨 합 부캐 최종 공격력');
   add('콘텐츠', '펫', '#/growth#pets', `Lv${D.pets.level} · 계정 공용 · 장착 ${D.pets.slots}칸 · 최종 공격력 곱연산${D.pets.collection ? ` · 도감 최대 +${D.pets.collection[D.pets.collection.length - 1].atkPct}%` : ''}`, ph('sparkles'), D.pets.list.map((p) => p.name).join(' · '), '펫 소환 소라고둥 펫 간식 선택권 유니크 펫 도감 도감 보너스 pet');
   add('콘텐츠', '레벨 해금', '#/growth#unlocks', `레벨마다 열리는 시스템 ${D.unlocks.length}개 · 잠금 ${D.unlocks.filter((u) => u.gated).map((u) => `${u.name} Lv${u.level}`).join(' · ')}`, ph('trending-up'), D.unlocks.map((u) => `Lv${u.level} ${u.name}`).join(' · '), '레벨 해금 잠금 새 시스템 튜토리얼 안내 unlock');
-  add('콘텐츠', '시즌 보물', '#/growth#season', `주간 시즌 · 1~7일차 임무 · ${D.season.token} · 보물 2개 × ${D.season.levels}단계 · 교환소`, ph('gem'), D.season.schedule.flatMap((w) => w.treasures.map((t) => t.name)).join(' · '), '보물 사냥 시즌 주간 보물 지도 조각 교환소 길잡이 초행 초행 부스트 season');
+  add('콘텐츠', '시즌 보물', '#/growth#season', `주간 시즌 · 1~7일차 임무 · ${D.season.token} · 보물 2개 × ${D.season.levels}단계 · 교환소`, ph('gem'), D.season.schedule.flatMap((w) => w.treasures.map((t) => t.name)).join(' · '), '보물 사냥 시즌 주간 보물 지도 조각 교환소 길잡이 초행 season');
   for (const w of D.season.schedule) for (const t of w.treasures) add('콘텐츠', t.name, '#/growth#season', `보물 · 시즌 ${w.season} · ${t.max}`, ph('gem'), t.desc, '보물 시즌');
-  add('콘텐츠', '길잡이', '#/growth#season', `초행과 함께 레이드 클리어 · 1명당 조각 ${D.season.guide.perNewbieTokens}개 · 베리 +${D.season.guide.perNewbieGoldPct}%`, ph('map'), `시즌마다 ${D.season.guide.weeklyRuns}판`, '길잡이 초행 초행 부스트 레이드 처음 새싹 동행');
+  add('콘텐츠', '길잡이', '#/growth#season', `초행과 함께 레이드 클리어 · 1명당 조각 ${D.season.guide.perNewbieTokens}개 · 베리 +${D.season.guide.perNewbieGoldPct}%`, ph('map'), `시즌마다 ${D.season.guide.weeklyRuns}판`, '길잡이 초행 레이드 처음 새싹 동행');
   add('콘텐츠', '항해 등급', '#/growth#voyage', `Lv${D.meta.maxLevel} 뒤 경험치 → 등급 · ${D.voyage.branches.map((b) => b.name).join('·')}`, ph('trending-up'), D.voyage.branches.map((b) => `${b.name} ${b.stat} +${b.max}${b.unit}`).join(' · '), '항해 등급 만렙 경험치 파라곤 돌격 버팀 급소 풍어 voyage');
   add('콘텐츠', '명예의 전당', '#/world#hall-of-fame', `${D.hallOfFame.season} 레벨 랭킹 상위 ${D.hallOfFame.legends.length}명 동상`, ph('crown'), D.hallOfFame.legends.map((l) => l.name).join(' · '), '명예의전당 동상 랭커 시즌');
   add('콘텐츠', `${D.hallOfFame.lv300.title} 명예의 전당`, '#/world#hall-lv300', `직업별 레벨 랭킹 1~10위 · ~${D.hallOfFame.lv300.until}`, ph('crown'), Object.values(D.hallOfFame.lv300.ranks).flat().map((r) => r.name).join(' · '), '명예의전당 만렙 300 랭킹 직업별');
